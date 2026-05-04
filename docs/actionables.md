@@ -25,7 +25,7 @@ adding bigger features.
 
 ### ACT-001 - Tier 1 Smoke Test Checklist
 
-- Status: Ready
+- Status: Done
 - Pain addressed: new fixes are only useful if they hold together across modes,
   grid types, and browser reloads.
 - Scope:
@@ -50,7 +50,7 @@ adding bigger features.
 
 ### ACT-002 - Add Manual QA Script
 
-- Status: Ready
+- Status: Done
 - Pain addressed: future changes can quietly break mobile and charting fixes.
 - Scope:
   - Create a concise `docs/qa-checklist.md`.
@@ -86,7 +86,7 @@ adding bigger features.
 
 ### ACT-011 - Plain Data Export And Import
 
-- Status: Ready
+- Status: Done
 - Pain addressed: users dislike pattern lock-in and want portable files.
 - Scope:
   - Export a `.json` project file.
@@ -293,4 +293,3 @@ adding bigger features.
 - Wrong-side row shading.
 - Active row highlight/follow mode.
 - Responsive panel collapse.
-

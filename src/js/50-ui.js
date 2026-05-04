@@ -64,8 +64,8 @@ function updateIndicator() {
 }
 
 // ── State setters ──
-function setStitch(id) { S.activeStitch = id; renderStitches(); updateIndicator(); }
-function setColor(c)   { S.activeColor = c; renderPalette(); updateIndicator(); }
+function setStitch(id) { S.activeStitch = id; renderStitches(); updateIndicator(); scheduleAutosave(); }
+function setColor(c)   { S.activeColor = c; renderPalette(); updateIndicator(); scheduleAutosave(); }
 
 function setMode(mode) {
   S.mode = mode; S.activeStitch = mode === 'crochet' ? 'dc' : 'k';
@@ -110,6 +110,7 @@ function setHexOrient(o) {
   document.getElementById('hFlat').classList.toggle('on', S.hexFlat);
   document.getElementById('hPointy').classList.toggle('on', !S.hexFlat);
   draw();
+  scheduleAutosave();
 }
 
 function applySqSize() {
@@ -131,7 +132,7 @@ function applySqSize() {
 function applyCellSize() {
   S.cellSize = Math.max(4, Math.min(80, parseInt(document.getElementById('sqCell').value) || 26));
   document.getElementById('sqCell').value = S.cellSize;
-  updateZoomLabel(); draw();
+  updateZoomLabel(); draw(); scheduleAutosave();
 }
 
 function applyHexSize() {
@@ -163,16 +164,32 @@ function applyGauge() {
 
 // ── Panel collapse ──
 let lpOpen = true, rpOpen = true;
+let _lastPanelNarrow = null;
+
+function applyPanelState() {
+  document.getElementById('leftPanel').classList.toggle('collapsed', !lpOpen);
+  document.getElementById('rightPanel').classList.toggle('collapsed', !rpOpen);
+  document.getElementById('lpToggle').textContent = lpOpen ? '‹' : '›';
+  document.getElementById('rpToggle').textContent = rpOpen ? '›' : '‹';
+}
+
+function syncResponsivePanels() {
+  const isNarrow = window.matchMedia('(max-width: 720px)').matches;
+  if (_lastPanelNarrow === isNarrow) return;
+  _lastPanelNarrow = isNarrow;
+  lpOpen = !isNarrow;
+  rpOpen = !isNarrow;
+  applyPanelState();
+}
+
 function toggleLP() {
   lpOpen = !lpOpen;
-  document.getElementById('leftPanel').classList.toggle('collapsed', !lpOpen);
-  document.getElementById('lpToggle').textContent = lpOpen ? '‹' : '›';
+  applyPanelState();
   requestAnimationFrame(resize);
 }
 function toggleRP() {
   rpOpen = !rpOpen;
-  document.getElementById('rightPanel').classList.toggle('collapsed', !rpOpen);
-  document.getElementById('rpToggle').textContent = rpOpen ? '›' : '‹';
+  applyPanelState();
   requestAnimationFrame(resize);
 }
 
@@ -185,7 +202,7 @@ function adjZoom(delta) {
     S.hexSize = Math.max(4, Math.min(80, Math.round(S.hexSize * (1 + delta))));
     document.getElementById('hexSize').value = S.hexSize;
   }
-  updateZoomLabel(); draw();
+  updateZoomLabel(); draw(); scheduleAutosave();
 }
 
 function updateZoomLabel() {
@@ -198,15 +215,15 @@ function resetZoom() {
   S.panX = 0; S.panY = 0;
   if (S.gridType === 'square') { S.cellSize = 26; document.getElementById('sqCell').value = 26; }
   else { S.hexSize = 26; document.getElementById('hexSize').value = 26; }
-  updateZoomLabel(); draw();
+  updateZoomLabel(); draw(); scheduleAutosave();
 }
 
 // ── Display toggles ──
-function togGrid(on)    { S.showGrid    = on; document.getElementById('gOn').classList.toggle('on', on); document.getElementById('gOff').classList.toggle('on', !on); draw(); }
-function togLabels(on)  { S.showLabels  = on; document.getElementById('lOn').classList.toggle('on', on); document.getElementById('lOff').classList.toggle('on', !on); draw(); }
-function togSyms(on)    { S.showSyms    = on; document.getElementById('sOn').classList.toggle('on', on); document.getElementById('sOff').classList.toggle('on', !on); draw(); }
-function togProtect(on) { S.protectFilled = on; document.getElementById('pOn').classList.toggle('on', on); document.getElementById('pOff').classList.toggle('on', !on); toast(on ? 'Filled cells need 2 clicks to overwrite' : 'Single-click overwrite enabled'); }
-function togWS(on)      { S.shadeWS     = on; document.getElementById('wsOn').classList.toggle('on', on); document.getElementById('wsOff').classList.toggle('on', !on); draw(); }
+function togGrid(on)    { S.showGrid    = on; document.getElementById('gOn').classList.toggle('on', on); document.getElementById('gOff').classList.toggle('on', !on); draw(); scheduleAutosave(); }
+function togLabels(on)  { S.showLabels  = on; document.getElementById('lOn').classList.toggle('on', on); document.getElementById('lOff').classList.toggle('on', !on); draw(); scheduleAutosave(); }
+function togSyms(on)    { S.showSyms    = on; document.getElementById('sOn').classList.toggle('on', on); document.getElementById('sOff').classList.toggle('on', !on); draw(); scheduleAutosave(); }
+function togProtect(on) { S.protectFilled = on; document.getElementById('pOn').classList.toggle('on', on); document.getElementById('pOff').classList.toggle('on', !on); toast(on ? 'Filled cells need 2 clicks to overwrite' : 'Single-click overwrite enabled'); scheduleAutosave(); }
+function togWS(on)      { S.shadeWS     = on; document.getElementById('wsOn').classList.toggle('on', on); document.getElementById('wsOff').classList.toggle('on', !on); draw(); scheduleAutosave(); }
 function togFollow(on)  {
   if (on) {
     if (S.activeRow === null) S.activeRow = 0;
@@ -217,6 +234,7 @@ function togFollow(on)  {
   document.getElementById('foOff').classList.toggle('on', !on);
   draw();
   toast(on ? 'Follow mode — use ↑/↓ keys to step rows' : 'Follow mode off');
+  scheduleAutosave();
 }
 
 function stepRow(delta) {
@@ -224,6 +242,7 @@ function stepRow(delta) {
   const max = S.gridType === 'square' ? S.sqH - 1 : S.hexRows - 1;
   S.activeRow = Math.max(0, Math.min(max, S.activeRow + delta));
   draw();
+  scheduleAutosave();
 }
 
 // ── TOAST ──

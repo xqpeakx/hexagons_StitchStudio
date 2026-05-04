@@ -4,6 +4,9 @@
 // named library; ss_autosave_v1 holds the in-progress draft.
 // ═══════════════════════════════════════════════════════════
 
+const PROJECT_SCHEMA_VERSION = 1;
+const PROJECT_APP_VERSION = '0.1.0';
+
 function getSaved() {
   try { return JSON.parse(localStorage.getItem('ss_patterns') || '{}'); }
   catch { return {}; }
@@ -11,11 +14,16 @@ function getSaved() {
 
 function snapshotState() {
   return {
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    appVersion: PROJECT_APP_VERSION,
     cells: S.cells, mode: S.mode, gridType: S.gridType,
+    name: document.getElementById('patName')?.value || 'My Pattern',
+    activeColor: S.activeColor, activeStitch: S.activeStitch,
     sqW: S.sqW, sqH: S.sqH, cellSize: S.cellSize,
     hexCols: S.hexCols, hexRows: S.hexRows, hexSize: S.hexSize, hexFlat: S.hexFlat,
     gaugeStitches: S.gaugeStitches, gaugeRows: S.gaugeRows,
-    shadeWS: S.shadeWS,
+    showGrid: S.showGrid, showLabels: S.showLabels, showSyms: S.showSyms,
+    protectFilled: S.protectFilled, shadeWS: S.shadeWS, activeRow: S.activeRow,
     palette: PALETTE.slice(),
     savedAt: new Date().toISOString(),
   };
@@ -30,12 +38,24 @@ function applyState(p) {
   S.cellSize = p.cellSize || 26;
   S.gaugeStitches = p.gaugeStitches || 0;
   S.gaugeRows = p.gaugeRows || 0;
+  S.showGrid = p.showGrid !== false;
+  S.showLabels = p.showLabels !== false;
+  S.showSyms = p.showSyms !== false;
+  S.protectFilled = p.protectFilled !== false;
   S.shadeWS = !!p.shadeWS;
+  S.activeRow = Number.isInteger(p.activeRow)
+    ? Math.max(0, Math.min(S.sqH - 1, p.activeRow))
+    : null;
   if (Array.isArray(p.palette) && p.palette.length) {
     PALETTE.length = 0;
     p.palette.forEach(c => PALETTE.push(c));
   }
+  S.activeColor = p.activeColor || S.activeColor;
+  S.activeStitch = CS[S.mode].some(s => s.id === p.activeStitch)
+    ? p.activeStitch
+    : (S.mode === 'crochet' ? 'dc' : 'k');
   // Flush DOM inputs
+  document.getElementById('patName').value = p.name || 'My Pattern';
   document.getElementById('sqW').value = S.sqW;
   document.getElementById('sqH').value = S.sqH;
   document.getElementById('sqCell').value = S.cellSize;
@@ -44,11 +64,25 @@ function applyState(p) {
   document.getElementById('hexSize').value = S.hexSize;
   if (document.getElementById('gaugeSt')) document.getElementById('gaugeSt').value = S.gaugeStitches || '';
   if (document.getElementById('gaugeRo')) document.getElementById('gaugeRo').value = S.gaugeRows || '';
+  document.getElementById('gOn').classList.toggle('on', S.showGrid);
+  document.getElementById('gOff').classList.toggle('on', !S.showGrid);
+  document.getElementById('lOn').classList.toggle('on', S.showLabels);
+  document.getElementById('lOff').classList.toggle('on', !S.showLabels);
+  document.getElementById('sOn').classList.toggle('on', S.showSyms);
+  document.getElementById('sOff').classList.toggle('on', !S.showSyms);
+  document.getElementById('pOn').classList.toggle('on', S.protectFilled);
+  document.getElementById('pOff').classList.toggle('on', !S.protectFilled);
   document.getElementById('wsOn').classList.toggle('on', S.shadeWS);
   document.getElementById('wsOff').classList.toggle('on', !S.shadeWS);
+  document.getElementById('foOn').classList.toggle('on', S.activeRow !== null);
+  document.getElementById('foOff').classList.toggle('on', S.activeRow === null);
   setMode(S.mode);
   setGridType(p.gridType || 'square');
-  renderPalette();
+  S.activeColor = p.activeColor || S.activeColor;
+  S.activeStitch = CS[S.mode].some(s => s.id === p.activeStitch)
+    ? p.activeStitch
+    : S.activeStitch;
+  renderStitches(); renderPalette(); updateIndicator(); updateLegend();
 }
 
 // ── AUTOSAVE ──
@@ -119,6 +153,77 @@ function doNew() {
   toast('Fresh canvas!');
 }
 function closeM(id) { document.getElementById(id).classList.remove('open'); }
+
+// ── PROJECT FILES ──
+function safeFileStem(name) {
+  return (name || 'stitch-studio')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'stitch-studio';
+}
+
+function exportProject() {
+  const project = snapshotState();
+  const payload = {
+    app: 'Stitch Studio',
+    appVersion: PROJECT_APP_VERSION,
+    schemaVersion: PROJECT_SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    project,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = safeFileStem(project.name) + '.stitch-studio.json';
+  link.href = url;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  toast('Project exported');
+}
+
+function openProjectImport() {
+  const input = document.getElementById('projectFile');
+  input.value = '';
+  input.click();
+}
+
+function normalizeProjectPayload(data) {
+  const p = data && typeof data === 'object' && data.project ? data.project : data;
+  if (!p || typeof p !== 'object') return null;
+  if (!p.cells || typeof p.cells !== 'object' || Array.isArray(p.cells)) return null;
+  if (p.mode && !CS[p.mode]) return null;
+  if (p.gridType && !['square', 'hex'].includes(p.gridType)) return null;
+  return p;
+}
+
+function importProjectFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const project = normalizeProjectPayload(JSON.parse(reader.result));
+      if (!project) {
+        toast('Import failed: not a Stitch Studio file');
+        return;
+      }
+      pushUndo();
+      applyState(project);
+      draw(); updateStats(); updateLegend(); scheduleAutosave();
+      toast('Project imported');
+    } catch {
+      toast('Import failed: invalid JSON');
+    } finally {
+      input.value = '';
+    }
+  };
+  reader.onerror = () => {
+    input.value = '';
+    toast('Import failed: could not read file');
+  };
+  reader.readAsText(file);
+}
 
 // ── PNG EXPORT ──
 function exportCanvas() {

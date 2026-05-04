@@ -59,7 +59,7 @@ bundler just concatenates.
 - Protect-filled cells: a single tap won't overwrite an
   already-coloured cell; double-click or double-tap does.
 - Auto-saves continuously to localStorage; auto-restores on next open.
-- Named saves library, PNG export.
+- Named saves library, portable JSON project import/export, PNG export.
 
 ## Background
 
@@ -69,6 +69,12 @@ this project responds to those gaps.
 
 `docs/actionables.md` turns that research into a prioritized backlog with
 acceptance criteria and likely implementation files.
+
+`docs/qa-checklist.md` is the smoke-test checklist for drawing, mobile,
+autosave, export, and the shipped Tier 1 complaint fixes.
+
+`docs/qa-results.md` records the latest P0 smoke pass and fixes found
+while running it.
 
 ## Push the local copy to GitHub
 

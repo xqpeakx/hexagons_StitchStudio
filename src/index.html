@@ -240,6 +240,8 @@
   <div class="ps">
     <div class="plbl">Actions</div>
     <div class="acts">
+      <button class="sbtn" onclick="exportProject()">⬇ Export project</button>
+      <button class="sbtn" onclick="openProjectImport()">⬆ Import project</button>
       <button class="sbtn" onclick="clearAll()">🗑 Clear canvas</button>
       <button class="sbtn" onclick="undoLast()">↩ Undo</button>
       <button class="sbtn" onclick="mirrorH()">↔ Mirror H</button>
@@ -275,6 +277,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<input type="file" id="projectFile" accept="application/json,.json" style="display:none" onchange="importProjectFile(this)">
 
 <!-- INJECT_JS -->
 </body>

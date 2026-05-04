@@ -25,6 +25,7 @@ function init() {
 }
 
 function resize() {
+  syncResponsivePanels();
   const w = document.getElementById('cw');
   canvas.width = w.clientWidth;
   canvas.height = w.clientHeight;
