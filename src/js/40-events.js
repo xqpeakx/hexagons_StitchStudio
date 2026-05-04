@@ -99,6 +99,31 @@ function bindCanvasEvents() {
 
   // Touch
   let touches = [];
+  let touchPaintPending = null;
+  const TOUCH_PAINT_THRESHOLD = 7;
+
+  function clearTouchPending() {
+    touchPaintPending = null;
+    document.getElementById('cw').classList.remove('touch-pending');
+  }
+
+  function beginTouchPaint(ox, oy) {
+    if (painting) return;
+    pushUndo(); painting = true; lastKey = null;
+    paintAt(ox, oy);
+  }
+
+  function commitTouchPending() {
+    if (!touchPaintPending) return;
+    const p = touchPaintPending;
+    clearTouchPending();
+    if (S.tool === 'eye') {
+      paintAt(p.ox, p.oy);
+    } else {
+      beginTouchPaint(p.ox, p.oy);
+    }
+  }
+
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
     touches = Array.from(e.touches);
@@ -110,16 +135,17 @@ function bindCanvasEvents() {
 
       // One-finger pan when Pan tool is active.
       if (S.tool === 'pan') {
+        clearTouchPending();
         isPan = true; panSt = { x: t.clientX, y: t.clientY };
         panOr = { x: S.panX, y: S.panY };
         document.getElementById('cw').classList.add('panning');
         return;
       }
 
-      if (S.tool === 'fill') { floodFill(ox, oy); return; }
+      if (S.tool === 'fill') { clearTouchPending(); floodFill(ox, oy); return; }
 
-      // Touch double-tap → mirrors mouse dblclick: deliberately
-      // overwrite (or clear) a filled cell when protectFilled is on.
+      // Touch double-tap mirrors mouse dblclick: deliberately overwrite
+      // or clear a filled cell when protectFilled is on.
       const cell = getCell(ox, oy);
       const now = Date.now();
       const isDblTap = cell && _lastTapKey === cell.key && (now - _lastTapTime) < 450;
@@ -127,6 +153,7 @@ function bindCanvasEvents() {
       _lastTapTime = now;
 
       if (isDblTap && cell && S.tool === 'draw') {
+        clearTouchPending();
         const existing = S.cells[cell.key];
         if (existing) {
           pushUndo();
@@ -141,14 +168,18 @@ function bindCanvasEvents() {
         }
       }
 
-      pushUndo(); painting = true; lastKey = null;
-      paintAt(ox, oy);
+      // Defer paint until touchend or a real drag. This keeps small finger
+      // jitter from painting several cells when the user meant one tap.
+      painting = false; lastKey = null;
+      touchPaintPending = { ox, oy, clientX: t.clientX, clientY: t.clientY };
+      document.getElementById('cw').classList.add('touch-pending');
       return;
     }
 
     if (touches.length === 2) {
       // Two-finger pinch zoom + pan.
       painting = false;
+      clearTouchPending();
       t2ZoomSt = S.gridType === 'square' ? S.cellSize : S.hexSize;
       const dx = touches[0].clientX - touches[1].clientX;
       const dy = touches[0].clientY - touches[1].clientY;
@@ -169,14 +200,23 @@ function bindCanvasEvents() {
         S.panY = panOr.y + (t.clientY - panSt.y);
         draw(); return;
       }
-      if (painting) {
-        const r = canvas.getBoundingClientRect();
-        paintAt(t.clientX - r.left, t.clientY - r.top);
+      const r = canvas.getBoundingClientRect();
+      if (touchPaintPending) {
+        const dx = t.clientX - touchPaintPending.clientX;
+        const dy = t.clientY - touchPaintPending.clientY;
+        if (Math.sqrt(dx * dx + dy * dy) >= TOUCH_PAINT_THRESHOLD) {
+          const p = touchPaintPending;
+          clearTouchPending();
+          beginTouchPaint(p.ox, p.oy);
+        }
       }
+      if (painting) paintAt(t.clientX - r.left, t.clientY - r.top);
       return;
     }
 
     if (touches.length === 2 && t2Start) {
+      clearTouchPending();
+      painting = false;
       const dx = touches[0].clientX - touches[1].clientX;
       const dy = touches[0].clientY - touches[1].clientY;
       const dist = Math.sqrt(dx * dx + dy * dy);
@@ -198,8 +238,10 @@ function bindCanvasEvents() {
 
   canvas.addEventListener('touchend', e => {
     e.preventDefault();
+    if (e.touches.length === 0) commitTouchPending();
     painting = false; isPan = false; t2Start = null; touches = [];
     document.getElementById('cw').classList.remove('panning');
+    if (e.touches.length === 0) clearTouchPending();
   }, { passive: false });
 
   // Modal close on overlay click

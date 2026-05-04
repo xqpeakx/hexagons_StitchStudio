@@ -204,7 +204,7 @@ adding bigger features.
 
 ### ACT-030 - Touch Interaction Guardrails
 
-- Status: Ready
+- Status: Done
 - Pain addressed: users on phones/tablets accidentally paint when they meant to
   inspect, pan, or zoom.
 - Scope:

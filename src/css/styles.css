@@ -101,6 +101,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .cw.tool-pan{cursor:grab}
 .cw.tool-pan.panning{cursor:grabbing}
+.cw.touch-pending .aind{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(212,149,106,.18),var(--sh)}
 
 /* ── INDICATOR ── */
 .aind{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:5px 13px;font-size:11.5px;color:var(--text2);font-weight:500;display:flex;align-items:center;gap:7px;box-shadow:var(--sh);z-index:10;pointer-events:none;white-space:nowrap}
