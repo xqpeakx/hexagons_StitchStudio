@@ -228,9 +228,8 @@ function importProjectFile(input) {
   reader.readAsText(file);
 }
 
-// ── PNG EXPORT ──
-function exportCanvas() {
-  const scale = 2;
+// ── PNG / PDF EXPORT ──
+function buildExportCanvas(scale) {
   const exp = document.createElement('canvas');
   const lo = S.showLabels ? 20 : 0;
   const ch = cellHeightSq();
@@ -239,62 +238,174 @@ function exportCanvas() {
     W = (lo + S.sqW * S.cellSize) * scale;
     H = (lo + S.sqH * ch) * scale;
   } else {
-    const [x0, y0] = hexCenter(0, 0, S.hexSize, S.hexFlat);
-    const [xN, yN] = hexCenter(S.hexCols - 1, S.hexRows - 1, S.hexSize, S.hexFlat);
-    W = (xN - x0 + S.hexSize * 3 + lo) * scale;
-    H = (yN - y0 + S.hexSize * 3 + lo) * scale;
+    const first = hexCenter(0, 0, S.hexSize, S.hexFlat);
+    const last = hexCenter(S.hexCols - 1, S.hexRows - 1, S.hexSize, S.hexFlat);
+    W = (last[0] - first[0] + S.hexSize * 3 + lo) * scale;
+    H = (last[1] - first[1] + S.hexSize * 3 + lo) * scale;
   }
   exp.width = W; exp.height = H;
   const ec = exp.getContext('2d');
   ec.fillStyle = '#fff'; ec.fillRect(0, 0, W, H);
   ec.scale(scale, scale);
 
-  const tmpDraw = (ectx) => {
-    if (S.gridType === 'square') {
-      const cs = S.cellSize;
-      for (let r = 0; r < S.sqH; r++) for (let c = 0; c < S.sqW; c++) {
-        const key = `sq:${r},${c}`, cell = S.cells[key];
-        const x = lo + c * cs, y = lo + r * ch;
-        if (cell) {
-          if (cell.stitchId === '_no') {
-            ectx.fillStyle = '#dcd5cb'; ectx.fillRect(x, y, cs, ch);
-            ectx.strokeStyle = 'rgba(0,0,0,.2)'; ectx.lineWidth = 1;
-            ectx.beginPath();
-            ectx.moveTo(x + 4, y + 4); ectx.lineTo(x + cs - 4, y + ch - 4);
-            ectx.moveTo(x + cs - 4, y + 4); ectx.lineTo(x + 4, y + ch - 4);
-            ectx.stroke();
-          } else {
-            ectx.fillStyle = cell.color; ectx.fillRect(x, y, cs, ch);
-          }
+  if (S.gridType === 'square') {
+    const cs = S.cellSize;
+    for (let r = 0; r < S.sqH; r++) for (let c = 0; c < S.sqW; c++) {
+      const key = 'sq:' + r + ',' + c, cell = S.cells[key];
+      const x = lo + c * cs, y = lo + r * ch;
+      if (cell) {
+        if (cell.stitchId === '_no') {
+          ec.fillStyle = '#dcd5cb'; ec.fillRect(x, y, cs, ch);
+          ec.strokeStyle = 'rgba(0,0,0,.2)'; ec.lineWidth = 1;
+          ec.beginPath();
+          ec.moveTo(x + 4, y + 4); ec.lineTo(x + cs - 4, y + ch - 4);
+          ec.moveTo(x + cs - 4, y + 4); ec.lineTo(x + 4, y + ch - 4);
+          ec.stroke();
+        } else {
+          ec.fillStyle = cell.color; ec.fillRect(x, y, cs, ch);
         }
-      }
-      if (S.showGrid) {
-        ectx.strokeStyle = 'rgba(0,0,0,.12)'; ectx.lineWidth = .5;
-        for (let r = 0; r <= S.sqH; r++) { ectx.beginPath(); ectx.moveTo(lo, lo + r * ch); ectx.lineTo(lo + S.sqW * cs, lo + r * ch); ectx.stroke(); }
-        for (let c = 0; c <= S.sqW; c++) { ectx.beginPath(); ectx.moveTo(lo + c * cs, lo); ectx.lineTo(lo + c * cs, lo + S.sqH * ch); ectx.stroke(); }
-      }
-    } else {
-      const rr = S.hexSize, flat = S.hexFlat;
-      for (let row = 0; row < S.hexRows; row++) for (let col = 0; col < S.hexCols; col++) {
-        const key = `hex:${col},${row}`, cell = S.cells[key];
-        const [cx, cy] = hexCenter(col, row, rr, flat);
-        const pts = hexCorners(cx, cy, rr * .97, flat);
-        ectx.beginPath(); ectx.moveTo(pts[0][0], pts[0][1]);
-        for (let i = 1; i < 6; i++) ectx.lineTo(pts[i][0], pts[i][1]);
-        ectx.closePath();
-        if (cell) {
-          if (cell.stitchId === '_no') { ectx.fillStyle = '#dcd5cb'; }
-          else                          { ectx.fillStyle = cell.color; }
-          ectx.fill();
-        }
-        if (S.showGrid) { ectx.strokeStyle = 'rgba(0,0,0,.13)'; ectx.lineWidth = .6; ectx.stroke(); }
       }
     }
-  };
-  tmpDraw(ec);
+    if (S.showGrid) {
+      ec.strokeStyle = 'rgba(0,0,0,.12)'; ec.lineWidth = .5;
+      for (let r = 0; r <= S.sqH; r++) { ec.beginPath(); ec.moveTo(lo, lo + r * ch); ec.lineTo(lo + S.sqW * cs, lo + r * ch); ec.stroke(); }
+      for (let c = 0; c <= S.sqW; c++) { ec.beginPath(); ec.moveTo(lo + c * cs, lo); ec.lineTo(lo + c * cs, lo + S.sqH * ch); ec.stroke(); }
+    }
+  } else {
+    const rr = S.hexSize, flat = S.hexFlat;
+    for (let row = 0; row < S.hexRows; row++) for (let col = 0; col < S.hexCols; col++) {
+      const key = 'hex:' + col + ',' + row, cell = S.cells[key];
+      const center = hexCenter(col, row, rr, flat);
+      const pts = hexCorners(center[0], center[1], rr * .97, flat);
+      ec.beginPath(); ec.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < 6; i++) ec.lineTo(pts[i][0], pts[i][1]);
+      ec.closePath();
+      if (cell) {
+        ec.fillStyle = cell.stitchId === '_no' ? '#dcd5cb' : cell.color;
+        ec.fill();
+      }
+      if (S.showGrid) { ec.strokeStyle = 'rgba(0,0,0,.13)'; ec.lineWidth = .6; ec.stroke(); }
+    }
+  }
+  return exp;
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = url;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function exportCanvas() {
+  const exp = buildExportCanvas(2);
   const link = document.createElement('a');
   link.download = (document.getElementById('patName').value || 'pattern') + '.png';
   link.href = exp.toDataURL('image/png');
   link.click();
-  toast('Exported!');
+  toast('PNG exported');
+}
+
+function exportPDF() {
+  const exp = buildExportCanvas(1);
+  const jpeg = exp.toDataURL('image/jpeg', 0.92).split(',')[1];
+  const imageBytes = base64ToBytes(jpeg);
+  const pdf = makePdf(imageBytes, exp.width, exp.height);
+  const name = safeFileStem(document.getElementById('patName').value || 'pattern') + '.pdf';
+  downloadBlob(pdf, name);
+  toast('PDF exported');
+}
+
+function base64ToBytes(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function pdfSafe(text) {
+  return String(text)
+    .replace(/[–—]/g, '-')
+    .replace(/×/g, 'x')
+    .replace(/[^ -~]/g, '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+}
+
+function pdfLegendLines() {
+  const cells = Object.values(S.cells);
+  const stitches = CS[S.mode];
+  const usedStitches = [...new Set(cells.map(c => c.stitchId))]
+    .map(id => stitches.find(s => s.id === id))
+    .filter(Boolean);
+  const usedColors = [...new Set(cells.map(c => c.color))];
+  const lines = [];
+  lines.push('Stitches');
+  if (usedStitches.length) {
+    usedStitches.forEach(s => {
+      const label = stitchLabel(s);
+      lines.push(label.abbr + ' - ' + label.name);
+    });
+  } else {
+    lines.push('No stitches used yet');
+  }
+  lines.push('Colors');
+  if (usedColors.length) usedColors.forEach(c => lines.push(c));
+  else lines.push('No colors used yet');
+  return lines.slice(0, 28);
+}
+
+function makePdf(imageBytes, imageW, imageH) {
+  const encoder = new TextEncoder();
+  const chunks = [];
+  const offsets = [0];
+  let length = 0;
+  const addBytes = (bytes) => { chunks.push(bytes); length += bytes.length; };
+  const addAscii = (text) => addBytes(encoder.encode(text));
+  const addObject = (num, bodyParts) => {
+    offsets[num] = length;
+    addAscii(num + ' 0 obj\n');
+    bodyParts.forEach(part => typeof part === 'string' ? addAscii(part) : addBytes(part));
+    addAscii('\nendobj\n');
+  };
+
+  const pageW = 612, pageH = 792, margin = 36;
+  const maxW = pageW - margin * 2, maxH = 500;
+  const scale = Math.min(maxW / imageW, maxH / imageH, 1);
+  const drawW = imageW * scale, drawH = imageH * scale;
+  const imageX = margin + (maxW - drawW) / 2;
+  const imageY = Math.max(190, pageH - 110 - drawH);
+  const title = document.getElementById('patName').value || 'Stitch Studio Chart';
+  const terms = S.mode === 'crochet' ? ' - ' + S.crochetTerms.toUpperCase() + ' terms' : '';
+  const gauge = S.gaugeStitches && S.gaugeRows ? ' - gauge ' + S.gaugeStitches + 'x' + S.gaugeRows + ' per 4 in' : '';
+  const meta = (S.mode === 'crochet' ? 'Crochet' : 'Knitting') + terms + ' - ' + (S.gridType === 'hex' ? 'Hex grid' : 'Square grid') + gauge;
+  const content = [];
+  const text = (size, x, y, value) => content.push('BT /F1 ' + size + ' Tf ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Td (' + pdfSafe(value) + ') Tj ET\n');
+  text(16, margin, pageH - 40, title);
+  text(9, margin, pageH - 56, meta);
+  text(8, margin, pageH - 70, 'Exported ' + new Date().toLocaleDateString());
+  content.push('q ' + drawW.toFixed(2) + ' 0 0 ' + drawH.toFixed(2) + ' ' + imageX.toFixed(2) + ' ' + imageY.toFixed(2) + ' cm /Im0 Do Q\n');
+  let y = imageY - 18;
+  pdfLegendLines().forEach((line, idx) => {
+    if (y < 28) return;
+    text(idx === 0 || line === 'Colors' ? 10 : 8, margin, y, line);
+    y -= idx === 0 || line === 'Colors' ? 13 : 10;
+  });
+  const contentBytes = encoder.encode(content.join(''));
+
+  addAscii('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  addObject(1, ['<< /Type /Catalog /Pages 2 0 R >>']);
+  addObject(2, ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>']);
+  addObject(3, ['<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageW + ' ' + pageH + '] /Resources << /XObject << /Im0 4 0 R >> /Font << /F1 5 0 R >> >> /Contents 6 0 R >>']);
+  addObject(4, ['<< /Type /XObject /Subtype /Image /Width ' + imageW + ' /Height ' + imageH + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + imageBytes.length + ' >>\nstream\n', imageBytes, '\nendstream']);
+  addObject(5, ['<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>']);
+  addObject(6, ['<< /Length ' + contentBytes.length + ' >>\nstream\n', contentBytes, '\nendstream']);
+  const xref = length;
+  addAscii('xref\n0 7\n0000000000 65535 f \n');
+  for (let i = 1; i <= 6; i++) addAscii(String(offsets[i]).padStart(10, '0') + ' 00000 n \n');
+  addAscii('trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n');
+  return new Blob(chunks, { type: 'application/pdf' });
 }

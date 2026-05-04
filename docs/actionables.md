@@ -66,7 +66,7 @@ adding bigger features.
 
 ### ACT-010 - PDF Export With Legend
 
-- Status: Ready
+- Status: Done
 - Pain addressed: makers complain that exported charts and legends are low
   quality, incomplete, or locked behind subscriptions.
 - Scope:

@@ -61,7 +61,7 @@ bundler just concatenates.
 - Protect-filled cells: a single tap won't overwrite an
   already-coloured cell; double-click or double-tap does.
 - Auto-saves continuously to localStorage; auto-restores on next open.
-- Named saves library, portable JSON project import/export, PNG export.
+- Named saves library, portable JSON project import/export, PNG export, and PDF export with legend.
 
 ## Background
 
