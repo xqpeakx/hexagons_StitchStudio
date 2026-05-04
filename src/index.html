@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Stitch Studio</title>
+<!-- INJECT_CSS -->
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo">Stitch <em>Studio</em></div>
+  <div class="seg" id="modeTab">
+    <button class="on" onclick="setMode('crochet')">🧶 Crochet</button>
+    <button onclick="setMode('knit')">🪡 Knitting</button>
+  </div>
+  <div class="seg" id="gridTab" style="margin-left:4px">
+    <button class="on" onclick="setGridType('square')">⬜ Square Grid</button>
+    <button onclick="setGridType('hex')">⬡ Hex Grid</button>
+  </div>
+  <div class="hdr-r">
+    <div class="ibt" onclick="openSaveModal()" title="Save">💾</div>
+    <div class="ibt" onclick="openLoadModal()" title="Load">📂</div>
+    <div class="ibt" onclick="exportCanvas()" title="Export PNG">⬇️</div>
+    <button class="pbtn" onclick="openNewModal()">+ New</button>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+<!-- LEFT PANEL -->
+<div class="lp" id="leftPanel">
+  <div class="ps">
+    <div class="plbl">Tools</div>
+    <div class="tgrid">
+      <button class="tbtn on" id="tool-draw"  onclick="setTool('draw')"><span class="ic">✏️</span>Draw</button>
+      <button class="tbtn"    id="tool-erase" onclick="setTool('erase')"><span class="ic">🧹</span>Erase</button>
+      <button class="tbtn"    id="tool-fill"  onclick="setTool('fill')"><span class="ic">🪣</span>Fill</button>
+      <button class="tbtn"    id="tool-eye"   onclick="setTool('eye')"><span class="ic">💧</span>Pick</button>
+      <button class="tbtn"    id="tool-pan"   onclick="setTool('pan')" title="One-finger pan; or hold space"><span class="ic">✋</span>Pan</button>
+    </div>
+  </div>
+  <div class="ps" id="stitchPanel">
+    <div class="plbl">Stitches</div>
+    <div class="slist" id="stitchList"></div>
+  </div>
+  <div class="ps">
+    <div class="plbl">Colorway</div>
+    <div class="cgrid" id="colorGrid"></div>
+    <div style="margin-top:7px;display:flex;align-items:center;gap:5px">
+      <label style="font-size:10.5px;color:var(--text3)">Custom:</label>
+      <input type="color" id="customColor" value="#8b5e3c"
+             style="width:24px;height:24px;border:none;background:none;cursor:pointer;border-radius:50%;padding:0"
+             oninput="previewCustomColor(this.value)" onchange="addCustomColor(this.value)">
+    </div>
+  </div>
+  <div class="ps">
+    <div class="plbl">Presets</div>
+    <div class="plist" id="presetList"></div>
+  </div>
+  <div class="ps">
+    <div class="plbl">Special</div>
+    <button class="tbtn" style="width:100%;flex-direction:row;gap:7px;justify-content:flex-start;padding:9px 11px" onclick="toggleGranny()">
+      <span class="ic" style="font-size:15px">🌸</span><span style="font-size:11.5px">Granny Square Builder</span>
+    </button>
+  </div>
+</div>
+
+<div class="panel-toggle lp-toggle" id="lpToggle" onclick="toggleLP()" title="Toggle panel">‹</div>
+
+<!-- CANVAS -->
+<div class="ca">
+  <div class="ctb">
+    <div id="sqControls" style="display:flex;align-items:center;gap:7px">
+      <div class="gc">
+        <label>Max W</label>
+        <input class="ni" type="number" id="sqW" min="1" max="9999" value="200">
+      </div>
+      <span style="color:var(--text3);font-size:13px">×</span>
+      <div class="gc">
+        <label>H</label>
+        <input class="ni" type="number" id="sqH" min="1" max="9999" value="200">
+      </div>
+      <button class="apply-btn" onclick="applySqSize()">Apply</button>
+      <div class="tbs"></div>
+      <div class="gc">
+        <label>Cell size</label>
+        <input class="ni" type="number" id="sqCell" min="4" max="80" value="26">
+        <span style="font-size:10px;color:var(--text3)">px</span>
+        <button class="apply-btn" onclick="applyCellSize()">↵</button>
+      </div>
+    </div>
+    <div id="hexControls" style="display:none;align-items:center;gap:7px">
+      <div class="gc">
+        <label>Hex size</label>
+        <input class="ni" type="number" id="hexSize" min="4" max="80" value="26">
+        <span style="font-size:10px;color:var(--text3)">px</span>
+        <button class="apply-btn" onclick="applyHexSize()">↵</button>
+      </div>
+      <div class="tbs"></div>
+      <div class="gc">
+        <label>Grid limit</label>
+        <input class="ni" type="number" id="hexCols" min="1" max="9999" value="300">
+        <span style="color:var(--text3);font-size:13px">×</span>
+        <input class="ni" type="number" id="hexRows" min="1" max="9999" value="300">
+        <button class="apply-btn" onclick="applyHexSize()">↵</button>
+      </div>
+      <div class="tbs"></div>
+      <div class="hot-wrap">
+        <button class="hot on" id="hFlat"   onclick="setHexOrient('flat')">Flat</button>
+        <button class="hot"    id="hPointy" onclick="setHexOrient('pointy')">Pointy</button>
+      </div>
+    </div>
+    <div class="tbs"></div>
+    <div class="badge" id="modeBadge">Crochet</div>
+    <div class="badge" id="gridBadge" style="background:var(--teal2);color:var(--teal)">Square Grid</div>
+  </div>
+
+  <div class="cw" id="cw">
+    <canvas id="mc"></canvas>
+    <div class="aind" id="aind">
+      <div class="adot" id="adot"></div>
+      <span id="alab">dc — Double Crochet</span>
+    </div>
+    <div class="zoom-bar">
+      <button onclick="adjZoom(-.15)" title="Zoom out (-)">−</button>
+      <span id="zl" style="min-width:38px;text-align:center">100%</span>
+      <button onclick="adjZoom(.15)" title="Zoom in (+)">+</button>
+      <button class="zreset" onclick="resetZoom()" title="Reset zoom (0)">⟳</button>
+    </div>
+  </div>
+
+  <!-- Granny panel -->
+  <div class="gp" id="grannyPanel">
+    <div class="gph">
+      <div class="gpt">🌸 Granny Square</div>
+      <div class="gpx" onclick="toggleGranny()">✕</div>
+    </div>
+    <div class="gpb">
+      <div class="gprev"><canvas id="gpc" width="200" height="200"></canvas></div>
+      <div class="gf">
+        <label>Square Style</label>
+        <select id="gStyle" onchange="onGStyleChange()">
+          <optgroup label="⬜ Square Shapes">
+            <option value="classic">Classic Granny Square</option>
+            <option value="solid">Solid Granny Square</option>
+            <option value="sunflower">Sunflower Square</option>
+            <option value="pinwheel">Pinwheel Square</option>
+          </optgroup>
+          <optgroup label="⬡ Hexagonal Shapes">
+            <option value="hex_classic">Classic Hex Granny</option>
+            <option value="hex_solid">Solid Hex</option>
+            <option value="hex_flower">African Flower Hex</option>
+            <option value="hex_ripple">Ripple Hex</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="gf">
+        <label>Rounds</label>
+        <input type="number" id="gRounds" min="1" max="8" value="4" onchange="buildRoundRows()">
+      </div>
+      <div class="gf">
+        <label>Round Colors &amp; Stitches</label>
+        <div class="rb" id="roundsB"></div>
+      </div>
+      <div id="cornerWrap" class="gf">
+        <label>Corner Style</label>
+        <select id="gCorner" onchange="drawGrannyPreview()">
+          <option value="ch3">Chain-3 Corner</option>
+          <option value="ch2">Chain-2 Corner</option>
+          <option value="dc2">Double DC Corner</option>
+        </select>
+      </div>
+      <div id="hexnote" class="hexnote" style="display:none">
+        ⬡ Hex shapes render natively on the hex grid canvas. Switch to Hex Grid mode to stamp directly.
+      </div>
+      <button class="pbtn" style="width:100%" onclick="stampToCanvas()">Stamp to Canvas ↗</button>
+      <button class="sbtn2" style="width:100%;margin-top:2px" onclick="exportGranny()">Export Square Image</button>
+    </div>
+  </div>
+</div>
+
+<div class="panel-toggle rp-toggle" id="rpToggle" onclick="toggleRP()" title="Toggle panel">›</div>
+
+<!-- RIGHT PANEL -->
+<div class="rp" id="rightPanel">
+  <div class="ps">
+    <div class="plbl">Pattern Info</div>
+    <input id="patName" value="My Pattern"
+           style="width:100%;border:1px solid var(--border);border-radius:var(--rsm);padding:5px 8px;font-family:'DM Sans',sans-serif;font-size:12.5px;background:var(--surface);color:var(--text);outline:none;margin-bottom:8px">
+    <div class="prow"><label>Rows</label><span class="v" id="sRows">20</span></div>
+    <div class="prow"><label>Cols</label><span class="v" id="sCols">20</span></div>
+    <div class="prow"><label>Painted</label><span class="v" id="sFill">0</span></div>
+  </div>
+  <div class="ps">
+    <div class="plbl">Display</div>
+    <div class="prow"><label>Grid lines</label>
+      <div class="tog"><button class="on" id="gOn" onclick="togGrid(true)">On</button><button id="gOff" onclick="togGrid(false)">Off</button></div>
+    </div>
+    <div class="prow"><label>Row labels</label>
+      <div class="tog"><button class="on" id="lOn" onclick="togLabels(true)">On</button><button id="lOff" onclick="togLabels(false)">Off</button></div>
+    </div>
+    <div class="prow"><label>Symbols</label>
+      <div class="tog"><button class="on" id="sOn" onclick="togSyms(true)">On</button><button id="sOff" onclick="togSyms(false)">Off</button></div>
+    </div>
+    <div class="prow" title="When on, already-colored cells need a second tap/double-click to be overwritten."><label>Protect filled</label>
+      <div class="tog"><button class="on" id="pOn" onclick="togProtect(true)">On</button><button id="pOff" onclick="togProtect(false)">Off</button></div>
+    </div>
+    <div class="prow" title="Shade wrong-side rows on knit charts."><label>Shade WS rows</label>
+      <div class="tog"><button id="wsOn" onclick="togWS(true)">On</button><button class="on" id="wsOff" onclick="togWS(false)">Off</button></div>
+    </div>
+    <div class="prow" title="Highlight one row at a time as you knit/crochet from the chart."><label>Follow row</label>
+      <div class="tog"><button id="foOn" onclick="togFollow(true)">On</button><button class="on" id="foOff" onclick="togFollow(false)">Off</button></div>
+    </div>
+  </div>
+  <div class="ps" id="gaugeRow">
+    <div class="plbl" title="Stitches × Rows per 4 inches. Used to render cells with the correct aspect ratio.">Gauge (per 4″)</div>
+    <div class="gauge-row">
+      <div class="gauge-cell">
+        <label>Stitches</label>
+        <input type="number" id="gaugeSt" min="0" max="99" placeholder="—">
+      </div>
+      <div class="gauge-cell">
+        <label>Rows</label>
+        <input type="number" id="gaugeRo" min="0" max="99" placeholder="—">
+      </div>
+    </div>
+    <button class="apply-btn" style="width:100%" onclick="applyGauge()">Apply gauge</button>
+    <p style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.45">
+      Leave both at 0 for square cells. Try 20×28 for typical worsted knit fabric.
+    </p>
+  </div>
+  <div class="ps">
+    <div class="plbl">Legend</div>
+    <div class="leg" id="legend"></div>
+    <p style="font-size:10px;color:var(--text3);margin-top:6px">Click a colour swatch to swap it for the active colour.</p>
+  </div>
+  <div class="ps">
+    <div class="plbl">Actions</div>
+    <div class="acts">
+      <button class="sbtn" onclick="clearAll()">🗑 Clear canvas</button>
+      <button class="sbtn" onclick="undoLast()">↩ Undo</button>
+      <button class="sbtn" onclick="mirrorH()">↔ Mirror H</button>
+      <button class="sbtn" onclick="mirrorV()">↕ Mirror V</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /body -->
+
+<!-- MODALS -->
+<div class="mo" id="saveM">
+  <div class="md">
+    <h3>Save Pattern</h3>
+    <label style="font-size:11.5px;color:var(--text2);display:block;margin-bottom:5px">Name</label>
+    <input id="saveName" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:12.5px;background:var(--surface);color:var(--text);outline:none">
+    <div class="macts"><button class="sbtn2" onclick="closeM('saveM')">Cancel</button><button class="pbtn" onclick="doSave()">Save</button></div>
+  </div>
+</div>
+<div class="mo" id="loadM">
+  <div class="md">
+    <h3>Load Pattern</h3>
+    <div class="slist2" id="savedList"></div>
+    <div class="macts"><button class="sbtn2" onclick="closeM('loadM')">Close</button></div>
+  </div>
+</div>
+<div class="mo" id="newM">
+  <div class="md">
+    <h3>New Pattern</h3>
+    <p style="font-size:12.5px;color:var(--text2);margin-bottom:14px">This will clear the current canvas.</p>
+    <div class="macts"><button class="sbtn2" onclick="closeM('newM')">Cancel</button><button class="pbtn" onclick="doNew()">Start Fresh</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- INJECT_JS -->
+</body>
+</html>
