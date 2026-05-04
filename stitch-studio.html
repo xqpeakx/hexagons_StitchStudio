@@ -415,6 +415,9 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <div class="prow" title="Highlight one row at a time as you knit/crochet from the chart."><label>Follow row</label>
       <div class="tog"><button id="foOn" onclick="togFollow(true)">On</button><button class="on" id="foOff" onclick="togFollow(false)">Off</button></div>
     </div>
+    <div class="prow" id="termRow" title="Switch crochet display labels between US and UK terminology."><label>Terminology</label>
+      <div class="tog"><button class="on" id="termUS" onclick="setCrochetTerms('us')">US</button><button id="termUK" onclick="setCrochetTerms('uk')">UK</button></div>
+    </div>
   </div>
   <div class="ps" id="gaugeRow">
     <div class="plbl" title="Stitches × Rows per 4 inches. Used to render cells with the correct aspect ratio.">Gauge (per 4″)</div>
@@ -481,8 +484,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 <input type="file" id="projectFile" accept="application/json,.json" style="display:none" onchange="importProjectFile(this)">
 
 <script>
-// ── 00-state.js ─────────────────────────────────────────────────
-
+// ---- 00-state.js ----
 // ═══════════════════════════════════════════════════════════
 // STATE & CONSTANTS
 // All globals live here; later modules read/mutate them via
@@ -546,9 +548,37 @@ const PRESETS_DEF = {
   ]
 };
 
+// Crochet terminology differs between US and UK patterns. Internal ids stay
+// stable; only user-facing names/abbreviations change.
+const CROCHET_TERMS = {
+  us: {
+    ch:  { name:"Chain",          abbr:"ch" },
+    sl:  { name:"Slip Stitch",    abbr:"sl" },
+    sc:  { name:"Single Crochet", abbr:"sc" },
+    hdc: { name:"Half Double",    abbr:"hdc" },
+    dc:  { name:"Double Crochet", abbr:"dc" },
+    tr:  { name:"Treble",         abbr:"tr" },
+    cl:  { name:"Cluster",        abbr:"cl" },
+    bb:  { name:"Bobble/Puff",    abbr:"bb" },
+    _no: { name:"No stitch",      abbr:"—" },
+  },
+  uk: {
+    ch:  { name:"Chain",          abbr:"ch" },
+    sl:  { name:"Slip Stitch",    abbr:"sl" },
+    sc:  { name:"Double Crochet", abbr:"dc" },
+    hdc: { name:"Half Treble",    abbr:"htr" },
+    dc:  { name:"Treble",         abbr:"tr" },
+    tr:  { name:"Double Treble",  abbr:"dtr" },
+    cl:  { name:"Cluster",        abbr:"cl" },
+    bb:  { name:"Bobble/Puff",    abbr:"bb" },
+    _no: { name:"No stitch",      abbr:"—" },
+  },
+};
+
 // Shared mutable application state.
 let S = {
   mode:'crochet', gridType:'square', tool:'draw',
+  crochetTerms:'us',
   sqW:200, sqH:200, cellSize:26,
   hexCols:300, hexRows:300, hexSize:26, hexFlat:true,
   cells:{},
@@ -596,8 +626,8 @@ let gRoundCols = ['#d4688a','#3a8870','#c4963a','#6b4fa0','#d4956a','#5a8b5a','#
 // Canvas refs are populated once `init()` runs, after the DOM exists.
 let canvas, ctx, gCanvas, gCtx;
 
-// ── 10-hex.js ───────────────────────────────────────────────────
 
+// ---- 10-hex.js ----
 // ═══════════════════════════════════════════════════════════
 // HEX MATH — offset coordinates (even-q for flat, even-r for pointy)
 // ═══════════════════════════════════════════════════════════
@@ -661,8 +691,8 @@ function hexAtPoint(px, py, r, flat, cols, rows) {
 
 function hexKey(col, row) { return `${col},${row}`; }
 
-// ── 20-render.js ────────────────────────────────────────────────
 
+// ---- 20-render.js ----
 // ═══════════════════════════════════════════════════════════
 // CANVAS DRAW ENGINE
 // No CSS zoom transform. "Zoom" = changing cellSize/hexSize.
@@ -879,8 +909,8 @@ function lum(hex) {
   return .2126 * r + .7152 * g + .0722 * b;
 }
 
-// ── 30-paint.js ─────────────────────────────────────────────────
 
+// ---- 30-paint.js ----
 // ═══════════════════════════════════════════════════════════
 // CELL HIT-DETECTION + PAINT/FILL/UNDO
 // ═══════════════════════════════════════════════════════════
@@ -997,8 +1027,8 @@ function swapColor(fromColor) {
   toast(`Swapped ${n} cells → active color`);
 }
 
-// ── 40-events.js ────────────────────────────────────────────────
 
+// ---- 40-events.js ----
 // ═══════════════════════════════════════════════════════════
 // CANVAS EVENTS — mouse, touch, keyboard, wheel
 // Wired up by main.js after the canvas exists.
@@ -1208,8 +1238,8 @@ function bindCanvasEvents() {
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
 }
 
-// ── 50-ui.js ────────────────────────────────────────────────────
 
+// ---- 50-ui.js ----
 // ═══════════════════════════════════════════════════════════
 // UI RENDERS, INDICATORS, TOGGLES
 // Everything that pushes state → DOM lives here.
@@ -1220,7 +1250,7 @@ function renderStitches() {
   document.getElementById('stitchList').innerHTML = list.map(s => `
     <div class="sit ${S.activeStitch === s.id ? 'on' : ''}" onclick="setStitch('${s.id}')">
       <div class="ssym" style="${S.activeStitch === s.id ? 'background:' + s.col + ';color:#fff' : 'color:' + s.col}">${s.sym}</div>
-      <span>${s.name}</span>
+      <span>${stitchLabel(s).name}</span>
     </div>`).join('');
 }
 
@@ -1256,7 +1286,8 @@ function updateLegend() {
   const usedCols = [...new Set(Object.values(S.cells).map(c => c.color))];
   let h = '';
   stitches.filter(s => used[s.id]).forEach(s => {
-    h += `<div class="li"><div class="lsym">${s.sym}</div><div class="ls" style="background:${s.col}"></div><span>${s.abbr} — ${s.name}</span></div>`;
+    const label = stitchLabel(s);
+    h += `<div class="li"><div class="lsym">${s.sym}</div><div class="ls" style="background:${s.col}"></div><span>${label.abbr} — ${label.name}</span></div>`;
   });
   // Color rows are clickable — click to swap that color for the active one.
   usedCols.forEach(c => {
@@ -1272,7 +1303,17 @@ function updateLegend() {
 function updateIndicator() {
   const s = CS[S.mode].find(s => s.id === S.activeStitch);
   document.getElementById('adot').style.background = S.activeColor;
-  document.getElementById('alab').textContent = s ? `${s.sym} — ${s.name}` : '';
+  if (!s) {
+    document.getElementById('alab').textContent = '';
+    return;
+  }
+  const label = stitchLabel(s);
+  document.getElementById('alab').textContent = `${s.sym} — ${label.name}`;
+}
+
+function stitchLabel(s) {
+  if (S.mode !== 'crochet') return { name: s.name, abbr: s.abbr };
+  return CROCHET_TERMS[S.crochetTerms]?.[s.id] || { name: s.name, abbr: s.abbr };
 }
 
 // ── State setters ──
@@ -1287,6 +1328,7 @@ function setMode(mode) {
   const b = document.getElementById('modeBadge');
   b.textContent = mode === 'crochet' ? 'Crochet' : 'Knitting';
   b.className = 'badge ' + (mode === 'crochet' ? 'crochet-badge' : 'knit-badge');
+  updateTerminologyUI();
   renderStitches(); renderPresets(); updateIndicator(); updateLegend();
   scheduleAutosave();
 }
@@ -1315,6 +1357,22 @@ function setTool(t) {
   document.getElementById('tool-' + t)?.classList.add('on');
   // Visually swap canvas cursor for the Pan tool.
   document.getElementById('cw').classList.toggle('tool-pan', t === 'pan');
+}
+
+function setCrochetTerms(term) {
+  S.crochetTerms = term === 'uk' ? 'uk' : 'us';
+  updateTerminologyUI();
+  renderStitches(); updateIndicator(); updateLegend();
+  toast(S.crochetTerms === 'uk' ? 'UK crochet terms active' : 'US crochet terms active');
+  scheduleAutosave();
+}
+
+function updateTerminologyUI() {
+  const row = document.getElementById('termRow');
+  if (!row) return;
+  row.style.display = S.mode === 'crochet' ? 'flex' : 'none';
+  document.getElementById('termUS').classList.toggle('on', S.crochetTerms !== 'uk');
+  document.getElementById('termUK').classList.toggle('on', S.crochetTerms === 'uk');
 }
 
 function setHexOrient(o) {
@@ -1465,8 +1523,8 @@ function toast(msg) {
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-// ── 60-palette.js ───────────────────────────────────────────────
 
+// ---- 60-palette.js ----
 // ═══════════════════════════════════════════════════════════
 // CUSTOM COLOR PICKER LOGIC
 // previewCustomColor fires on every value change while dragging.
@@ -1492,8 +1550,8 @@ function addCustomColor(c) {
   }, 350);
 }
 
-// ── 70-actions.js ───────────────────────────────────────────────
 
+// ---- 70-actions.js ----
 // ═══════════════════════════════════════════════════════════
 // CANVAS-LEVEL ACTIONS — clear, undo, mirror
 // ═══════════════════════════════════════════════════════════
@@ -1559,8 +1617,8 @@ function mirrorV() {
   draw(); updateStats(); updateLegend(); toast('Mirrored vertically'); scheduleAutosave();
 }
 
-// ── 75-presets.js ───────────────────────────────────────────────
 
+// ---- 75-presets.js ----
 // ═══════════════════════════════════════════════════════════
 // PRESETS — quick-load patterns
 // Crochet presets work on either grid; knit presets are square-only.
@@ -1679,8 +1737,8 @@ function presetChecker() {
   draw(); updateStats(); updateLegend(); toast('Checker'); scheduleAutosave();
 }
 
-// ── 80-granny.js ────────────────────────────────────────────────
 
+// ---- 80-granny.js ----
 // ═══════════════════════════════════════════════════════════
 // GRANNY SQUARE BUILDER
 // A side-panel preview canvas plus a stamp action that applies the
@@ -1975,8 +2033,8 @@ function exportGranny() {
   toast('Square exported!');
 }
 
-// ── 90-io.js ────────────────────────────────────────────────────
 
+// ---- 90-io.js ----
 // ═══════════════════════════════════════════════════════════
 // SAVE / LOAD / EXPORT / AUTOSAVE
 // All persistence flows through localStorage. ss_patterns is the
@@ -1996,6 +2054,7 @@ function snapshotState() {
     schemaVersion: PROJECT_SCHEMA_VERSION,
     appVersion: PROJECT_APP_VERSION,
     cells: S.cells, mode: S.mode, gridType: S.gridType,
+    crochetTerms: S.crochetTerms,
     name: document.getElementById('patName')?.value || 'My Pattern',
     activeColor: S.activeColor, activeStitch: S.activeStitch,
     sqW: S.sqW, sqH: S.sqH, cellSize: S.cellSize,
@@ -2011,6 +2070,7 @@ function snapshotState() {
 function applyState(p) {
   S.cells = p.cells || {};
   S.mode = p.mode || 'crochet';
+  S.crochetTerms = p.crochetTerms === 'uk' ? 'uk' : 'us';
   S.sqW = p.sqW || 200; S.sqH = p.sqH || 200;
   S.hexCols = p.hexCols || 300; S.hexRows = p.hexRows || 300;
   S.hexSize = p.hexSize || 26; S.hexFlat = p.hexFlat !== false;
@@ -2055,6 +2115,7 @@ function applyState(p) {
   document.getElementById('wsOff').classList.toggle('on', !S.shadeWS);
   document.getElementById('foOn').classList.toggle('on', S.activeRow !== null);
   document.getElementById('foOff').classList.toggle('on', S.activeRow === null);
+  updateTerminologyUI();
   setMode(S.mode);
   setGridType(p.gridType || 'square');
   S.activeColor = p.activeColor || S.activeColor;
@@ -2275,8 +2336,8 @@ function exportCanvas() {
   toast('Exported!');
 }
 
-// ── 99-main.js ──────────────────────────────────────────────────
 
+// ---- 99-main.js ----
 // ═══════════════════════════════════════════════════════════
 // INIT — wire DOM refs, install event handlers, first render.
 // ═══════════════════════════════════════════════════════════
@@ -2317,6 +2378,7 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
 </script>
 </body>
 </html>

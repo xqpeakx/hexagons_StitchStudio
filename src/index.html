@@ -214,6 +214,9 @@
     <div class="prow" title="Highlight one row at a time as you knit/crochet from the chart."><label>Follow row</label>
       <div class="tog"><button id="foOn" onclick="togFollow(true)">On</button><button class="on" id="foOff" onclick="togFollow(false)">Off</button></div>
     </div>
+    <div class="prow" id="termRow" title="Switch crochet display labels between US and UK terminology."><label>Terminology</label>
+      <div class="tog"><button class="on" id="termUS" onclick="setCrochetTerms('us')">US</button><button id="termUK" onclick="setCrochetTerms('uk')">UK</button></div>
+    </div>
   </div>
   <div class="ps" id="gaugeRow">
     <div class="plbl" title="Stitches × Rows per 4 inches. Used to render cells with the correct aspect ratio.">Gauge (per 4″)</div>

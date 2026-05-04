@@ -47,6 +47,8 @@ bundler just concatenates.
 - Square and hex grids with logical-grid limits up to 9999 × 9999.
 - Crochet (chain, slip, sc, hdc, dc, treble, cluster, bobble) and knit
   (knit, purl, k2tog, ssk, yarn over, M1, slip, cable) stitch sets.
+- US/UK crochet terminology toggle for stitch lists, indicators, legends,
+  saves, and project exports.
 - "No stitch" placeholder for lace charts.
 - Gauge ratio: enter stitches × rows per 4 inches and cells render
   with that aspect ratio so the chart visually matches real fabric.

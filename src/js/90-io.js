@@ -17,6 +17,7 @@ function snapshotState() {
     schemaVersion: PROJECT_SCHEMA_VERSION,
     appVersion: PROJECT_APP_VERSION,
     cells: S.cells, mode: S.mode, gridType: S.gridType,
+    crochetTerms: S.crochetTerms,
     name: document.getElementById('patName')?.value || 'My Pattern',
     activeColor: S.activeColor, activeStitch: S.activeStitch,
     sqW: S.sqW, sqH: S.sqH, cellSize: S.cellSize,
@@ -32,6 +33,7 @@ function snapshotState() {
 function applyState(p) {
   S.cells = p.cells || {};
   S.mode = p.mode || 'crochet';
+  S.crochetTerms = p.crochetTerms === 'uk' ? 'uk' : 'us';
   S.sqW = p.sqW || 200; S.sqH = p.sqH || 200;
   S.hexCols = p.hexCols || 300; S.hexRows = p.hexRows || 300;
   S.hexSize = p.hexSize || 26; S.hexFlat = p.hexFlat !== false;
@@ -76,6 +78,7 @@ function applyState(p) {
   document.getElementById('wsOff').classList.toggle('on', !S.shadeWS);
   document.getElementById('foOn').classList.toggle('on', S.activeRow !== null);
   document.getElementById('foOff').classList.toggle('on', S.activeRow === null);
+  updateTerminologyUI();
   setMode(S.mode);
   setGridType(p.gridType || 'square');
   S.activeColor = p.activeColor || S.activeColor;

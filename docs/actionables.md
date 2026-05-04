@@ -240,7 +240,7 @@ adding bigger features.
 
 ### ACT-040 - US/UK Crochet Terms Toggle
 
-- Status: Ready
+- Status: Done
 - Pain addressed: crochet names differ by region, and designers need charts to
   match their audience.
 - Scope:

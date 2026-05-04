@@ -61,9 +61,37 @@ const PRESETS_DEF = {
   ]
 };
 
+// Crochet terminology differs between US and UK patterns. Internal ids stay
+// stable; only user-facing names/abbreviations change.
+const CROCHET_TERMS = {
+  us: {
+    ch:  { name:"Chain",          abbr:"ch" },
+    sl:  { name:"Slip Stitch",    abbr:"sl" },
+    sc:  { name:"Single Crochet", abbr:"sc" },
+    hdc: { name:"Half Double",    abbr:"hdc" },
+    dc:  { name:"Double Crochet", abbr:"dc" },
+    tr:  { name:"Treble",         abbr:"tr" },
+    cl:  { name:"Cluster",        abbr:"cl" },
+    bb:  { name:"Bobble/Puff",    abbr:"bb" },
+    _no: { name:"No stitch",      abbr:"—" },
+  },
+  uk: {
+    ch:  { name:"Chain",          abbr:"ch" },
+    sl:  { name:"Slip Stitch",    abbr:"sl" },
+    sc:  { name:"Double Crochet", abbr:"dc" },
+    hdc: { name:"Half Treble",    abbr:"htr" },
+    dc:  { name:"Treble",         abbr:"tr" },
+    tr:  { name:"Double Treble",  abbr:"dtr" },
+    cl:  { name:"Cluster",        abbr:"cl" },
+    bb:  { name:"Bobble/Puff",    abbr:"bb" },
+    _no: { name:"No stitch",      abbr:"—" },
+  },
+};
+
 // Shared mutable application state.
 let S = {
   mode:'crochet', gridType:'square', tool:'draw',
+  crochetTerms:'us',
   sqW:200, sqH:200, cellSize:26,
   hexCols:300, hexRows:300, hexSize:26, hexFlat:true,
   cells:{},

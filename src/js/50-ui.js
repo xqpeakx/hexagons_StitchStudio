@@ -8,7 +8,7 @@ function renderStitches() {
   document.getElementById('stitchList').innerHTML = list.map(s => `
     <div class="sit ${S.activeStitch === s.id ? 'on' : ''}" onclick="setStitch('${s.id}')">
       <div class="ssym" style="${S.activeStitch === s.id ? 'background:' + s.col + ';color:#fff' : 'color:' + s.col}">${s.sym}</div>
-      <span>${s.name}</span>
+      <span>${stitchLabel(s).name}</span>
     </div>`).join('');
 }
 
@@ -44,7 +44,8 @@ function updateLegend() {
   const usedCols = [...new Set(Object.values(S.cells).map(c => c.color))];
   let h = '';
   stitches.filter(s => used[s.id]).forEach(s => {
-    h += `<div class="li"><div class="lsym">${s.sym}</div><div class="ls" style="background:${s.col}"></div><span>${s.abbr} — ${s.name}</span></div>`;
+    const label = stitchLabel(s);
+    h += `<div class="li"><div class="lsym">${s.sym}</div><div class="ls" style="background:${s.col}"></div><span>${label.abbr} — ${label.name}</span></div>`;
   });
   // Color rows are clickable — click to swap that color for the active one.
   usedCols.forEach(c => {
@@ -60,7 +61,17 @@ function updateLegend() {
 function updateIndicator() {
   const s = CS[S.mode].find(s => s.id === S.activeStitch);
   document.getElementById('adot').style.background = S.activeColor;
-  document.getElementById('alab').textContent = s ? `${s.sym} — ${s.name}` : '';
+  if (!s) {
+    document.getElementById('alab').textContent = '';
+    return;
+  }
+  const label = stitchLabel(s);
+  document.getElementById('alab').textContent = `${s.sym} — ${label.name}`;
+}
+
+function stitchLabel(s) {
+  if (S.mode !== 'crochet') return { name: s.name, abbr: s.abbr };
+  return CROCHET_TERMS[S.crochetTerms]?.[s.id] || { name: s.name, abbr: s.abbr };
 }
 
 // ── State setters ──
@@ -75,6 +86,7 @@ function setMode(mode) {
   const b = document.getElementById('modeBadge');
   b.textContent = mode === 'crochet' ? 'Crochet' : 'Knitting';
   b.className = 'badge ' + (mode === 'crochet' ? 'crochet-badge' : 'knit-badge');
+  updateTerminologyUI();
   renderStitches(); renderPresets(); updateIndicator(); updateLegend();
   scheduleAutosave();
 }
@@ -103,6 +115,22 @@ function setTool(t) {
   document.getElementById('tool-' + t)?.classList.add('on');
   // Visually swap canvas cursor for the Pan tool.
   document.getElementById('cw').classList.toggle('tool-pan', t === 'pan');
+}
+
+function setCrochetTerms(term) {
+  S.crochetTerms = term === 'uk' ? 'uk' : 'us';
+  updateTerminologyUI();
+  renderStitches(); updateIndicator(); updateLegend();
+  toast(S.crochetTerms === 'uk' ? 'UK crochet terms active' : 'US crochet terms active');
+  scheduleAutosave();
+}
+
+function updateTerminologyUI() {
+  const row = document.getElementById('termRow');
+  if (!row) return;
+  row.style.display = S.mode === 'crochet' ? 'flex' : 'none';
+  document.getElementById('termUS').classList.toggle('on', S.crochetTerms !== 'uk');
+  document.getElementById('termUK').classList.toggle('on', S.crochetTerms === 'uk');
 }
 
 function setHexOrient(o) {
