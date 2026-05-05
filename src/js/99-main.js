@@ -8,7 +8,7 @@ function init() {
   gCanvas = document.getElementById('gpc');
   gCtx    = gCanvas.getContext('2d');
 
-  renderStitches(); renderPalette(); renderPresets();
+  renderStitches(); renderPalette(); renderPresets(); renderCables();
   buildRoundRows(); drawGrannyPreview();
   resize();
 

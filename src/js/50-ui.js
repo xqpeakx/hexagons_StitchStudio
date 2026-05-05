@@ -24,6 +24,39 @@ function renderPresets() {
     <div class="pit" onclick="${p.fn}()">${p.name}<span class="ptag">${S.mode}</span></div>`).join('');
 }
 
+// Cable picker — square-grid only. Renders a 2×4 grid of width/direction
+// buttons plus a "no cable" reset.
+const CABLE_TYPES = [
+  { w: 2, dir: 'L', label: '1/1 L' }, { w: 2, dir: 'R', label: '1/1 R' },
+  { w: 4, dir: 'L', label: '2/2 L' }, { w: 4, dir: 'R', label: '2/2 R' },
+  { w: 6, dir: 'L', label: '3/3 L' }, { w: 6, dir: 'R', label: '3/3 R' },
+  { w: 8, dir: 'L', label: '4/4 L' }, { w: 8, dir: 'R', label: '4/4 R' },
+];
+
+function renderCables() {
+  const el = document.getElementById('cablesGrid');
+  if (!el) return;
+  const isOn = (t) => S.activeCable && S.activeCable.w === t.w && S.activeCable.dir === t.dir;
+  el.innerHTML =
+    CABLE_TYPES.map(t =>
+      `<button class="cab ${isOn(t) ? 'on' : ''}" onclick="setCable(${t.w},'${t.dir}')">${t.label}</button>`
+    ).join('') +
+    `<button class="cab cab-none" onclick="setCable(null)">No cable (single cells)</button>`;
+}
+
+function setCable(wOrNull, dir) {
+  if (wOrNull === null) {
+    S.activeCable = null;
+    toast('Cable picker off — single-cell painting');
+  } else {
+    S.activeCable = { w: wOrNull, dir };
+    // Clearing implicitly sets the draw tool so taps actually place.
+    if (S.tool !== 'draw') setTool('draw');
+    toast(`Cable: ${wOrNull / 2}/${wOrNull / 2} ${dir} — tap a cell to place`);
+  }
+  renderCables();
+}
+
 function updateStats() {
   const cs = S.cellSize, lo = S.showLabels ? 20 : 0;
   const visC = S.gridType === 'square'
@@ -101,8 +134,12 @@ function setGridType(type) {
   const gb = document.getElementById('gridBadge');
   gb.textContent = type === 'hex' ? 'Hex Grid' : 'Square Grid';
   gb.className = 'badge ' + (type === 'hex' ? 'hex-badge' : 'sq-badge');
-  // Gauge controls only meaningful on square grid.
+  // Gauge controls and cables only meaningful on square grid.
   document.getElementById('gaugeRow').style.display = type === 'square' ? '' : 'none';
+  const cablesPanel = document.getElementById('cablesPanel');
+  if (cablesPanel) cablesPanel.style.display = type === 'square' ? '' : 'none';
+  // Switching to hex while a cable type is selected — clear it.
+  if (type !== 'square' && S.activeCable) { S.activeCable = null; renderCables(); }
   if (document.getElementById('grannyPanel').classList.contains('vis')) onGStyleChange();
   draw(); updateStats();
   toast(type === 'hex' ? 'Hex grid — tap hexagons to paint!' : 'Square grid active');
@@ -202,7 +239,14 @@ function applyPanelState() {
 }
 
 function syncResponsivePanels() {
-  const isNarrow = window.matchMedia('(max-width: 720px)').matches;
+  // matchMedia is missing in some test/embedding environments. Fall
+  // back to comparing innerWidth so init never crashes on it.
+  let isNarrow;
+  if (typeof window.matchMedia === 'function') {
+    isNarrow = window.matchMedia('(max-width: 720px)').matches;
+  } else {
+    isNarrow = (window.innerWidth || 800) <= 720;
+  }
   if (_lastPanelNarrow === isNarrow) return;
   _lastPanelNarrow = isNarrow;
   lpOpen = !isNarrow;
@@ -262,6 +306,13 @@ function togFollow(on)  {
   document.getElementById('foOff').classList.toggle('on', !on);
   draw();
   toast(on ? 'Follow mode — use ↑/↓ keys to step rows' : 'Follow mode off');
+  scheduleAutosave();
+}
+function togStylus(on) {
+  S.stylusMode = !!on;
+  document.getElementById('stOn').classList.toggle('on', on);
+  document.getElementById('stOff').classList.toggle('on', !on);
+  toast(on ? 'Stylus mode — finger pans, pencil draws' : 'Stylus mode off');
   scheduleAutosave();
 }
 

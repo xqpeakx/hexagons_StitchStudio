@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Stitch Studio</title>
+<!-- PWA / Add-to-Home-Screen support, especially for iPad. -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#8b5e3c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Stitch Studio">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <!-- INJECT_CSS -->
 </head>
 <body>
@@ -59,6 +67,10 @@
   <div class="ps">
     <div class="plbl">Presets</div>
     <div class="plist" id="presetList"></div>
+  </div>
+  <div class="ps" id="cablesPanel">
+    <div class="plbl" title="Multi-cell cable stitches. Square grid only — pick a width + direction, then tap the cell where the cable starts.">Cables</div>
+    <div class="cab-grid" id="cablesGrid"></div>
   </div>
   <div class="ps">
     <div class="plbl">Special</div>
@@ -217,6 +229,9 @@
     <div class="prow" id="termRow" title="Switch crochet display labels between US and UK terminology."><label>Terminology</label>
       <div class="tog"><button class="on" id="termUS" onclick="setCrochetTerms('us')">US</button><button id="termUK" onclick="setCrochetTerms('uk')">UK</button></div>
     </div>
+    <div class="prow" title="When on, finger taps always pan and a stylus uses the active tool. Auto-enables on first Apple Pencil contact."><label>Stylus mode</label>
+      <div class="tog"><button id="stOn" onclick="togStylus(true)">On</button><button class="on" id="stOff" onclick="togStylus(false)">Off</button></div>
+    </div>
   </div>
   <div class="ps" id="gaugeRow">
     <div class="plbl" title="Stitches × Rows per 4 inches. Used to render cells with the correct aspect ratio.">Gauge (per 4″)</div>
@@ -248,6 +263,7 @@
       <button class="sbtn" onclick="openProjectImport()">⬆ Import project</button>
       <button class="sbtn" onclick="clearAll()">🗑 Clear canvas</button>
       <button class="sbtn" onclick="undoLast()">↩ Undo</button>
+      <button class="sbtn" onclick="redoLast()">↪ Redo</button>
       <button class="sbtn" onclick="mirrorH()">↔ Mirror H</button>
       <button class="sbtn" onclick="mirrorV()">↕ Mirror V</button>
     </div>

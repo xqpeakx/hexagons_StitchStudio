@@ -109,11 +109,29 @@ let S = {
   // Active row highlight ("follow" mode). null = off, otherwise
   // 0-indexed row that gets a colored outline.
   activeRow: null,
+  // Stylus mode. When true, finger touches always pan and stylus
+  // touches use the selected tool. Auto-enables the first time a
+  // stylus touch is detected; can be toggled manually after that.
+  stylusMode:false,
+  // Cables (square-grid only). Each entry is
+  //   { r, c, w, dir:'L'|'R', color }
+  // The record covers cells [r, c..c+w-1]; the underlying S.cells
+  // entries are left intact so the cable rides on top of whatever
+  // base colour was painted.
+  cables: [],
+  // Selected cable type to place on next click, or null for normal
+  // single-cell painting. e.g. { w: 4, dir: 'L' } for a 2/2 L cable.
+  activeCable: null,
   panX:0, panY:0,
 };
 
+// Has a stylus event been observed in this session yet? Used to
+// auto-suggest enabling stylusMode on first Pencil contact.
+let _stylusSeenAuto = false;
+
 // Painting / interaction state, shared across event handlers.
 let undoStack = [];
+let redoStack = [];
 const MAX_UNDO = 40;
 let painting=false, lastKey=null, isPan=false;
 let panSt={x:0,y:0}, panOr={x:0,y:0};

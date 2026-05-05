@@ -67,7 +67,9 @@ function bindCanvasEvents() {
     if (e.key === '+' || e.key === '=') { e.preventDefault(); adjZoom(0.15); }
     if (e.key === '-' || e.key === '_') { e.preventDefault(); adjZoom(-0.15); }
     if (e.key === '0') { e.preventDefault(); resetZoom(); }
-    if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); undoLast(); }
+    if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); undoLast(); }
+    if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey) && e.shiftKey) { e.preventDefault(); redoLast(); }
+    if ((e.key === 'y' || e.key === 'Y') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); redoLast(); }
     // Follow-mode row stepping
     if (S.activeRow !== null) {
       if (e.key === 'ArrowUp')   { e.preventDefault(); stepRow(-1); }
@@ -102,6 +104,18 @@ function bindCanvasEvents() {
   let touchPaintPending = null;
   const TOUCH_PAINT_THRESHOLD = 7;
 
+  // Multi-finger tap gesture state. We watch the peak finger count
+  // and total movement for the duration of the touch sequence; when
+  // all fingers lift, a short, near-stationary 2-finger tap is undo,
+  // and 3-finger tap is redo. Anything that drags or held too long
+  // is treated as a normal pinch/pan and ignored.
+  const MULTI_TAP_MS = 350;
+  const MULTI_TAP_MAX_DRAG = 12;
+  let gestureStartTime = 0;
+  let gesturePeakFingers = 0;
+  let gestureStartPositions = []; // [{x,y}, ...] indexed by finger
+  let gestureMaxDrift = 0;
+
   function clearTouchPending() {
     touchPaintPending = null;
     document.getElementById('cw').classList.remove('touch-pending');
@@ -128,10 +142,51 @@ function bindCanvasEvents() {
     e.preventDefault();
     touches = Array.from(e.touches);
 
+    // Update multi-finger gesture state. If this is the very first
+    // finger of a sequence, start the timer; otherwise just track the
+    // peak. The decision about whether it was a tap is made at touchend.
+    if (e.touches.length === 1 && gesturePeakFingers === 0) {
+      gestureStartTime = Date.now();
+      gestureMaxDrift = 0;
+      gestureStartPositions = [];
+    }
+    gesturePeakFingers = Math.max(gesturePeakFingers, e.touches.length);
+    // Snapshot starting positions for drift tracking. We append; older
+    // fingers keep their start position so the drift check is honest.
+    while (gestureStartPositions.length < e.touches.length) {
+      const t = e.touches[gestureStartPositions.length];
+      gestureStartPositions.push({ x: t.clientX, y: t.clientY });
+    }
+
     if (touches.length === 1) {
       const r = canvas.getBoundingClientRect();
       const t = touches[0];
       const ox = t.clientX - r.left, oy = t.clientY - r.top;
+
+      // ── STYLUS / FINGER SPLIT ──
+      // Safari iOS exposes Touch.touchType ('stylus' | 'direct'). On
+      // first stylus contact, auto-enable stylusMode and tell the user.
+      // When stylusMode is on: finger always pans, stylus always uses
+      // the selected tool — regardless of the Pan tool selection.
+      const isStylus = (t.touchType === 'stylus');
+      if (isStylus && !_stylusSeenAuto && !S.stylusMode) {
+        _stylusSeenAuto = true;
+        S.stylusMode = true;
+        if (document.getElementById('stOn')) {
+          document.getElementById('stOn').classList.add('on');
+          document.getElementById('stOff').classList.remove('on');
+        }
+        toast('Stylus detected — finger pans, pencil draws');
+        scheduleAutosave();
+      }
+      if (S.stylusMode && !isStylus) {
+        // Finger touch in stylus mode: force pan regardless of tool.
+        clearTouchPending();
+        isPan = true; panSt = { x: t.clientX, y: t.clientY };
+        panOr = { x: S.panX, y: S.panY };
+        document.getElementById('cw').classList.add('panning');
+        return;
+      }
 
       // One-finger pan when Pan tool is active.
       if (S.tool === 'pan') {
@@ -193,6 +248,14 @@ function bindCanvasEvents() {
     e.preventDefault();
     touches = Array.from(e.touches);
 
+    // Track how far each finger has drifted from its starting point.
+    for (let i = 0; i < e.touches.length && i < gestureStartPositions.length; i++) {
+      const t = e.touches[i];
+      const s = gestureStartPositions[i];
+      const d = Math.hypot(t.clientX - s.x, t.clientY - s.y);
+      if (d > gestureMaxDrift) gestureMaxDrift = d;
+    }
+
     if (touches.length === 1) {
       const t = touches[0];
       if (isPan) {
@@ -238,7 +301,34 @@ function bindCanvasEvents() {
 
   canvas.addEventListener('touchend', e => {
     e.preventDefault();
-    if (e.touches.length === 0) commitTouchPending();
+
+    if (e.touches.length === 0) {
+      // The full sequence has ended. Check whether it was a multi-finger
+      // tap that should map to undo/redo.
+      const elapsed = Date.now() - gestureStartTime;
+      const wasShortTap = elapsed > 0 && elapsed < MULTI_TAP_MS && gestureMaxDrift < MULTI_TAP_MAX_DRAG;
+      if (wasShortTap && gesturePeakFingers === 2) {
+        // Don't commit any pending paint or pinch-zoom side-effects.
+        clearTouchPending();
+        painting = false;
+        // Roll back the cellSize change pinch may have applied early — it
+        // only had time to apply if the user was actually pinching, which
+        // wouldStill have crossed the drag threshold; skip for safety.
+        undoLast();
+      } else if (wasShortTap && gesturePeakFingers >= 3) {
+        clearTouchPending();
+        painting = false;
+        redoLast();
+      } else {
+        commitTouchPending();
+      }
+      // Reset gesture tracking.
+      gesturePeakFingers = 0;
+      gestureStartPositions = [];
+      gestureMaxDrift = 0;
+      gestureStartTime = 0;
+    }
+
     painting = false; isPan = false; t2Start = null; touches = [];
     document.getElementById('cw').classList.remove('panning');
     if (e.touches.length === 0) clearTouchPending();

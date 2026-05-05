@@ -25,6 +25,8 @@ function snapshotState() {
     gaugeStitches: S.gaugeStitches, gaugeRows: S.gaugeRows,
     showGrid: S.showGrid, showLabels: S.showLabels, showSyms: S.showSyms,
     protectFilled: S.protectFilled, shadeWS: S.shadeWS, activeRow: S.activeRow,
+    stylusMode: S.stylusMode,
+    cables: (S.cables || []).slice(),
     palette: PALETTE.slice(),
     savedAt: new Date().toISOString(),
   };
@@ -48,6 +50,14 @@ function applyState(p) {
   S.activeRow = Number.isInteger(p.activeRow)
     ? Math.max(0, Math.min(S.sqH - 1, p.activeRow))
     : null;
+  S.stylusMode = !!p.stylusMode;
+  // Cables: only accept records with the expected shape.
+  S.cables = Array.isArray(p.cables)
+    ? p.cables.filter(cb => Number.isInteger(cb.r) && Number.isInteger(cb.c)
+        && Number.isInteger(cb.w) && (cb.dir === 'L' || cb.dir === 'R')
+        && typeof cb.color === 'string')
+    : [];
+  S.activeCable = null;
   if (Array.isArray(p.palette) && p.palette.length) {
     PALETTE.length = 0;
     p.palette.forEach(c => PALETTE.push(c));
@@ -78,6 +88,10 @@ function applyState(p) {
   document.getElementById('wsOff').classList.toggle('on', !S.shadeWS);
   document.getElementById('foOn').classList.toggle('on', S.activeRow !== null);
   document.getElementById('foOff').classList.toggle('on', S.activeRow === null);
+  if (document.getElementById('stOn')) {
+    document.getElementById('stOn').classList.toggle('on', S.stylusMode);
+    document.getElementById('stOff').classList.toggle('on', !S.stylusMode);
+  }
   updateTerminologyUI();
   setMode(S.mode);
   setGridType(p.gridType || 'square');
@@ -85,7 +99,7 @@ function applyState(p) {
   S.activeStitch = CS[S.mode].some(s => s.id === p.activeStitch)
     ? p.activeStitch
     : S.activeStitch;
-  renderStitches(); renderPalette(); updateIndicator(); updateLegend();
+  renderStitches(); renderPalette(); renderCables(); updateIndicator(); updateLegend();
 }
 
 // ── AUTOSAVE ──
@@ -264,6 +278,12 @@ function buildExportCanvas(scale) {
         } else {
           ec.fillStyle = cell.color; ec.fillRect(x, y, cs, ch);
         }
+      }
+    }
+    // Cables ride on top of cells in the export, just like on-canvas.
+    if (S.cables && S.cables.length) {
+      for (const cb of S.cables) {
+        drawCable(cb, lo, lo, cs, ch, ec);
       }
     }
     if (S.showGrid) {

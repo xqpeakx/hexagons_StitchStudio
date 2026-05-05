@@ -96,6 +96,16 @@ function drawSquareGrid() {
     }
   }
 
+  // Cables — render after cells, before grid lines so the cross sits
+  // on top of any fill but the grid tracery still shows through.
+  if (S.cables && S.cables.length) {
+    for (const cb of S.cables) {
+      if (cb.r < row0 || cb.r >= rowN) continue;
+      if (cb.c + cb.w <= col0 || cb.c >= colN) continue;
+      drawCable(cb, ox, oy, cs, ch, ctx);
+    }
+  }
+
   // Active row highlight
   if (S.activeRow !== null && S.activeRow >= row0 && S.activeRow < rowN) {
     ctx.strokeStyle = '#b85468';
@@ -116,17 +126,39 @@ function drawSquareGrid() {
     }
   }
 
-  // Row/col labels
+  // Row/col labels (with per-row painted counts on square grids — useful
+  // when knitting from a chart, especially on tablets with no hover).
   if (S.showLabels && lo > 0) {
     ctx.fillStyle = '#b0a89f'; ctx.font = `9.5px DM Sans,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#faf8f5';
     ctx.fillRect(0, 0, lo, canvas.height);
     ctx.fillRect(0, 0, canvas.width, lo);
+    // Pre-tally per-visible-row stitch counts in one cells pass.
+    const rowCounts = {};
+    for (let r = row0; r < rowN; r++) rowCounts[r] = 0;
+    for (const k in S.cells) {
+      if (!k.startsWith('sq:')) continue;
+      const [, rc] = k.split(':');
+      const [r] = rc.split(',').map(Number);
+      if (r in rowCounts && S.cells[k].stitchId !== '_no') rowCounts[r]++;
+    }
     ctx.fillStyle = '#b0a89f';
     for (let r = row0; r < rowN; r++) {
       const y = oy + r * ch + ch / 2;
-      if (y > 0 && y < canvas.height) ctx.fillText(S.mode === 'knit' ? (S.sqH - r) : (r + 1), lo / 2, y);
+      if (y <= 0 || y >= canvas.height) continue;
+      const labelNum = S.mode === 'knit' ? (S.sqH - r) : (r + 1);
+      const count = rowCounts[r] || 0;
+      ctx.fillText(labelNum, lo / 2, y);
+      // Count badge in lighter ink, tucked just below the row number
+      // when the label strip is wide enough to fit it.
+      if (count > 0 && lo >= 18 && ch >= 14) {
+        ctx.save();
+        ctx.fillStyle = '#cabfb3';
+        ctx.font = `8px DM Sans,sans-serif`;
+        ctx.fillText(count, lo / 2, y + ch / 2 - 4);
+        ctx.restore();
+      }
     }
     for (let c = col0; c < colN; c++) {
       const x = ox + c * cs + cs / 2;
@@ -205,6 +237,86 @@ function drawSymbol(ctx, cell, x, y, cs) {
   ctx.font = `${Math.min(cs * .5, 13)}px DM Sans,monospace`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(s.sym, x, y);
+}
+
+// Draw a single cable record over the grid. The "front" half of the
+// cross is drawn last with a thicker stroke; the "back" half is drawn
+// first and gets a small gap at the crossover to imply going under.
+//   dir = 'L' → left half passes IN FRONT going right
+//   dir = 'R' → right half passes IN FRONT going left
+// Takes the target ctx so the same fn can render to the on-screen
+// canvas and to the export canvas.
+function drawCable(cb, ox, oy, cs, ch, targetCtx) {
+  const tctx = targetCtx || ctx;
+  const x0 = ox + cb.c * cs;
+  const y0 = oy + cb.r * ch;
+  const w = cb.w * cs;
+  const inset = Math.max(2, cs * 0.18);
+  const cx = x0 + w / 2;
+  const cy = y0 + ch / 2;
+
+  // Optional band of cable colour, very faint, tying the cells together
+  // visually without overpowering the underlying paint.
+  tctx.fillStyle = cb.color;
+  tctx.globalAlpha = 0.18;
+  tctx.fillRect(x0 + 1, y0 + 1, w - 2, ch - 2);
+  tctx.globalAlpha = 1;
+
+  const tl = [x0 + inset, y0 + inset];
+  const tr = [x0 + w - inset, y0 + inset];
+  const bl = [x0 + inset, y0 + ch - inset];
+  const br = [x0 + w - inset, y0 + ch - inset];
+
+  const lineW = Math.max(1.4, Math.min(3, cs * 0.10));
+  const lines = (cb.dir === 'L')
+    ? { back: [tl, br], front: [bl, tr] }
+    : { back: [bl, tr], front: [tl, br] };
+
+  tctx.strokeStyle = darken(cb.color, 0.35);
+  tctx.lineWidth = lineW;
+  tctx.lineCap = 'round';
+  drawSegmentWithGap(tctx, lines.back[0], lines.back[1], cs * 0.18);
+  tctx.lineWidth = lineW * 1.2;
+  tctx.beginPath();
+  tctx.moveTo(lines.front[0][0], lines.front[0][1]);
+  tctx.lineTo(lines.front[1][0], lines.front[1][1]);
+  tctx.stroke();
+
+  if (cb.w >= 4 && cs >= 16 && ch >= 16) {
+    const half = cb.w / 2;
+    const label = `${half}/${half}${cb.dir}`;
+    tctx.font = `${Math.min(10, ch * 0.32)}px DM Sans, sans-serif`;
+    tctx.textAlign = 'center';
+    tctx.textBaseline = 'top';
+    tctx.fillStyle = darken(cb.color, 0.5);
+    tctx.fillText(label, cx, y0 + 2);
+  }
+}
+
+// Draw a single line from p0 to p1 but skip the middle segment
+// of length 2*gap centred on the midpoint. Implies "passing under".
+function drawSegmentWithGap(tctx, p0, p1, gap) {
+  const [x0, y0] = p0, [x1, y1] = p1;
+  const dx = x1 - x0, dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  const ux = dx / len, uy = dy / len;
+  const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const ax = mx - ux * gap, ay = my - uy * gap;
+  const bx = mx + ux * gap, by = my + uy * gap;
+  tctx.beginPath();
+  tctx.moveTo(x0, y0); tctx.lineTo(ax, ay); tctx.stroke();
+  tctx.beginPath();
+  tctx.moveTo(bx, by); tctx.lineTo(x1, y1); tctx.stroke();
+}
+
+// Mix a hex colour toward black by `amount` (0..1).
+function darken(hex, amount) {
+  const r = parseInt(hex.slice(1, 3), 16),
+        g = parseInt(hex.slice(3, 5), 16),
+        b = parseInt(hex.slice(5, 7), 16);
+  const f = 1 - amount;
+  const toHex = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return '#' + toHex(r * f) + toHex(g * f) + toHex(b * f);
 }
 
 function lum(hex) {

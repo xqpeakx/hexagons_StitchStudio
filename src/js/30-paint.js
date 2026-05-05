@@ -25,6 +25,8 @@ function getCell(ox, oy) {
 function pushUndo() {
   undoStack.push(JSON.stringify(S.cells));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
+  // Any new edit invalidates the redo branch — same model as a text editor.
+  redoStack.length = 0;
 }
 
 function paintAt(ox, oy) {
@@ -39,8 +41,28 @@ function paintAt(ox, oy) {
     return;
   }
   if (S.tool === 'erase') {
+    // If a cable covers this cell, clear the whole cable in one tap.
+    if (S.gridType === 'square') {
+      const [, rc] = cell.key.split(':');
+      const [r, c] = rc.split(',').map(Number);
+      const idx = S.cables.findIndex(cb => cb.r === r && c >= cb.c && c < cb.c + cb.w);
+      if (idx !== -1) {
+        S.cables.splice(idx, 1);
+        draw(); updateStats(); updateLegend(); scheduleAutosave();
+        return;
+      }
+    }
     delete S.cells[cell.key];
   } else {
+    // Cable placement, square grid only. Drag-painting does not place
+    // multiple cables — once placed on this stroke, ignore further moves.
+    if (S.activeCable && S.gridType === 'square' && S.tool === 'draw') {
+      placeCableAt(cell.key);
+      // Mark this stroke "done" so dragging across cells doesn't spam cables.
+      lastKey = '__cable_placed__';
+      draw(); updateStats(); updateLegend(); scheduleAutosave();
+      return;
+    }
     const existing = S.cells[cell.key];
     // Protect-filled: don't overwrite already-coloured cells on a single
     // tap or while dragging. Use double-click (mouse) or double-tap
@@ -49,6 +71,22 @@ function paintAt(ox, oy) {
     S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
   }
   draw(); updateStats(); updateLegend(); scheduleAutosave();
+}
+
+// Place a cable starting at the given square-grid cell key. Refuses
+// silently with a toast if the cable would extend past the grid.
+function placeCableAt(key) {
+  if (!S.activeCable) return;
+  const [, rc] = key.split(':');
+  const [r, c] = rc.split(',').map(Number);
+  const w = S.activeCable.w;
+  const dir = S.activeCable.dir;
+  if (c + w > S.sqW) { toast('Cable extends past the row — move left'); return; }
+  if (r < 0 || r >= S.sqH) return;
+  // Remove any existing cable that overlaps this one (same row, intersecting cols).
+  S.cables = S.cables.filter(cb =>
+    cb.r !== r || (cb.c + cb.w <= c) || (cb.c >= c + w));
+  S.cables.push({ r, c, w, dir, color: S.activeColor });
 }
 
 function floodFill(ox, oy) {

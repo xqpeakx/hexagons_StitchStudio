@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Stitch Studio</title>
+<!-- PWA / Add-to-Home-Screen support, especially for iPad. -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#8b5e3c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Stitch Studio">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 :root {
@@ -142,6 +150,17 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .sbtn{width:100%;text-align:left;padding:7px 10px;border-radius:var(--rsm);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:11.5px;cursor:pointer;transition:all .15s}
 .sbtn:hover{background:var(--s2);color:var(--text)}
 
+/* ── CABLES PANEL ── */
+.cab-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.cab{padding:8px 6px;border-radius:var(--rsm);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:11px;font-weight:600;color:var(--text2);transition:all .15s;font-family:'DM Sans',sans-serif}
+.cab:hover{border-color:var(--purple);background:var(--purple2);color:var(--purple)}
+.cab.on{border-color:var(--purple);background:var(--purple2);color:var(--purple)}
+.cab-none{grid-column:1 / -1;font-size:10.5px;font-weight:500;padding:5px 6px;color:var(--text3)}
+@media (pointer: coarse) {
+  .cab{padding:11px 8px;font-size:13px}
+  .cab-none{padding:9px 6px;font-size:12px}
+}
+
 /* ── GAUGE INPUTS ── */
 .gauge-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
 .gauge-row .gauge-cell{display:flex;flex-direction:column;gap:2px}
@@ -190,6 +209,89 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .hexnote{padding:8px 10px;background:var(--purple2);border-radius:var(--rsm);font-size:10.5px;color:var(--purple);line-height:1.5}
 
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── SAFE-AREA INSETS (notched iPads / standalone PWA) ── */
+.hdr{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-top:env(safe-area-inset-top)}
+.lp{padding-left:env(safe-area-inset-left)}
+.rp{padding-right:env(safe-area-inset-right)}
+.zoom-bar{bottom:max(16px,calc(env(safe-area-inset-bottom) + 8px))}
+.toast{bottom:max(28px,calc(env(safe-area-inset-bottom) + 16px))}
+
+/* ── COARSE POINTER (touch devices: iPad, phone, tablets) ──
+   Bumps every interactive element to ≥44pt-ish so fingers can hit
+   them comfortably. Doesn't affect mouse-driven desktop browsing. */
+@media (pointer: coarse) {
+  /* Header chrome */
+  .ibt{width:42px;height:42px;font-size:18px}
+  .pbtn{padding:10px 18px;font-size:14px}
+  .seg button{padding:8px 14px;font-size:13px}
+
+  /* Tools grid */
+  .tbtn{padding:12px 6px;font-size:11px;gap:4px}
+  .tbtn .ic{font-size:22px}
+
+  /* Stitch list rows */
+  .sit{padding:10px 10px;font-size:13px}
+  .ssym{width:28px;height:28px;font-size:12px}
+
+  /* Colourway swatches */
+  .csw{width:36px;height:36px}
+  .cadd{width:36px;height:36px;font-size:18px}
+  .cgrid{gap:7px}
+  /* Make the custom-color picker tap target larger */
+  #customColor{width:36px !important;height:36px !important}
+
+  /* Preset rows */
+  .pit{padding:11px 11px;font-size:13px}
+
+  /* Panel toggles (the thin tabs that collapse the side panels) */
+  .panel-toggle{width:24px;font-size:14px}
+
+  /* Toolbar inputs */
+  .ni{width:64px;padding:7px 8px;font-size:14px;height:36px}
+  .apply-btn{padding:7px 14px;font-size:13px;height:36px}
+  .gc{font-size:13px;gap:7px}
+  .hot{padding:7px 14px;font-size:13px}
+
+  /* Right-panel rows: bigger toggles, taller rows */
+  .prow{font-size:13px;margin-bottom:10px;gap:8px}
+  .tog button{padding:8px 14px;font-size:12.5px;min-width:44px}
+
+  /* Legend rows are already touch-friendly via .swap, but bump font */
+  .li{font-size:12px;padding:4px 4px}
+  .li.swap{padding:6px 6px}
+  .ls{width:18px;height:18px}
+
+  /* Action buttons in right panel */
+  .sbtn{padding:11px 12px;font-size:13px}
+
+  /* Gauge inputs */
+  .gauge-row input{padding:8px 8px;font-size:13px;height:36px}
+  .gauge-row label{font-size:10px}
+
+  /* Granny panel — Round colour pickers */
+  .rrow{padding:10px 11px;gap:9px}
+  .rcp{width:28px;height:28px}
+  .rst{padding:7px 7px;font-size:12px;height:34px}
+  .rn{font-size:12px;width:24px}
+
+  /* Modals: bigger targets */
+  .sbtn2{padding:11px 18px;font-size:14px}
+  .sli{padding:11px 12px;font-size:13px}
+
+  /* Zoom bar */
+  .zoom-bar button{width:42px;height:42px;font-size:20px}
+  .zoom-bar .zreset{width:38px;font-size:14px}
+  .zoom-bar{padding:8px 12px;gap:6px}
+}
+
+/* ── TABLET LAYOUT (iPad portrait through landscape, ~721–1180 px) ──
+   Keeps side panels in place but slightly wider so the bigger touch
+   targets fit without wrapping. */
+@media (min-width: 721px) and (max-width: 1180px) {
+  .lp{width:208px}
+  .rp{width:230px}
+}
 
 /* ── RESPONSIVE: collapse panels on narrow screens ── */
 @media (max-width: 720px) {
@@ -261,6 +363,10 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   <div class="ps">
     <div class="plbl">Presets</div>
     <div class="plist" id="presetList"></div>
+  </div>
+  <div class="ps" id="cablesPanel">
+    <div class="plbl" title="Multi-cell cable stitches. Square grid only — pick a width + direction, then tap the cell where the cable starts.">Cables</div>
+    <div class="cab-grid" id="cablesGrid"></div>
   </div>
   <div class="ps">
     <div class="plbl">Special</div>
@@ -419,6 +525,9 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <div class="prow" id="termRow" title="Switch crochet display labels between US and UK terminology."><label>Terminology</label>
       <div class="tog"><button class="on" id="termUS" onclick="setCrochetTerms('us')">US</button><button id="termUK" onclick="setCrochetTerms('uk')">UK</button></div>
     </div>
+    <div class="prow" title="When on, finger taps always pan and a stylus uses the active tool. Auto-enables on first Apple Pencil contact."><label>Stylus mode</label>
+      <div class="tog"><button id="stOn" onclick="togStylus(true)">On</button><button class="on" id="stOff" onclick="togStylus(false)">Off</button></div>
+    </div>
   </div>
   <div class="ps" id="gaugeRow">
     <div class="plbl" title="Stitches × Rows per 4 inches. Used to render cells with the correct aspect ratio.">Gauge (per 4″)</div>
@@ -450,6 +559,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
       <button class="sbtn" onclick="openProjectImport()">⬆ Import project</button>
       <button class="sbtn" onclick="clearAll()">🗑 Clear canvas</button>
       <button class="sbtn" onclick="undoLast()">↩ Undo</button>
+      <button class="sbtn" onclick="redoLast()">↪ Redo</button>
       <button class="sbtn" onclick="mirrorH()">↔ Mirror H</button>
       <button class="sbtn" onclick="mirrorV()">↕ Mirror V</button>
     </div>
@@ -486,7 +596,8 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 <input type="file" id="projectFile" accept="application/json,.json" style="display:none" onchange="importProjectFile(this)">
 
 <script>
-// ---- 00-state.js ----
+// ── 00-state.js ─────────────────────────────────────────────────
+
 // ═══════════════════════════════════════════════════════════
 // STATE & CONSTANTS
 // All globals live here; later modules read/mutate them via
@@ -598,11 +709,29 @@ let S = {
   // Active row highlight ("follow" mode). null = off, otherwise
   // 0-indexed row that gets a colored outline.
   activeRow: null,
+  // Stylus mode. When true, finger touches always pan and stylus
+  // touches use the selected tool. Auto-enables the first time a
+  // stylus touch is detected; can be toggled manually after that.
+  stylusMode:false,
+  // Cables (square-grid only). Each entry is
+  //   { r, c, w, dir:'L'|'R', color }
+  // The record covers cells [r, c..c+w-1]; the underlying S.cells
+  // entries are left intact so the cable rides on top of whatever
+  // base colour was painted.
+  cables: [],
+  // Selected cable type to place on next click, or null for normal
+  // single-cell painting. e.g. { w: 4, dir: 'L' } for a 2/2 L cable.
+  activeCable: null,
   panX:0, panY:0,
 };
 
+// Has a stylus event been observed in this session yet? Used to
+// auto-suggest enabling stylusMode on first Pencil contact.
+let _stylusSeenAuto = false;
+
 // Painting / interaction state, shared across event handlers.
 let undoStack = [];
+let redoStack = [];
 const MAX_UNDO = 40;
 let painting=false, lastKey=null, isPan=false;
 let panSt={x:0,y:0}, panOr={x:0,y:0};
@@ -628,8 +757,8 @@ let gRoundCols = ['#d4688a','#3a8870','#c4963a','#6b4fa0','#d4956a','#5a8b5a','#
 // Canvas refs are populated once `init()` runs, after the DOM exists.
 let canvas, ctx, gCanvas, gCtx;
 
+// ── 10-hex.js ───────────────────────────────────────────────────
 
-// ---- 10-hex.js ----
 // ═══════════════════════════════════════════════════════════
 // HEX MATH — offset coordinates (even-q for flat, even-r for pointy)
 // ═══════════════════════════════════════════════════════════
@@ -693,8 +822,8 @@ function hexAtPoint(px, py, r, flat, cols, rows) {
 
 function hexKey(col, row) { return `${col},${row}`; }
 
+// ── 20-render.js ────────────────────────────────────────────────
 
-// ---- 20-render.js ----
 // ═══════════════════════════════════════════════════════════
 // CANVAS DRAW ENGINE
 // No CSS zoom transform. "Zoom" = changing cellSize/hexSize.
@@ -793,6 +922,16 @@ function drawSquareGrid() {
     }
   }
 
+  // Cables — render after cells, before grid lines so the cross sits
+  // on top of any fill but the grid tracery still shows through.
+  if (S.cables && S.cables.length) {
+    for (const cb of S.cables) {
+      if (cb.r < row0 || cb.r >= rowN) continue;
+      if (cb.c + cb.w <= col0 || cb.c >= colN) continue;
+      drawCable(cb, ox, oy, cs, ch, ctx);
+    }
+  }
+
   // Active row highlight
   if (S.activeRow !== null && S.activeRow >= row0 && S.activeRow < rowN) {
     ctx.strokeStyle = '#b85468';
@@ -813,17 +952,39 @@ function drawSquareGrid() {
     }
   }
 
-  // Row/col labels
+  // Row/col labels (with per-row painted counts on square grids — useful
+  // when knitting from a chart, especially on tablets with no hover).
   if (S.showLabels && lo > 0) {
     ctx.fillStyle = '#b0a89f'; ctx.font = `9.5px DM Sans,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#faf8f5';
     ctx.fillRect(0, 0, lo, canvas.height);
     ctx.fillRect(0, 0, canvas.width, lo);
+    // Pre-tally per-visible-row stitch counts in one cells pass.
+    const rowCounts = {};
+    for (let r = row0; r < rowN; r++) rowCounts[r] = 0;
+    for (const k in S.cells) {
+      if (!k.startsWith('sq:')) continue;
+      const [, rc] = k.split(':');
+      const [r] = rc.split(',').map(Number);
+      if (r in rowCounts && S.cells[k].stitchId !== '_no') rowCounts[r]++;
+    }
     ctx.fillStyle = '#b0a89f';
     for (let r = row0; r < rowN; r++) {
       const y = oy + r * ch + ch / 2;
-      if (y > 0 && y < canvas.height) ctx.fillText(S.mode === 'knit' ? (S.sqH - r) : (r + 1), lo / 2, y);
+      if (y <= 0 || y >= canvas.height) continue;
+      const labelNum = S.mode === 'knit' ? (S.sqH - r) : (r + 1);
+      const count = rowCounts[r] || 0;
+      ctx.fillText(labelNum, lo / 2, y);
+      // Count badge in lighter ink, tucked just below the row number
+      // when the label strip is wide enough to fit it.
+      if (count > 0 && lo >= 18 && ch >= 14) {
+        ctx.save();
+        ctx.fillStyle = '#cabfb3';
+        ctx.font = `8px DM Sans,sans-serif`;
+        ctx.fillText(count, lo / 2, y + ch / 2 - 4);
+        ctx.restore();
+      }
     }
     for (let c = col0; c < colN; c++) {
       const x = ox + c * cs + cs / 2;
@@ -904,6 +1065,86 @@ function drawSymbol(ctx, cell, x, y, cs) {
   ctx.fillText(s.sym, x, y);
 }
 
+// Draw a single cable record over the grid. The "front" half of the
+// cross is drawn last with a thicker stroke; the "back" half is drawn
+// first and gets a small gap at the crossover to imply going under.
+//   dir = 'L' → left half passes IN FRONT going right
+//   dir = 'R' → right half passes IN FRONT going left
+// Takes the target ctx so the same fn can render to the on-screen
+// canvas and to the export canvas.
+function drawCable(cb, ox, oy, cs, ch, targetCtx) {
+  const tctx = targetCtx || ctx;
+  const x0 = ox + cb.c * cs;
+  const y0 = oy + cb.r * ch;
+  const w = cb.w * cs;
+  const inset = Math.max(2, cs * 0.18);
+  const cx = x0 + w / 2;
+  const cy = y0 + ch / 2;
+
+  // Optional band of cable colour, very faint, tying the cells together
+  // visually without overpowering the underlying paint.
+  tctx.fillStyle = cb.color;
+  tctx.globalAlpha = 0.18;
+  tctx.fillRect(x0 + 1, y0 + 1, w - 2, ch - 2);
+  tctx.globalAlpha = 1;
+
+  const tl = [x0 + inset, y0 + inset];
+  const tr = [x0 + w - inset, y0 + inset];
+  const bl = [x0 + inset, y0 + ch - inset];
+  const br = [x0 + w - inset, y0 + ch - inset];
+
+  const lineW = Math.max(1.4, Math.min(3, cs * 0.10));
+  const lines = (cb.dir === 'L')
+    ? { back: [tl, br], front: [bl, tr] }
+    : { back: [bl, tr], front: [tl, br] };
+
+  tctx.strokeStyle = darken(cb.color, 0.35);
+  tctx.lineWidth = lineW;
+  tctx.lineCap = 'round';
+  drawSegmentWithGap(tctx, lines.back[0], lines.back[1], cs * 0.18);
+  tctx.lineWidth = lineW * 1.2;
+  tctx.beginPath();
+  tctx.moveTo(lines.front[0][0], lines.front[0][1]);
+  tctx.lineTo(lines.front[1][0], lines.front[1][1]);
+  tctx.stroke();
+
+  if (cb.w >= 4 && cs >= 16 && ch >= 16) {
+    const half = cb.w / 2;
+    const label = `${half}/${half}${cb.dir}`;
+    tctx.font = `${Math.min(10, ch * 0.32)}px DM Sans, sans-serif`;
+    tctx.textAlign = 'center';
+    tctx.textBaseline = 'top';
+    tctx.fillStyle = darken(cb.color, 0.5);
+    tctx.fillText(label, cx, y0 + 2);
+  }
+}
+
+// Draw a single line from p0 to p1 but skip the middle segment
+// of length 2*gap centred on the midpoint. Implies "passing under".
+function drawSegmentWithGap(tctx, p0, p1, gap) {
+  const [x0, y0] = p0, [x1, y1] = p1;
+  const dx = x1 - x0, dy = y1 - y0;
+  const len = Math.hypot(dx, dy);
+  const ux = dx / len, uy = dy / len;
+  const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const ax = mx - ux * gap, ay = my - uy * gap;
+  const bx = mx + ux * gap, by = my + uy * gap;
+  tctx.beginPath();
+  tctx.moveTo(x0, y0); tctx.lineTo(ax, ay); tctx.stroke();
+  tctx.beginPath();
+  tctx.moveTo(bx, by); tctx.lineTo(x1, y1); tctx.stroke();
+}
+
+// Mix a hex colour toward black by `amount` (0..1).
+function darken(hex, amount) {
+  const r = parseInt(hex.slice(1, 3), 16),
+        g = parseInt(hex.slice(3, 5), 16),
+        b = parseInt(hex.slice(5, 7), 16);
+  const f = 1 - amount;
+  const toHex = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return '#' + toHex(r * f) + toHex(g * f) + toHex(b * f);
+}
+
 function lum(hex) {
   const r = parseInt(hex.slice(1, 3), 16) / 255,
         g = parseInt(hex.slice(3, 5), 16) / 255,
@@ -911,8 +1152,8 @@ function lum(hex) {
   return .2126 * r + .7152 * g + .0722 * b;
 }
 
+// ── 30-paint.js ─────────────────────────────────────────────────
 
-// ---- 30-paint.js ----
 // ═══════════════════════════════════════════════════════════
 // CELL HIT-DETECTION + PAINT/FILL/UNDO
 // ═══════════════════════════════════════════════════════════
@@ -940,6 +1181,8 @@ function getCell(ox, oy) {
 function pushUndo() {
   undoStack.push(JSON.stringify(S.cells));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
+  // Any new edit invalidates the redo branch — same model as a text editor.
+  redoStack.length = 0;
 }
 
 function paintAt(ox, oy) {
@@ -954,8 +1197,28 @@ function paintAt(ox, oy) {
     return;
   }
   if (S.tool === 'erase') {
+    // If a cable covers this cell, clear the whole cable in one tap.
+    if (S.gridType === 'square') {
+      const [, rc] = cell.key.split(':');
+      const [r, c] = rc.split(',').map(Number);
+      const idx = S.cables.findIndex(cb => cb.r === r && c >= cb.c && c < cb.c + cb.w);
+      if (idx !== -1) {
+        S.cables.splice(idx, 1);
+        draw(); updateStats(); updateLegend(); scheduleAutosave();
+        return;
+      }
+    }
     delete S.cells[cell.key];
   } else {
+    // Cable placement, square grid only. Drag-painting does not place
+    // multiple cables — once placed on this stroke, ignore further moves.
+    if (S.activeCable && S.gridType === 'square' && S.tool === 'draw') {
+      placeCableAt(cell.key);
+      // Mark this stroke "done" so dragging across cells doesn't spam cables.
+      lastKey = '__cable_placed__';
+      draw(); updateStats(); updateLegend(); scheduleAutosave();
+      return;
+    }
     const existing = S.cells[cell.key];
     // Protect-filled: don't overwrite already-coloured cells on a single
     // tap or while dragging. Use double-click (mouse) or double-tap
@@ -964,6 +1227,22 @@ function paintAt(ox, oy) {
     S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
   }
   draw(); updateStats(); updateLegend(); scheduleAutosave();
+}
+
+// Place a cable starting at the given square-grid cell key. Refuses
+// silently with a toast if the cable would extend past the grid.
+function placeCableAt(key) {
+  if (!S.activeCable) return;
+  const [, rc] = key.split(':');
+  const [r, c] = rc.split(',').map(Number);
+  const w = S.activeCable.w;
+  const dir = S.activeCable.dir;
+  if (c + w > S.sqW) { toast('Cable extends past the row — move left'); return; }
+  if (r < 0 || r >= S.sqH) return;
+  // Remove any existing cable that overlaps this one (same row, intersecting cols).
+  S.cables = S.cables.filter(cb =>
+    cb.r !== r || (cb.c + cb.w <= c) || (cb.c >= c + w));
+  S.cables.push({ r, c, w, dir, color: S.activeColor });
 }
 
 function floodFill(ox, oy) {
@@ -1029,8 +1308,8 @@ function swapColor(fromColor) {
   toast(`Swapped ${n} cells → active color`);
 }
 
+// ── 40-events.js ────────────────────────────────────────────────
 
-// ---- 40-events.js ----
 // ═══════════════════════════════════════════════════════════
 // CANVAS EVENTS — mouse, touch, keyboard, wheel
 // Wired up by main.js after the canvas exists.
@@ -1100,7 +1379,9 @@ function bindCanvasEvents() {
     if (e.key === '+' || e.key === '=') { e.preventDefault(); adjZoom(0.15); }
     if (e.key === '-' || e.key === '_') { e.preventDefault(); adjZoom(-0.15); }
     if (e.key === '0') { e.preventDefault(); resetZoom(); }
-    if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); undoLast(); }
+    if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); undoLast(); }
+    if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey) && e.shiftKey) { e.preventDefault(); redoLast(); }
+    if ((e.key === 'y' || e.key === 'Y') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); redoLast(); }
     // Follow-mode row stepping
     if (S.activeRow !== null) {
       if (e.key === 'ArrowUp')   { e.preventDefault(); stepRow(-1); }
@@ -1135,6 +1416,18 @@ function bindCanvasEvents() {
   let touchPaintPending = null;
   const TOUCH_PAINT_THRESHOLD = 7;
 
+  // Multi-finger tap gesture state. We watch the peak finger count
+  // and total movement for the duration of the touch sequence; when
+  // all fingers lift, a short, near-stationary 2-finger tap is undo,
+  // and 3-finger tap is redo. Anything that drags or held too long
+  // is treated as a normal pinch/pan and ignored.
+  const MULTI_TAP_MS = 350;
+  const MULTI_TAP_MAX_DRAG = 12;
+  let gestureStartTime = 0;
+  let gesturePeakFingers = 0;
+  let gestureStartPositions = []; // [{x,y}, ...] indexed by finger
+  let gestureMaxDrift = 0;
+
   function clearTouchPending() {
     touchPaintPending = null;
     document.getElementById('cw').classList.remove('touch-pending');
@@ -1161,10 +1454,51 @@ function bindCanvasEvents() {
     e.preventDefault();
     touches = Array.from(e.touches);
 
+    // Update multi-finger gesture state. If this is the very first
+    // finger of a sequence, start the timer; otherwise just track the
+    // peak. The decision about whether it was a tap is made at touchend.
+    if (e.touches.length === 1 && gesturePeakFingers === 0) {
+      gestureStartTime = Date.now();
+      gestureMaxDrift = 0;
+      gestureStartPositions = [];
+    }
+    gesturePeakFingers = Math.max(gesturePeakFingers, e.touches.length);
+    // Snapshot starting positions for drift tracking. We append; older
+    // fingers keep their start position so the drift check is honest.
+    while (gestureStartPositions.length < e.touches.length) {
+      const t = e.touches[gestureStartPositions.length];
+      gestureStartPositions.push({ x: t.clientX, y: t.clientY });
+    }
+
     if (touches.length === 1) {
       const r = canvas.getBoundingClientRect();
       const t = touches[0];
       const ox = t.clientX - r.left, oy = t.clientY - r.top;
+
+      // ── STYLUS / FINGER SPLIT ──
+      // Safari iOS exposes Touch.touchType ('stylus' | 'direct'). On
+      // first stylus contact, auto-enable stylusMode and tell the user.
+      // When stylusMode is on: finger always pans, stylus always uses
+      // the selected tool — regardless of the Pan tool selection.
+      const isStylus = (t.touchType === 'stylus');
+      if (isStylus && !_stylusSeenAuto && !S.stylusMode) {
+        _stylusSeenAuto = true;
+        S.stylusMode = true;
+        if (document.getElementById('stOn')) {
+          document.getElementById('stOn').classList.add('on');
+          document.getElementById('stOff').classList.remove('on');
+        }
+        toast('Stylus detected — finger pans, pencil draws');
+        scheduleAutosave();
+      }
+      if (S.stylusMode && !isStylus) {
+        // Finger touch in stylus mode: force pan regardless of tool.
+        clearTouchPending();
+        isPan = true; panSt = { x: t.clientX, y: t.clientY };
+        panOr = { x: S.panX, y: S.panY };
+        document.getElementById('cw').classList.add('panning');
+        return;
+      }
 
       // One-finger pan when Pan tool is active.
       if (S.tool === 'pan') {
@@ -1226,6 +1560,14 @@ function bindCanvasEvents() {
     e.preventDefault();
     touches = Array.from(e.touches);
 
+    // Track how far each finger has drifted from its starting point.
+    for (let i = 0; i < e.touches.length && i < gestureStartPositions.length; i++) {
+      const t = e.touches[i];
+      const s = gestureStartPositions[i];
+      const d = Math.hypot(t.clientX - s.x, t.clientY - s.y);
+      if (d > gestureMaxDrift) gestureMaxDrift = d;
+    }
+
     if (touches.length === 1) {
       const t = touches[0];
       if (isPan) {
@@ -1271,7 +1613,34 @@ function bindCanvasEvents() {
 
   canvas.addEventListener('touchend', e => {
     e.preventDefault();
-    if (e.touches.length === 0) commitTouchPending();
+
+    if (e.touches.length === 0) {
+      // The full sequence has ended. Check whether it was a multi-finger
+      // tap that should map to undo/redo.
+      const elapsed = Date.now() - gestureStartTime;
+      const wasShortTap = elapsed > 0 && elapsed < MULTI_TAP_MS && gestureMaxDrift < MULTI_TAP_MAX_DRAG;
+      if (wasShortTap && gesturePeakFingers === 2) {
+        // Don't commit any pending paint or pinch-zoom side-effects.
+        clearTouchPending();
+        painting = false;
+        // Roll back the cellSize change pinch may have applied early — it
+        // only had time to apply if the user was actually pinching, which
+        // wouldStill have crossed the drag threshold; skip for safety.
+        undoLast();
+      } else if (wasShortTap && gesturePeakFingers >= 3) {
+        clearTouchPending();
+        painting = false;
+        redoLast();
+      } else {
+        commitTouchPending();
+      }
+      // Reset gesture tracking.
+      gesturePeakFingers = 0;
+      gestureStartPositions = [];
+      gestureMaxDrift = 0;
+      gestureStartTime = 0;
+    }
+
     painting = false; isPan = false; t2Start = null; touches = [];
     document.getElementById('cw').classList.remove('panning');
     if (e.touches.length === 0) clearTouchPending();
@@ -1282,8 +1651,8 @@ function bindCanvasEvents() {
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
 }
 
+// ── 50-ui.js ────────────────────────────────────────────────────
 
-// ---- 50-ui.js ----
 // ═══════════════════════════════════════════════════════════
 // UI RENDERS, INDICATORS, TOGGLES
 // Everything that pushes state → DOM lives here.
@@ -1308,6 +1677,39 @@ function renderPresets() {
   const ps = PRESETS_DEF[S.mode];
   document.getElementById('presetList').innerHTML = ps.map(p => `
     <div class="pit" onclick="${p.fn}()">${p.name}<span class="ptag">${S.mode}</span></div>`).join('');
+}
+
+// Cable picker — square-grid only. Renders a 2×4 grid of width/direction
+// buttons plus a "no cable" reset.
+const CABLE_TYPES = [
+  { w: 2, dir: 'L', label: '1/1 L' }, { w: 2, dir: 'R', label: '1/1 R' },
+  { w: 4, dir: 'L', label: '2/2 L' }, { w: 4, dir: 'R', label: '2/2 R' },
+  { w: 6, dir: 'L', label: '3/3 L' }, { w: 6, dir: 'R', label: '3/3 R' },
+  { w: 8, dir: 'L', label: '4/4 L' }, { w: 8, dir: 'R', label: '4/4 R' },
+];
+
+function renderCables() {
+  const el = document.getElementById('cablesGrid');
+  if (!el) return;
+  const isOn = (t) => S.activeCable && S.activeCable.w === t.w && S.activeCable.dir === t.dir;
+  el.innerHTML =
+    CABLE_TYPES.map(t =>
+      `<button class="cab ${isOn(t) ? 'on' : ''}" onclick="setCable(${t.w},'${t.dir}')">${t.label}</button>`
+    ).join('') +
+    `<button class="cab cab-none" onclick="setCable(null)">No cable (single cells)</button>`;
+}
+
+function setCable(wOrNull, dir) {
+  if (wOrNull === null) {
+    S.activeCable = null;
+    toast('Cable picker off — single-cell painting');
+  } else {
+    S.activeCable = { w: wOrNull, dir };
+    // Clearing implicitly sets the draw tool so taps actually place.
+    if (S.tool !== 'draw') setTool('draw');
+    toast(`Cable: ${wOrNull / 2}/${wOrNull / 2} ${dir} — tap a cell to place`);
+  }
+  renderCables();
 }
 
 function updateStats() {
@@ -1387,8 +1789,12 @@ function setGridType(type) {
   const gb = document.getElementById('gridBadge');
   gb.textContent = type === 'hex' ? 'Hex Grid' : 'Square Grid';
   gb.className = 'badge ' + (type === 'hex' ? 'hex-badge' : 'sq-badge');
-  // Gauge controls only meaningful on square grid.
+  // Gauge controls and cables only meaningful on square grid.
   document.getElementById('gaugeRow').style.display = type === 'square' ? '' : 'none';
+  const cablesPanel = document.getElementById('cablesPanel');
+  if (cablesPanel) cablesPanel.style.display = type === 'square' ? '' : 'none';
+  // Switching to hex while a cable type is selected — clear it.
+  if (type !== 'square' && S.activeCable) { S.activeCable = null; renderCables(); }
   if (document.getElementById('grannyPanel').classList.contains('vis')) onGStyleChange();
   draw(); updateStats();
   toast(type === 'hex' ? 'Hex grid — tap hexagons to paint!' : 'Square grid active');
@@ -1488,7 +1894,14 @@ function applyPanelState() {
 }
 
 function syncResponsivePanels() {
-  const isNarrow = window.matchMedia('(max-width: 720px)').matches;
+  // matchMedia is missing in some test/embedding environments. Fall
+  // back to comparing innerWidth so init never crashes on it.
+  let isNarrow;
+  if (typeof window.matchMedia === 'function') {
+    isNarrow = window.matchMedia('(max-width: 720px)').matches;
+  } else {
+    isNarrow = (window.innerWidth || 800) <= 720;
+  }
   if (_lastPanelNarrow === isNarrow) return;
   _lastPanelNarrow = isNarrow;
   lpOpen = !isNarrow;
@@ -1550,6 +1963,13 @@ function togFollow(on)  {
   toast(on ? 'Follow mode — use ↑/↓ keys to step rows' : 'Follow mode off');
   scheduleAutosave();
 }
+function togStylus(on) {
+  S.stylusMode = !!on;
+  document.getElementById('stOn').classList.toggle('on', on);
+  document.getElementById('stOff').classList.toggle('on', !on);
+  toast(on ? 'Stylus mode — finger pans, pencil draws' : 'Stylus mode off');
+  scheduleAutosave();
+}
 
 function stepRow(delta) {
   if (S.activeRow === null) return;
@@ -1567,8 +1987,8 @@ function toast(msg) {
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// ── 60-palette.js ───────────────────────────────────────────────
 
-// ---- 60-palette.js ----
 // ═══════════════════════════════════════════════════════════
 // CUSTOM COLOR PICKER LOGIC
 // previewCustomColor fires on every value change while dragging.
@@ -1594,8 +2014,8 @@ function addCustomColor(c) {
   }, 350);
 }
 
+// ── 70-actions.js ───────────────────────────────────────────────
 
-// ---- 70-actions.js ----
 // ═══════════════════════════════════════════════════════════
 // CANVAS-LEVEL ACTIONS — clear, undo, mirror
 // ═══════════════════════════════════════════════════════════
@@ -1608,13 +2028,27 @@ function clearAll() {
   const nc = {};
   Object.entries(S.cells).forEach(([k, v]) => { if (!k.startsWith(prefix)) nc[k] = v; });
   S.cells = nc;
+  // Cables only exist on the square grid, so clear them on a square wipe.
+  if (S.gridType === 'square') S.cables = [];
   draw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
 function undoLast() {
   if (!undoStack.length) { toast('Nothing to undo'); return; }
+  redoStack.push(JSON.stringify(S.cells));
+  if (redoStack.length > MAX_UNDO) redoStack.shift();
   S.cells = JSON.parse(undoStack.pop());
   draw(); updateStats(); updateLegend(); toast('Undone'); scheduleAutosave();
+}
+
+function redoLast() {
+  if (!redoStack.length) { toast('Nothing to redo'); return; }
+  // Pushing onto undoStack here would clear redoStack via pushUndo's
+  // redo-branch-invalidation; do it manually to preserve the redo chain.
+  undoStack.push(JSON.stringify(S.cells));
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  S.cells = JSON.parse(redoStack.pop());
+  draw(); updateStats(); updateLegend(); toast('Redone'); scheduleAutosave();
 }
 
 function mirrorH() {
@@ -1627,6 +2061,16 @@ function mirrorH() {
       add[`sq:${r},${S.sqW - 1 - c}`] = v;
     });
     Object.assign(S.cells, add);
+    // Mirror cables: their start col flips, and so does the cross
+    // direction (L↔R) since the visual cross also gets flipped.
+    if (S.cables && S.cables.length) {
+      const mirroredCables = S.cables.map(cb => ({
+        ...cb,
+        c: S.sqW - cb.c - cb.w,
+        dir: cb.dir === 'L' ? 'R' : 'L',
+      }));
+      S.cables = S.cables.concat(mirroredCables);
+    }
   } else {
     const add = {};
     Object.entries(S.cells).forEach(([k, v]) => {
@@ -1649,6 +2093,15 @@ function mirrorV() {
       add[`sq:${S.sqH - 1 - r},${c}`] = v;
     });
     Object.assign(S.cells, add);
+    // Mirror cables: their row flips. Direction stays the same since
+    // a vertical mirror doesn't change which strand goes in front.
+    if (S.cables && S.cables.length) {
+      const mirroredCables = S.cables.map(cb => ({
+        ...cb,
+        r: S.sqH - 1 - cb.r,
+      }));
+      S.cables = S.cables.concat(mirroredCables);
+    }
   } else {
     const add = {};
     Object.entries(S.cells).forEach(([k, v]) => {
@@ -1661,8 +2114,8 @@ function mirrorV() {
   draw(); updateStats(); updateLegend(); toast('Mirrored vertically'); scheduleAutosave();
 }
 
+// ── 75-presets.js ───────────────────────────────────────────────
 
-// ---- 75-presets.js ----
 // ═══════════════════════════════════════════════════════════
 // PRESETS — quick-load patterns
 // Crochet presets work on either grid; knit presets are square-only.
@@ -1781,8 +2234,8 @@ function presetChecker() {
   draw(); updateStats(); updateLegend(); toast('Checker'); scheduleAutosave();
 }
 
+// ── 80-granny.js ────────────────────────────────────────────────
 
-// ---- 80-granny.js ----
 // ═══════════════════════════════════════════════════════════
 // GRANNY SQUARE BUILDER
 // A side-panel preview canvas plus a stamp action that applies the
@@ -2077,8 +2530,8 @@ function exportGranny() {
   toast('Square exported!');
 }
 
+// ── 90-io.js ────────────────────────────────────────────────────
 
-// ---- 90-io.js ----
 // ═══════════════════════════════════════════════════════════
 // SAVE / LOAD / EXPORT / AUTOSAVE
 // All persistence flows through localStorage. ss_patterns is the
@@ -2106,6 +2559,8 @@ function snapshotState() {
     gaugeStitches: S.gaugeStitches, gaugeRows: S.gaugeRows,
     showGrid: S.showGrid, showLabels: S.showLabels, showSyms: S.showSyms,
     protectFilled: S.protectFilled, shadeWS: S.shadeWS, activeRow: S.activeRow,
+    stylusMode: S.stylusMode,
+    cables: (S.cables || []).slice(),
     palette: PALETTE.slice(),
     savedAt: new Date().toISOString(),
   };
@@ -2129,6 +2584,14 @@ function applyState(p) {
   S.activeRow = Number.isInteger(p.activeRow)
     ? Math.max(0, Math.min(S.sqH - 1, p.activeRow))
     : null;
+  S.stylusMode = !!p.stylusMode;
+  // Cables: only accept records with the expected shape.
+  S.cables = Array.isArray(p.cables)
+    ? p.cables.filter(cb => Number.isInteger(cb.r) && Number.isInteger(cb.c)
+        && Number.isInteger(cb.w) && (cb.dir === 'L' || cb.dir === 'R')
+        && typeof cb.color === 'string')
+    : [];
+  S.activeCable = null;
   if (Array.isArray(p.palette) && p.palette.length) {
     PALETTE.length = 0;
     p.palette.forEach(c => PALETTE.push(c));
@@ -2159,6 +2622,10 @@ function applyState(p) {
   document.getElementById('wsOff').classList.toggle('on', !S.shadeWS);
   document.getElementById('foOn').classList.toggle('on', S.activeRow !== null);
   document.getElementById('foOff').classList.toggle('on', S.activeRow === null);
+  if (document.getElementById('stOn')) {
+    document.getElementById('stOn').classList.toggle('on', S.stylusMode);
+    document.getElementById('stOff').classList.toggle('on', !S.stylusMode);
+  }
   updateTerminologyUI();
   setMode(S.mode);
   setGridType(p.gridType || 'square');
@@ -2166,7 +2633,7 @@ function applyState(p) {
   S.activeStitch = CS[S.mode].some(s => s.id === p.activeStitch)
     ? p.activeStitch
     : S.activeStitch;
-  renderStitches(); renderPalette(); updateIndicator(); updateLegend();
+  renderStitches(); renderPalette(); renderCables(); updateIndicator(); updateLegend();
 }
 
 // ── AUTOSAVE ──
@@ -2347,6 +2814,12 @@ function buildExportCanvas(scale) {
         }
       }
     }
+    // Cables ride on top of cells in the export, just like on-canvas.
+    if (S.cables && S.cables.length) {
+      for (const cb of S.cables) {
+        drawCable(cb, lo, lo, cs, ch, ec);
+      }
+    }
     if (S.showGrid) {
       ec.strokeStyle = 'rgba(0,0,0,.12)'; ec.lineWidth = .5;
       for (let r = 0; r <= S.sqH; r++) { ec.beginPath(); ec.moveTo(lo, lo + r * ch); ec.lineTo(lo + S.sqW * cs, lo + r * ch); ec.stroke(); }
@@ -2491,8 +2964,8 @@ function makePdf(imageBytes, imageW, imageH) {
   return new Blob(chunks, { type: 'application/pdf' });
 }
 
+// ── 99-main.js ──────────────────────────────────────────────────
 
-// ---- 99-main.js ----
 // ═══════════════════════════════════════════════════════════
 // INIT — wire DOM refs, install event handlers, first render.
 // ═══════════════════════════════════════════════════════════
@@ -2503,7 +2976,7 @@ function init() {
   gCanvas = document.getElementById('gpc');
   gCtx    = gCanvas.getContext('2d');
 
-  renderStitches(); renderPalette(); renderPresets();
+  renderStitches(); renderPalette(); renderPresets(); renderCables();
   buildRoundRows(); drawGrannyPreview();
   resize();
 
@@ -2533,7 +3006,6 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
-
 </script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable icon: solid background covers the full safe area so the
+       OS can crop to whatever shape it wants without losing the motif. -->
+  <rect width="512" height="512" fill="#8b5e3c"/>
+  <g transform="translate(256 256)" stroke-linejoin="round">
+    <polygon points="0,-130 113,-65 113,65 0,130 -113,65 -113,-65"
+             fill="#f5ede3" stroke="#fdf0e6" stroke-width="4"/>
+    <polygon points="0,-86 75,-43 75,43 0,86 -75,43 -75,-43"
+             fill="#d4956a"/>
+    <polygon points="0,-44 38,-22 38,22 0,44 -38,22 -38,-22"
+             fill="#3d8b7a"/>
+    <circle r="10" fill="#fdf0e6"/>
+  </g>
+</svg>
