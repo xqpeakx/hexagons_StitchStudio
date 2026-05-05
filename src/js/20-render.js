@@ -106,6 +106,24 @@ function drawSquareGrid() {
     }
   }
 
+  // Repeat brackets render above cables.
+  if (S.repeats && S.repeats.length) {
+    for (const rp of S.repeats) {
+      drawRepeatBracket(rp, ox, oy, cs, ch, ctx);
+    }
+  }
+  // Repeat-tool anchor preview (first corner picked, awaiting second).
+  if (S.tool === 'repeat' && _repeatAnchor) {
+    const ax = ox + _repeatAnchor.c * cs;
+    const ay = oy + _repeatAnchor.r * ch;
+    ctx.save();
+    ctx.strokeStyle = '#b85468';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeRect(ax + 1, ay + 1, cs - 2, ch - 2);
+    ctx.restore();
+  }
+
   // Active row highlight
   if (S.activeRow !== null && S.activeRow >= row0 && S.activeRow < rowN) {
     ctx.strokeStyle = '#b85468';
@@ -317,6 +335,78 @@ function darken(hex, amount) {
   const f = 1 - amount;
   const toHex = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
   return '#' + toHex(r * f) + toHex(g * f) + toHex(b * f);
+}
+
+// Draw a repeat-region bracket. axis controls which sides get
+// brackets:
+//   'across' → top + bottom brackets (column-range repeat)
+//   'down'   → left + right brackets (row-range repeat)
+//   'both'   → all four sides (rare; for nested repeats)
+// Brackets sit just outside the region with small inward-pointing
+// turn-ins at each end, and a "×N" label sits at the top-right.
+function drawRepeatBracket(rp, ox, oy, cs, ch, tctx) {
+  const t = tctx || ctx;
+  const x0 = ox + rp.c0 * cs;
+  const y0 = oy + rp.r0 * ch;
+  const x1 = ox + (rp.c1 + 1) * cs;
+  const y1 = oy + (rp.r1 + 1) * ch;
+  const PAD = Math.max(3, Math.min(cs, ch) * 0.18);
+  const TURN = Math.max(4, Math.min(cs, ch) * 0.32);
+  const STROKE = '#b85468';
+  const LINEW = Math.max(1.6, Math.min(2.6, cs * 0.08));
+
+  t.save();
+  t.strokeStyle = STROKE;
+  t.lineWidth = LINEW;
+  t.lineCap = 'round';
+
+  if (rp.axis === 'across' || rp.axis === 'both') {
+    // Top bracket
+    const ty = y0 - PAD;
+    t.beginPath();
+    t.moveTo(x0, ty + TURN);
+    t.lineTo(x0, ty);
+    t.lineTo(x1, ty);
+    t.lineTo(x1, ty + TURN);
+    t.stroke();
+    // Bottom bracket
+    const by = y1 + PAD;
+    t.beginPath();
+    t.moveTo(x0, by - TURN);
+    t.lineTo(x0, by);
+    t.lineTo(x1, by);
+    t.lineTo(x1, by - TURN);
+    t.stroke();
+  }
+  if (rp.axis === 'down' || rp.axis === 'both') {
+    // Left bracket
+    const lx = x0 - PAD;
+    t.beginPath();
+    t.moveTo(lx + TURN, y0);
+    t.lineTo(lx, y0);
+    t.lineTo(lx, y1);
+    t.lineTo(lx + TURN, y1);
+    t.stroke();
+    // Right bracket
+    const rx = x1 + PAD;
+    t.beginPath();
+    t.moveTo(rx - TURN, y0);
+    t.lineTo(rx, y0);
+    t.lineTo(rx, y1);
+    t.lineTo(rx - TURN, y1);
+    t.stroke();
+  }
+
+  // Count label sits just above the top-right corner of the bracket.
+  const labelText = '×' + rp.count;
+  const labelSize = Math.min(13, Math.max(10, cs * 0.42));
+  t.font = `600 ${labelSize}px DM Sans, sans-serif`;
+  t.textAlign = 'right';
+  t.textBaseline = 'bottom';
+  t.fillStyle = STROKE;
+  const lblY = (rp.axis === 'down') ? y0 - 2 : y0 - PAD - 2;
+  t.fillText(labelText, x1, lblY);
+  t.restore();
 }
 
 function lum(hex) {

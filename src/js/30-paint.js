@@ -35,6 +35,10 @@ function paintAt(ox, oy) {
   if (cell.key === lastKey) return;
   lastKey = cell.key;
 
+  if (S.tool === 'repeat') {
+    handleRepeatTap(cell);
+    return;
+  }
   if (S.tool === 'eye') {
     const existing = S.cells[cell.key];
     if (existing) { setColor(existing.color); setStitch(existing.stitchId); }
@@ -134,6 +138,51 @@ function floodFill(ox, oy) {
     getNeighbors(k).forEach(n => { if (!visited.has(n)) queue.push(n); });
   }
   draw(); updateStats(); updateLegend(); scheduleAutosave();
+}
+
+// Repeat-tool tap routing.
+//   - Square grid only.
+//   - First tap on empty area: store anchor.
+//   - First tap inside an existing repeat: delete that repeat.
+//   - Second tap: open the repeat modal with the rectangle defined.
+function handleRepeatTap(cell) {
+  if (S.gridType !== 'square') {
+    toast('Repeats are square-grid only');
+    return;
+  }
+  const [, rc] = cell.key.split(':');
+  const [r, c] = rc.split(',').map(Number);
+
+  // If this tap lands inside an existing repeat region and we have no
+  // pending anchor, delete that repeat.
+  if (!_repeatAnchor) {
+    const idx = S.repeats.findIndex(rp =>
+      r >= rp.r0 && r <= rp.r1 && c >= rp.c0 && c <= rp.c1);
+    if (idx !== -1) {
+      pushUndo();
+      S.repeats.splice(idx, 1);
+      draw(); scheduleAutosave();
+      toast('Repeat removed');
+      return;
+    }
+  }
+
+  if (!_repeatAnchor) {
+    _repeatAnchor = { r, c };
+    draw();
+    toast('First corner set — tap the opposite corner');
+    return;
+  }
+
+  // Second tap: open modal with the region.
+  const r0 = Math.min(_repeatAnchor.r, r);
+  const r1 = Math.max(_repeatAnchor.r, r);
+  const c0 = Math.min(_repeatAnchor.c, c);
+  const c1 = Math.max(_repeatAnchor.c, c);
+  _repeatPendingRegion = { r0, c0, r1, c1 };
+  _repeatAnchor = null;
+  draw();
+  openRepeatModal(r0, c0, r1, c1);
 }
 
 // Replace every cell currently using `fromColor` with the active

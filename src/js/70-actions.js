@@ -10,8 +10,11 @@ function clearAll() {
   const nc = {};
   Object.entries(S.cells).forEach(([k, v]) => { if (!k.startsWith(prefix)) nc[k] = v; });
   S.cells = nc;
-  // Cables only exist on the square grid, so clear them on a square wipe.
-  if (S.gridType === 'square') S.cables = [];
+  // Cables and repeats only exist on the square grid; wipe them too.
+  if (S.gridType === 'square') {
+    S.cables = [];
+    S.repeats = [];
+  }
   draw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
@@ -53,6 +56,15 @@ function mirrorH() {
       }));
       S.cables = S.cables.concat(mirroredCables);
     }
+    // Mirror repeats: column range flips around the chart centre.
+    if (S.repeats && S.repeats.length) {
+      const mirrored = S.repeats.map(rp => ({
+        ...rp,
+        c0: S.sqW - 1 - rp.c1,
+        c1: S.sqW - 1 - rp.c0,
+      }));
+      S.repeats = S.repeats.concat(mirrored);
+    }
   } else {
     const add = {};
     Object.entries(S.cells).forEach(([k, v]) => {
@@ -83,6 +95,15 @@ function mirrorV() {
         r: S.sqH - 1 - cb.r,
       }));
       S.cables = S.cables.concat(mirroredCables);
+    }
+    // Mirror repeats: row range flips around the chart centre.
+    if (S.repeats && S.repeats.length) {
+      const mirrored = S.repeats.map(rp => ({
+        ...rp,
+        r0: S.sqH - 1 - rp.r1,
+        r1: S.sqH - 1 - rp.r0,
+      }));
+      S.repeats = S.repeats.concat(mirrored);
     }
   } else {
     const add = {};

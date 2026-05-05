@@ -27,6 +27,7 @@ function snapshotState() {
     protectFilled: S.protectFilled, shadeWS: S.shadeWS, activeRow: S.activeRow,
     stylusMode: S.stylusMode,
     cables: (S.cables || []).slice(),
+    repeats: (S.repeats || []).slice(),
     palette: PALETTE.slice(),
     savedAt: new Date().toISOString(),
   };
@@ -58,6 +59,16 @@ function applyState(p) {
         && typeof cb.color === 'string')
     : [];
   S.activeCable = null;
+  // Repeats: same defensive shape filter.
+  S.repeats = Array.isArray(p.repeats)
+    ? p.repeats.filter(rp =>
+        Number.isInteger(rp.r0) && Number.isInteger(rp.r1)
+        && Number.isInteger(rp.c0) && Number.isInteger(rp.c1)
+        && Number.isInteger(rp.count) && rp.count >= 1
+        && (rp.axis === 'across' || rp.axis === 'down' || rp.axis === 'both'))
+    : [];
+  _repeatAnchor = null;
+  _repeatPendingRegion = null;
   if (Array.isArray(p.palette) && p.palette.length) {
     PALETTE.length = 0;
     p.palette.forEach(c => PALETTE.push(c));
@@ -160,6 +171,40 @@ function deletePat(name) {
   localStorage.setItem('ss_patterns', JSON.stringify(s)); openLoadModal();
 }
 function openNewModal() { document.getElementById('newM').classList.add('open'); }
+
+// ── REPEAT MODAL ──
+function openRepeatModal(r0, c0, r1, c1) {
+  const cellsW = c1 - c0 + 1;
+  const cellsH = r1 - r0 + 1;
+  document.getElementById('repeatRegionLabel').textContent =
+    `Region: rows ${r0 + 1}–${r1 + 1}, cols ${c0 + 1}–${c1 + 1} (${cellsW} × ${cellsH})`;
+  document.getElementById('repeatCount').value = '2';
+  // Reset axis toggle to default 'across'
+  document.querySelectorAll('#repeatAxis button').forEach(b => {
+    b.classList.toggle('on', b.dataset.axis === 'across');
+  });
+  document.getElementById('repeatM').classList.add('open');
+}
+
+function cancelRepeat() {
+  _repeatPendingRegion = null;
+  document.getElementById('repeatM').classList.remove('open');
+  draw();
+}
+
+function doRepeat() {
+  const region = _repeatPendingRegion;
+  if (!region) { closeM('repeatM'); return; }
+  const count = Math.max(1, Math.min(999, parseInt(document.getElementById('repeatCount').value) || 2));
+  const onAxis = document.querySelector('#repeatAxis button.on');
+  const axis = onAxis ? onAxis.dataset.axis : 'across';
+  pushUndo();
+  S.repeats.push({ ...region, count, axis });
+  _repeatPendingRegion = null;
+  closeM('repeatM');
+  draw(); scheduleAutosave();
+  toast(`Repeat ×${count} added`);
+}
 function doNew() {
   pushUndo();
   // Clear everything and reset to a fresh chart.
@@ -284,6 +329,12 @@ function buildExportCanvas(scale) {
     if (S.cables && S.cables.length) {
       for (const cb of S.cables) {
         drawCable(cb, lo, lo, cs, ch, ec);
+      }
+    }
+    // Repeat brackets render in the export too.
+    if (S.repeats && S.repeats.length) {
+      for (const rp of S.repeats) {
+        drawRepeatBracket(rp, lo, lo, cs, ch, ec);
       }
     }
     if (S.showGrid) {

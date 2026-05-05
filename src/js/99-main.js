@@ -9,6 +9,7 @@ function init() {
   gCtx    = gCanvas.getContext('2d');
 
   renderStitches(); renderPalette(); renderPresets(); renderCables();
+  bindRepeatAxisToggle();
   buildRoundRows(); drawGrannyPreview();
   resize();
 

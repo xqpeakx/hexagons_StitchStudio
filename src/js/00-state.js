@@ -122,8 +122,18 @@ let S = {
   // Selected cable type to place on next click, or null for normal
   // single-cell painting. e.g. { w: 4, dir: 'L' } for a 2/2 L cable.
   activeCable: null,
+  // Repeat brackets (square-grid only). Each entry is
+  //   { r0, c0, r1, c1, count, axis:'across'|'down'|'both' }
+  // r0<=r1 and c0<=c1 always. axis controls which brackets render.
+  repeats: [],
   panX:0, panY:0,
 };
+
+// Repeat-tool selection state. The first tap stores an anchor; the
+// second tap opens the modal that captures count + axis. While the
+// modal is open _repeatPendingRegion holds the rectangle.
+let _repeatAnchor = null;        // {r, c} | null
+let _repeatPendingRegion = null; // {r0,c0,r1,c1} | null
 
 // Has a stylus event been observed in this session yet? Used to
 // auto-suggest enabling stylusMode on first Pencil contact.

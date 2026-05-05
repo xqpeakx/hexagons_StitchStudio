@@ -44,6 +44,20 @@ function renderCables() {
     `<button class="cab cab-none" onclick="setCable(null)">No cable (single cells)</button>`;
 }
 
+// Wire the segmented-axis control inside the Repeat modal so clicks
+// toggle the .on state. Idempotent — safe to call from init().
+function bindRepeatAxisToggle() {
+  const btns = document.querySelectorAll('#repeatAxis button');
+  btns.forEach(b => {
+    if (b._wired) return;
+    b._wired = true;
+    b.addEventListener('click', () => {
+      btns.forEach(o => o.classList.remove('on'));
+      b.classList.add('on');
+    });
+  });
+}
+
 function setCable(wOrNull, dir) {
   if (wOrNull === null) {
     S.activeCable = null;
@@ -152,6 +166,11 @@ function setTool(t) {
   document.getElementById('tool-' + t)?.classList.add('on');
   // Visually swap canvas cursor for the Pan tool.
   document.getElementById('cw').classList.toggle('tool-pan', t === 'pan');
+  // Switching away from the repeat tool drops any half-built region.
+  if (t !== 'repeat' && _repeatAnchor) {
+    _repeatAnchor = null;
+    draw();
+  }
 }
 
 function setCrochetTerms(term) {
