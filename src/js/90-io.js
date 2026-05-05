@@ -172,6 +172,178 @@ function deletePat(name) {
 }
 function openNewModal() { document.getElementById('newM').classList.add('open'); }
 
+// ── PATTERN TEXT EXPORT ──
+// Walks the square grid in pattern order (knit bottom-up, crochet
+// top-down) and emits a row-by-row written description, grouping
+// consecutive runs of identical (stitch, colour). Repeats, cables,
+// and a legend are appended after the row list.
+function generatePatternText() {
+  if (S.gridType !== 'square') {
+    return 'Pattern text export is square-grid only.\n\nSwitch to a square grid first.';
+  }
+  const lines = [];
+  const title = (document.getElementById('patName').value || 'Untitled').trim();
+  lines.push('# ' + title);
+  lines.push('');
+
+  const isKnit = S.mode === 'knit';
+  const gauge = (S.gaugeStitches && S.gaugeRows)
+    ? ' Gauge: ' + S.gaugeStitches + '×' + S.gaugeRows + ' per 4″.'
+    : '';
+  const terms = isKnit ? '' : ' ' + S.crochetTerms.toUpperCase() + ' terms.';
+  lines.push((isKnit ? 'Knitting' : 'Crochet') + ' chart, ' + S.sqW + ' × ' + S.sqH + ' cells.' + gauge + terms);
+  if (isKnit) {
+    lines.push('Read bottom-up. RS rows worked right-to-left, WS rows left-to-right.');
+  }
+  lines.push('');
+
+  // Determine the actually-painted bounding box so we don't dump
+  // hundreds of empty rows for a small chart on a 200×200 grid.
+  let minR = S.sqH, maxR = -1, minC = S.sqW, maxC = -1;
+  for (const k in S.cells) {
+    if (!k.startsWith('sq:')) continue;
+    const [, rc] = k.split(':');
+    const [r, c] = rc.split(',').map(Number);
+    if (r < minR) minR = r; if (r > maxR) maxR = r;
+    if (c < minC) minC = c; if (c > maxC) maxC = c;
+  }
+  if (maxR < 0) {
+    lines.push('(Empty chart — paint some cells first.)');
+    return lines.join('\n');
+  }
+
+  // Pattern row iteration order. Knit charts are read bottom-up, so
+  // row label 1 is the highest array row index. Crochet keeps the
+  // array order.
+  const rowOrder = [];
+  if (isKnit) {
+    for (let r = maxR; r >= minR; r--) rowOrder.push(r);
+  } else {
+    for (let r = minR; r <= maxR; r++) rowOrder.push(r);
+  }
+
+  // Pre-compute legend-relevant sets while walking.
+  const usedStitches = new Set();
+  const usedColors = new Set();
+
+  rowOrder.forEach(r => {
+    const labelNum = isKnit ? (S.sqH - r) : (r + 1);
+    // For knit, the chart label tells us the absolute row number.
+    // RS rows are odd; WS rows are even. Pattern instructions are
+    // written in the order knitted, so RS rows go right-to-left.
+    const rs = !isKnit || (labelNum % 2 === 1);
+
+    // Pattern instructions are written in the order knitted. For knit:
+    //   RS rows are knit right-to-left → iterate maxC down to minC.
+    //   WS rows are knit left-to-right → iterate minC up to maxC.
+    // Crochet: write left-to-right always.
+    const cols = [];
+    if (isKnit && rs) {
+      for (let c = maxC; c >= minC; c--) cols.push(c);
+    } else {
+      for (let c = minC; c <= maxC; c++) cols.push(c);
+    }
+
+    // Group consecutive runs of identical (stitch, color).
+    const runs = [];
+    for (const c of cols) {
+      const cell = S.cells['sq:' + r + ',' + c];
+      const stitch = cell ? cell.stitchId : null;
+      const color = cell ? cell.color : null;
+      if (cell) { usedStitches.add(stitch); if (color) usedColors.add(color); }
+      const last = runs[runs.length - 1];
+      if (last && last.stitch === stitch && last.color === color) last.n++;
+      else runs.push({ stitch, color, n: 1 });
+    }
+
+    // Strip leading/trailing empty runs so a sparse chart doesn't
+    // emit "(skip 50), dc, (skip 50)" garbage.
+    while (runs.length && runs[0].stitch === null) runs.shift();
+    while (runs.length && runs[runs.length - 1].stitch === null) runs.pop();
+    if (!runs.length) return; // entirely empty row
+
+    const rowKind = isKnit ? (rs ? ' (RS)' : ' (WS)') : '';
+    const parts = runs.map(rn => {
+      if (rn.stitch === null) return 'skip ' + rn.n;
+      if (rn.stitch === '_no') return rn.n + ' no-stitch';
+      const stitchInfo = CS[S.mode].find(s => s.id === rn.stitch);
+      const label = stitchInfo ? stitchLabel(stitchInfo) : { abbr: rn.stitch };
+      const count = rn.n > 1 ? ' ×' + rn.n : '';
+      return label.abbr + count;
+    });
+    lines.push('Row ' + labelNum + rowKind + ': ' + parts.join(', '));
+  });
+
+  // Cables — group by row, sorted in pattern order.
+  if (S.cables && S.cables.length) {
+    const cables = S.cables.slice().sort((a, b) =>
+      isKnit ? (b.r - a.r) || (a.c - b.c) : (a.r - b.r) || (a.c - b.c));
+    lines.push('');
+    lines.push('## Cables');
+    cables.forEach(cb => {
+      const labelNum = isKnit ? (S.sqH - cb.r) : (cb.r + 1);
+      const half = cb.w / 2;
+      const dirText = cb.dir === 'L' ? 'left-cross' : 'right-cross';
+      lines.push('- Row ' + labelNum + ', cols ' + (cb.c + 1) + '–' + (cb.c + cb.w) + ': ' + half + '/' + half + ' ' + dirText);
+    });
+  }
+
+  // Repeats
+  if (S.repeats && S.repeats.length) {
+    lines.push('');
+    lines.push('## Repeats');
+    S.repeats.forEach(rp => {
+      const r0Label = isKnit ? (S.sqH - rp.r1) : (rp.r0 + 1);
+      const r1Label = isKnit ? (S.sqH - rp.r0) : (rp.r1 + 1);
+      const axisText = rp.axis === 'across' ? 'columns' : (rp.axis === 'down' ? 'rows' : 'both');
+      lines.push('- Rows ' + r0Label + '–' + r1Label + ', cols ' + (rp.c0 + 1) + '–' + (rp.c1 + 1)
+        + ': repeat ×' + rp.count + ' (' + axisText + ')');
+    });
+  }
+
+  // Legend
+  lines.push('');
+  lines.push('## Legend');
+  CS[S.mode].filter(s => usedStitches.has(s.id)).forEach(s => {
+    const label = stitchLabel(s);
+    lines.push('- ' + label.abbr + ': ' + label.name);
+  });
+  if (usedColors.size) {
+    lines.push('');
+    lines.push('Colours used: ' + [...usedColors].join(', '));
+  }
+
+  return lines.join('\n');
+}
+
+function exportText() {
+  const text = generatePatternText();
+  document.getElementById('txtOut').value = text;
+  document.getElementById('txtM').classList.add('open');
+}
+
+function copyPatternText() {
+  const ta = document.getElementById('txtOut');
+  ta.select();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(
+      () => toast('Copied to clipboard'),
+      () => { try { document.execCommand('copy'); toast('Copied'); }
+              catch { toast('Copy failed — select manually'); } }
+    );
+  } else {
+    try { document.execCommand('copy'); toast('Copied'); }
+    catch { toast('Copy failed — select manually'); }
+  }
+}
+
+function downloadPatternText() {
+  const text = document.getElementById('txtOut').value;
+  const stem = safeFileStem(document.getElementById('patName').value || 'pattern');
+  downloadBlob(new Blob([text], { type: 'text/plain;charset=utf-8' }), stem + '.txt');
+  toast('Text file downloaded');
+}
+
 // ── REPEAT MODAL ──
 function openRepeatModal(r0, c0, r1, c1) {
   const cellsW = c1 - c0 + 1;
