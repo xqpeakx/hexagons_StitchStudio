@@ -137,6 +137,11 @@ let S = {
 // Cached HTMLImageElement built from S.underlay.src. Not persisted.
 let _underlayImg = null;
 
+// Long-press tracking on the legend. Tap = quick-swap (existing
+// behaviour); long-press = open action menu.
+let _legendLongPressTimer = null;
+let _legendMenuColor = null;
+
 // Repeat-tool selection state. The first tap stores an anchor; the
 // second tap opens the modal that captures count + axis. While the
 // modal is open _repeatPendingRegion holds the rectangle.

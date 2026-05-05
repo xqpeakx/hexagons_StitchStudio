@@ -274,7 +274,7 @@
   <div class="ps">
     <div class="plbl">Legend</div>
     <div class="leg" id="legend"></div>
-    <p style="font-size:10px;color:var(--text3);margin-top:6px">Click a colour swatch to swap it for the active colour.</p>
+    <p style="font-size:10px;color:var(--text3);margin-top:6px">Tap a colour to swap with active. Long-press for more actions.</p>
   </div>
   <div class="ps">
     <div class="plbl">Actions</div>
@@ -315,6 +315,21 @@
     <h3>New Pattern</h3>
     <p style="font-size:12.5px;color:var(--text2);margin-bottom:14px">This will clear the current canvas.</p>
     <div class="macts"><button class="sbtn2" onclick="closeM('newM')">Cancel</button><button class="pbtn" onclick="doNew()">Start Fresh</button></div>
+  </div>
+</div>
+<div class="mo" id="legendM">
+  <div class="md" style="width:320px">
+    <h3 id="legendMTitle" style="display:flex;align-items:center;gap:9px">
+      <span id="legendMSwatch" style="width:18px;height:18px;border-radius:5px;border:1px solid rgba(0,0,0,.1);display:inline-block"></span>
+      <span id="legendMLabel">Colour</span>
+    </h3>
+    <p id="legendMCount" style="font-size:11.5px;color:var(--text2);margin-bottom:14px">…</p>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="sbtn2" style="text-align:left" onclick="legendActionPick()">🎯 Pick this as active colour</button>
+      <button class="sbtn2" style="text-align:left" onclick="legendActionSwap()">🔄 Swap with active colour</button>
+      <button class="sbtn2" style="text-align:left" onclick="legendActionRemove()">🗑 Remove all cells of this colour</button>
+    </div>
+    <div class="macts"><button class="sbtn2" onclick="closeM('legendM')">Close</button></div>
   </div>
 </div>
 <div class="mo" id="txtM">

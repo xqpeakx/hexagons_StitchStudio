@@ -197,6 +197,26 @@ function openNewModal() { document.getElementById('newM').classList.add('open');
 // so it scales naturally with cellSize zoom.
 
 const UNDERLAY_MAX_BYTES = 2 * 1024 * 1024; // 2 MB after dataURL encode
+const UNDERLAY_MAX_EDGE = 1500;             // px on the longer dimension
+
+// Re-encode `img` as JPEG, optionally shrinking its longest side to
+// maxEdge. Returns null if the image is already small and re-encoding
+// is not forced.
+function downsampleImage(img, maxEdge, forceReencode) {
+  const longer = Math.max(img.width, img.height);
+  if (longer <= maxEdge && !forceReencode) return null;
+  const scale = Math.min(1, maxEdge / longer);
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const cx = c.getContext('2d');
+  cx.imageSmoothingQuality = 'high';
+  cx.fillStyle = '#fff';
+  cx.fillRect(0, 0, w, h);
+  cx.drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', 0.85);
+}
 
 function loadUnderlay(input) {
   const file = input.files && input.files[0];
@@ -208,37 +228,61 @@ function loadUnderlay(input) {
   }
   const reader = new FileReader();
   reader.onload = () => {
-    const dataUrl = reader.result;
-    if (typeof dataUrl !== 'string' || dataUrl.length > UNDERLAY_MAX_BYTES) {
-      toast('Image is too big — try one under 2 MB');
+    const originalUrl = reader.result;
+    if (typeof originalUrl !== 'string') {
+      toast('Could not read that image');
       input.value = '';
       return;
     }
-    const img = new Image();
-    img.onload = () => {
-      _underlayImg = img;
-      // Default sizing: fit a sensible default into the painted area
-      // while keeping the image's aspect ratio. User can resize after.
-      const ratio = img.width / img.height;
-      let w = Math.min(60, S.sqW);
-      let h = Math.max(1, Math.round(w / ratio));
-      if (h > S.sqH) {
-        h = Math.min(60, S.sqH);
-        w = Math.max(1, Math.round(h * ratio));
+    const probe = new Image();
+    probe.onload = () => {
+      // Re-encode images that are too large by dimensions or bytes;
+      // otherwise keep the original dataURL.
+      let finalUrl = originalUrl;
+      const downsized = downsampleImage(
+        probe,
+        UNDERLAY_MAX_EDGE,
+        originalUrl.length > UNDERLAY_MAX_BYTES
+      );
+      if (downsized) finalUrl = downsized;
+      if (finalUrl.length > UNDERLAY_MAX_BYTES) {
+        toast('Image is still too big after compression — try a simpler picture');
+        input.value = '';
+        return;
       }
-      S.underlay = {
-        src: dataUrl,
-        x: 0, y: 0, w, h,
-        opacity: 0.3,
+      const finalImg = (finalUrl === originalUrl) ? probe : new Image();
+      const finish = () => {
+        pushUndo({ includeUnderlay: true });
+        _underlayImg = finalImg;
+        const ratio = finalImg.width / finalImg.height;
+        let w = Math.min(60, S.sqW);
+        let h = Math.max(1, Math.round(w / ratio));
+        if (h > S.sqH) {
+          h = Math.min(60, S.sqH);
+          w = Math.max(1, Math.round(h * ratio));
+        }
+        S.underlay = {
+          src: finalUrl,
+          x: 0, y: 0, w, h,
+          opacity: 0.3,
+        };
+        syncUnderlayUI();
+        draw();
+        scheduleAutosave();
+        if (downsized) toast('Underlay loaded (resized for storage) — trace cells over it');
+        else            toast('Underlay loaded — trace cells over it');
       };
-      syncUnderlayUI();
-      draw();
-      scheduleAutosave();
-      toast('Underlay loaded — trace cells over it');
+      if (finalImg === probe) {
+        finish();
+      } else {
+        finalImg.onload = finish;
+        finalImg.onerror = () => toast('Could not finalise the underlay');
+        finalImg.src = finalUrl;
+      }
+      input.value = '';
     };
-    img.onerror = () => { toast('Could not decode that image'); };
-    img.src = dataUrl;
-    input.value = '';
+    probe.onerror = () => { toast('Could not decode that image'); input.value = ''; };
+    probe.src = originalUrl;
   };
   reader.onerror = () => { toast('Could not read that file'); input.value = ''; };
   reader.readAsDataURL(file);
@@ -264,6 +308,7 @@ function updateUnderlayBounds() {
 }
 
 function clearUnderlay() {
+  pushUndo({ includeUnderlay: true });
   S.underlay = null;
   _underlayImg = null;
   syncUnderlayUI();
@@ -408,6 +453,7 @@ function generatePatternText() {
     lines.push('');
     lines.push('## Cables');
     cables.forEach(cb => {
+      if (cb.color) usedColors.add(cb.color);
       const labelNum = isKnit ? (S.sqH - cb.r) : (cb.r + 1);
       const half = cb.w / 2;
       const dirText = cb.dir === 'L' ? 'left-cross' : 'right-cross';
@@ -505,10 +551,17 @@ function doRepeat() {
   toast(`Repeat ×${count} added`);
 }
 function doNew() {
-  pushUndo();
+  pushUndo({ includeUnderlay: true });
   // Clear everything and reset to a fresh chart.
   S.cells = {};
+  S.cables = [];
+  S.repeats = [];
+  S.underlay = null;
+  _underlayImg = null;
+  _repeatAnchor = null;
+  _repeatPendingRegion = null;
   document.getElementById('patName').value = 'My Pattern';
+  syncUnderlayUI();
   closeM('newM');
   draw(); updateStats(); updateLegend(); scheduleAutosave();
   toast('Fresh canvas!');
@@ -711,7 +764,11 @@ function pdfLegendLines() {
   const usedStitches = [...new Set(cells.map(c => c.stitchId))]
     .map(id => stitches.find(s => s.id === id))
     .filter(Boolean);
-  const usedColors = [...new Set(cells.map(c => c.color))];
+  const usedColors = [...new Set(
+    cells.map(c => c.color)
+      .concat((S.cables || []).map(cb => cb.color))
+      .filter(Boolean)
+  )];
   const lines = [];
   lines.push('Stitches');
   if (usedStitches.length) {

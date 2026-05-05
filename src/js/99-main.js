@@ -10,6 +10,7 @@ function init() {
 
   renderStitches(); renderPalette(); renderPresets(); renderCables();
   bindRepeatAxisToggle();
+  bindLegendLongPress();
   syncUnderlayUI();
   buildRoundRows(); drawGrannyPreview();
   resize();

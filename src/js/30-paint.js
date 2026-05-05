@@ -22,8 +22,51 @@ function getCell(ox, oy) {
   return S.gridType === 'square' ? getSquareCell(ox, oy) : getHexCell(ox, oy);
 }
 
-function pushUndo() {
-  undoStack.push(JSON.stringify(S.cells));
+function snapshotUndoState(includeUnderlay) {
+  const snap = {
+    cells: S.cells,
+    cables: (S.cables || []).slice(),
+    repeats: (S.repeats || []).slice(),
+  };
+  // Underlays can be large data URLs, so only include them for
+  // underlay-specific actions instead of every paint stroke.
+  if (includeUnderlay) snap.underlay = S.underlay ? { ...S.underlay } : null;
+  return JSON.stringify(snap);
+}
+
+function parseUndoState(raw) {
+  const snap = JSON.parse(raw);
+  if (snap && snap.cells && typeof snap.cells === 'object' && !Array.isArray(snap.cells)) return snap;
+  // Backward-compatible fallback for older in-memory snapshots that
+  // stored only the cells object.
+  return { cells: snap || {}, cables: S.cables || [], repeats: S.repeats || [] };
+}
+
+function undoStateIncludesUnderlay(raw) {
+  try {
+    const snap = JSON.parse(raw);
+    return !!snap && Object.prototype.hasOwnProperty.call(snap, 'underlay');
+  } catch {
+    return false;
+  }
+}
+
+function restoreUndoState(raw) {
+  const snap = parseUndoState(raw);
+  S.cells = snap.cells || {};
+  S.cables = Array.isArray(snap.cables) ? snap.cables : [];
+  S.repeats = Array.isArray(snap.repeats) ? snap.repeats : [];
+  if (Object.prototype.hasOwnProperty.call(snap, 'underlay')) {
+    S.underlay = snap.underlay ? { ...snap.underlay } : null;
+    _underlayImg = null;
+    syncUnderlayUI();
+  }
+  _repeatAnchor = null;
+  _repeatPendingRegion = null;
+}
+
+function pushUndo(opts = {}) {
+  undoStack.push(snapshotUndoState(!!opts.includeUnderlay));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   // Any new edit invalidates the redo branch — same model as a text editor.
   redoStack.length = 0;
@@ -197,6 +240,16 @@ function swapColor(fromColor) {
       n++;
     }
   });
+  let cn = 0;
+  (S.cables || []).forEach(cb => {
+    if (cb.color === fromColor) {
+      cb.color = S.activeColor;
+      cn++;
+    }
+  });
   draw(); updateStats(); updateLegend(); scheduleAutosave();
-  toast(`Swapped ${n} cells → active color`);
+  const parts = [];
+  if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
+  if (cn) parts.push(cn + ' cable' + (cn === 1 ? '' : 's'));
+  toast('Swapped ' + parts.join(' + ') + ' to active color');
 }

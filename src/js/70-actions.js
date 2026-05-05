@@ -20,19 +20,21 @@ function clearAll() {
 
 function undoLast() {
   if (!undoStack.length) { toast('Nothing to undo'); return; }
-  redoStack.push(JSON.stringify(S.cells));
+  const prev = undoStack.pop();
+  redoStack.push(snapshotUndoState(undoStateIncludesUnderlay(prev)));
   if (redoStack.length > MAX_UNDO) redoStack.shift();
-  S.cells = JSON.parse(undoStack.pop());
+  restoreUndoState(prev);
   draw(); updateStats(); updateLegend(); toast('Undone'); scheduleAutosave();
 }
 
 function redoLast() {
   if (!redoStack.length) { toast('Nothing to redo'); return; }
+  const next = redoStack.pop();
   // Pushing onto undoStack here would clear redoStack via pushUndo's
   // redo-branch-invalidation; do it manually to preserve the redo chain.
-  undoStack.push(JSON.stringify(S.cells));
+  undoStack.push(snapshotUndoState(undoStateIncludesUnderlay(next)));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
-  S.cells = JSON.parse(redoStack.pop());
+  restoreUndoState(next);
   draw(); updateStats(); updateLegend(); toast('Redone'); scheduleAutosave();
 }
 

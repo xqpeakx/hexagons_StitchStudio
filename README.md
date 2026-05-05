@@ -38,6 +38,15 @@ To rebuild the bundled `stitch-studio.html`:
 python3 build.py
 ```
 
+To run the lightweight bundle smoke test:
+
+```bash
+node test/smoke.js
+```
+
+The smoke test rebuilds the app, parses the bundled script, and checks
+for the DOM ids and global functions that the single-file app expects.
+
 The numeric prefix on each JS module is the bundling order — earlier
 files declare globals that later files use. No imports/exports; the
 bundler just concatenates.

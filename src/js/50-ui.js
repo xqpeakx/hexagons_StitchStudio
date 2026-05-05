@@ -44,6 +44,111 @@ function renderCables() {
     `<button class="cab cab-none" onclick="setCable(null)">No cable (single cells)</button>`;
 }
 
+// ── LEGEND LONG-PRESS MENU ──
+// Tap a legend colour row → swap with active (existing inline onclick).
+// Long-press (~500 ms) → open an action sheet with pick / swap / remove.
+function bindLegendLongPress() {
+  const legend = document.getElementById('legend');
+  if (!legend || legend._lpWired) return;
+  legend._lpWired = true;
+
+  const HOLD_MS = 500;
+
+  const colorFromSwap = el => {
+    if (el.dataset && el.dataset.color) return el.dataset.color;
+    const m = (el.getAttribute('onclick') || '').match(/swapColor\('([^']+)'\)/);
+    return m ? m[1] : null;
+  };
+
+  const start = (el) => {
+    const color = colorFromSwap(el);
+    if (!color) return;
+    cancel();
+    _legendLongPressTimer = setTimeout(() => {
+      _legendLongPressTimer = null;
+      legend._lpFired = true;
+      openLegendMenu(color);
+    }, HOLD_MS);
+  };
+  const cancel = () => {
+    if (_legendLongPressTimer) {
+      clearTimeout(_legendLongPressTimer);
+      _legendLongPressTimer = null;
+    }
+  };
+
+  legend.addEventListener('mousedown', e => {
+    const el = e.target.closest('.li.swap');
+    if (el) start(el);
+  });
+  ['mouseup', 'mouseleave'].forEach(ev => legend.addEventListener(ev, cancel));
+
+  legend.addEventListener('touchstart', e => {
+    const el = e.target.closest('.li.swap');
+    if (el) start(el);
+  }, { passive: true });
+  ['touchend', 'touchcancel', 'touchmove'].forEach(ev =>
+    legend.addEventListener(ev, cancel, { passive: true }));
+
+  // Suppress the click that follows a long-press so swapColor doesn't
+  // fire on top of the menu open.
+  legend.addEventListener('click', e => {
+    if (legend._lpFired) {
+      legend._lpFired = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
+
+function openLegendMenu(color) {
+  _legendMenuColor = color;
+  const count = Object.values(S.cells).filter(c => c.color === color).length;
+  const cableCount = (S.cables || []).filter(cb => cb.color === color).length;
+  document.getElementById('legendMSwatch').style.background = color;
+  document.getElementById('legendMLabel').textContent = color;
+  document.getElementById('legendMCount').textContent =
+    `Used in ${count} cell${count === 1 ? '' : 's'}` +
+    (cableCount ? ` and ${cableCount} cable${cableCount === 1 ? '' : 's'}` : '');
+  document.getElementById('legendM').classList.add('open');
+}
+
+function legendActionPick() {
+  if (_legendMenuColor) {
+    setColor(_legendMenuColor);
+    toast('Picked active colour ' + _legendMenuColor);
+  }
+  closeM('legendM');
+}
+
+function legendActionSwap() {
+  if (_legendMenuColor) swapColor(_legendMenuColor);
+  closeM('legendM');
+}
+
+function legendActionRemove() {
+  if (!_legendMenuColor) { closeM('legendM'); return; }
+  const target = _legendMenuColor;
+  pushUndo();
+  let n = 0;
+  Object.keys(S.cells).forEach(k => {
+    if (S.cells[k].color === target) { delete S.cells[k]; n++; }
+  });
+  // Also remove cables of this colour — they're tied to a colour at
+  // placement time, so removing the colour should remove the cable.
+  let cn = 0;
+  S.cables = (S.cables || []).filter(cb => {
+    if (cb.color === target) { cn++; return false; }
+    return true;
+  });
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  const parts = [];
+  if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
+  if (cn) parts.push(cn + ' cable' + (cn === 1 ? '' : 's'));
+  toast('Removed ' + parts.join(' + '));
+  closeM('legendM');
+}
+
 // Wire the segmented-axis control inside the Repeat modal so clicks
 // toggle the .on state. Idempotent — safe to call from init().
 function bindRepeatAxisToggle() {
@@ -88,15 +193,19 @@ function updateLegend() {
   const stitches = CS[S.mode];
   const used = {};
   Object.values(S.cells).forEach(c => { used[c.stitchId] = true; });
-  const usedCols = [...new Set(Object.values(S.cells).map(c => c.color))];
+  const usedCols = [...new Set(
+    Object.values(S.cells).map(c => c.color)
+      .concat((S.cables || []).map(cb => cb.color))
+      .filter(Boolean)
+  )];
   let h = '';
   stitches.filter(s => used[s.id]).forEach(s => {
     const label = stitchLabel(s);
     h += `<div class="li"><div class="lsym">${s.sym}</div><div class="ls" style="background:${s.col}"></div><span>${label.abbr} — ${label.name}</span></div>`;
   });
-  // Color rows are clickable — click to swap that color for the active one.
+  // Color rows: tap/click swaps, long-press opens the action menu.
   usedCols.forEach(c => {
-    h += `<div class="li swap" onclick="swapColor('${c}')" title="Click to swap with active color">
+    h += `<div class="li swap" data-color="${c}" onclick="swapColor(this.dataset.color)" title="Tap to swap with active color; long-press for more actions">
             <div class="ls" style="background:${c};width:18px;height:13px"></div>
             <span style="font-size:9.5px">${c}</span>
           </div>`;

@@ -570,7 +570,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   <div class="ps">
     <div class="plbl">Legend</div>
     <div class="leg" id="legend"></div>
-    <p style="font-size:10px;color:var(--text3);margin-top:6px">Click a colour swatch to swap it for the active colour.</p>
+    <p style="font-size:10px;color:var(--text3);margin-top:6px">Tap a colour to swap with active. Long-press for more actions.</p>
   </div>
   <div class="ps">
     <div class="plbl">Actions</div>
@@ -611,6 +611,21 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <h3>New Pattern</h3>
     <p style="font-size:12.5px;color:var(--text2);margin-bottom:14px">This will clear the current canvas.</p>
     <div class="macts"><button class="sbtn2" onclick="closeM('newM')">Cancel</button><button class="pbtn" onclick="doNew()">Start Fresh</button></div>
+  </div>
+</div>
+<div class="mo" id="legendM">
+  <div class="md" style="width:320px">
+    <h3 id="legendMTitle" style="display:flex;align-items:center;gap:9px">
+      <span id="legendMSwatch" style="width:18px;height:18px;border-radius:5px;border:1px solid rgba(0,0,0,.1);display:inline-block"></span>
+      <span id="legendMLabel">Colour</span>
+    </h3>
+    <p id="legendMCount" style="font-size:11.5px;color:var(--text2);margin-bottom:14px">…</p>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="sbtn2" style="text-align:left" onclick="legendActionPick()">🎯 Pick this as active colour</button>
+      <button class="sbtn2" style="text-align:left" onclick="legendActionSwap()">🔄 Swap with active colour</button>
+      <button class="sbtn2" style="text-align:left" onclick="legendActionRemove()">🗑 Remove all cells of this colour</button>
+    </div>
+    <div class="macts"><button class="sbtn2" onclick="closeM('legendM')">Close</button></div>
   </div>
 </div>
 <div class="mo" id="txtM">
@@ -796,6 +811,11 @@ let S = {
 
 // Cached HTMLImageElement built from S.underlay.src. Not persisted.
 let _underlayImg = null;
+
+// Long-press tracking on the legend. Tap = quick-swap (existing
+// behaviour); long-press = open action menu.
+let _legendLongPressTimer = null;
+let _legendMenuColor = null;
 
 // Repeat-tool selection state. The first tap stores an anchor; the
 // second tap opens the modal that captures count + axis. While the
@@ -1364,8 +1384,51 @@ function getCell(ox, oy) {
   return S.gridType === 'square' ? getSquareCell(ox, oy) : getHexCell(ox, oy);
 }
 
-function pushUndo() {
-  undoStack.push(JSON.stringify(S.cells));
+function snapshotUndoState(includeUnderlay) {
+  const snap = {
+    cells: S.cells,
+    cables: (S.cables || []).slice(),
+    repeats: (S.repeats || []).slice(),
+  };
+  // Underlays can be large data URLs, so only include them for
+  // underlay-specific actions instead of every paint stroke.
+  if (includeUnderlay) snap.underlay = S.underlay ? { ...S.underlay } : null;
+  return JSON.stringify(snap);
+}
+
+function parseUndoState(raw) {
+  const snap = JSON.parse(raw);
+  if (snap && snap.cells && typeof snap.cells === 'object' && !Array.isArray(snap.cells)) return snap;
+  // Backward-compatible fallback for older in-memory snapshots that
+  // stored only the cells object.
+  return { cells: snap || {}, cables: S.cables || [], repeats: S.repeats || [] };
+}
+
+function undoStateIncludesUnderlay(raw) {
+  try {
+    const snap = JSON.parse(raw);
+    return !!snap && Object.prototype.hasOwnProperty.call(snap, 'underlay');
+  } catch {
+    return false;
+  }
+}
+
+function restoreUndoState(raw) {
+  const snap = parseUndoState(raw);
+  S.cells = snap.cells || {};
+  S.cables = Array.isArray(snap.cables) ? snap.cables : [];
+  S.repeats = Array.isArray(snap.repeats) ? snap.repeats : [];
+  if (Object.prototype.hasOwnProperty.call(snap, 'underlay')) {
+    S.underlay = snap.underlay ? { ...snap.underlay } : null;
+    _underlayImg = null;
+    syncUnderlayUI();
+  }
+  _repeatAnchor = null;
+  _repeatPendingRegion = null;
+}
+
+function pushUndo(opts = {}) {
+  undoStack.push(snapshotUndoState(!!opts.includeUnderlay));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   // Any new edit invalidates the redo branch — same model as a text editor.
   redoStack.length = 0;
@@ -1539,8 +1602,18 @@ function swapColor(fromColor) {
       n++;
     }
   });
+  let cn = 0;
+  (S.cables || []).forEach(cb => {
+    if (cb.color === fromColor) {
+      cb.color = S.activeColor;
+      cn++;
+    }
+  });
   draw(); updateStats(); updateLegend(); scheduleAutosave();
-  toast(`Swapped ${n} cells → active color`);
+  const parts = [];
+  if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
+  if (cn) parts.push(cn + ' cable' + (cn === 1 ? '' : 's'));
+  toast('Swapped ' + parts.join(' + ') + ' to active color');
 }
 
 // ── 40-events.js ────────────────────────────────────────────────
@@ -1934,6 +2007,111 @@ function renderCables() {
     `<button class="cab cab-none" onclick="setCable(null)">No cable (single cells)</button>`;
 }
 
+// ── LEGEND LONG-PRESS MENU ──
+// Tap a legend colour row → swap with active (existing inline onclick).
+// Long-press (~500 ms) → open an action sheet with pick / swap / remove.
+function bindLegendLongPress() {
+  const legend = document.getElementById('legend');
+  if (!legend || legend._lpWired) return;
+  legend._lpWired = true;
+
+  const HOLD_MS = 500;
+
+  const colorFromSwap = el => {
+    if (el.dataset && el.dataset.color) return el.dataset.color;
+    const m = (el.getAttribute('onclick') || '').match(/swapColor\('([^']+)'\)/);
+    return m ? m[1] : null;
+  };
+
+  const start = (el) => {
+    const color = colorFromSwap(el);
+    if (!color) return;
+    cancel();
+    _legendLongPressTimer = setTimeout(() => {
+      _legendLongPressTimer = null;
+      legend._lpFired = true;
+      openLegendMenu(color);
+    }, HOLD_MS);
+  };
+  const cancel = () => {
+    if (_legendLongPressTimer) {
+      clearTimeout(_legendLongPressTimer);
+      _legendLongPressTimer = null;
+    }
+  };
+
+  legend.addEventListener('mousedown', e => {
+    const el = e.target.closest('.li.swap');
+    if (el) start(el);
+  });
+  ['mouseup', 'mouseleave'].forEach(ev => legend.addEventListener(ev, cancel));
+
+  legend.addEventListener('touchstart', e => {
+    const el = e.target.closest('.li.swap');
+    if (el) start(el);
+  }, { passive: true });
+  ['touchend', 'touchcancel', 'touchmove'].forEach(ev =>
+    legend.addEventListener(ev, cancel, { passive: true }));
+
+  // Suppress the click that follows a long-press so swapColor doesn't
+  // fire on top of the menu open.
+  legend.addEventListener('click', e => {
+    if (legend._lpFired) {
+      legend._lpFired = false;
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
+
+function openLegendMenu(color) {
+  _legendMenuColor = color;
+  const count = Object.values(S.cells).filter(c => c.color === color).length;
+  const cableCount = (S.cables || []).filter(cb => cb.color === color).length;
+  document.getElementById('legendMSwatch').style.background = color;
+  document.getElementById('legendMLabel').textContent = color;
+  document.getElementById('legendMCount').textContent =
+    `Used in ${count} cell${count === 1 ? '' : 's'}` +
+    (cableCount ? ` and ${cableCount} cable${cableCount === 1 ? '' : 's'}` : '');
+  document.getElementById('legendM').classList.add('open');
+}
+
+function legendActionPick() {
+  if (_legendMenuColor) {
+    setColor(_legendMenuColor);
+    toast('Picked active colour ' + _legendMenuColor);
+  }
+  closeM('legendM');
+}
+
+function legendActionSwap() {
+  if (_legendMenuColor) swapColor(_legendMenuColor);
+  closeM('legendM');
+}
+
+function legendActionRemove() {
+  if (!_legendMenuColor) { closeM('legendM'); return; }
+  const target = _legendMenuColor;
+  pushUndo();
+  let n = 0;
+  Object.keys(S.cells).forEach(k => {
+    if (S.cells[k].color === target) { delete S.cells[k]; n++; }
+  });
+  // Also remove cables of this colour — they're tied to a colour at
+  // placement time, so removing the colour should remove the cable.
+  let cn = 0;
+  S.cables = (S.cables || []).filter(cb => {
+    if (cb.color === target) { cn++; return false; }
+    return true;
+  });
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  const parts = [];
+  if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
+  if (cn) parts.push(cn + ' cable' + (cn === 1 ? '' : 's'));
+  toast('Removed ' + parts.join(' + '));
+  closeM('legendM');
+}
+
 // Wire the segmented-axis control inside the Repeat modal so clicks
 // toggle the .on state. Idempotent — safe to call from init().
 function bindRepeatAxisToggle() {
@@ -1978,15 +2156,19 @@ function updateLegend() {
   const stitches = CS[S.mode];
   const used = {};
   Object.values(S.cells).forEach(c => { used[c.stitchId] = true; });
-  const usedCols = [...new Set(Object.values(S.cells).map(c => c.color))];
+  const usedCols = [...new Set(
+    Object.values(S.cells).map(c => c.color)
+      .concat((S.cables || []).map(cb => cb.color))
+      .filter(Boolean)
+  )];
   let h = '';
   stitches.filter(s => used[s.id]).forEach(s => {
     const label = stitchLabel(s);
     h += `<div class="li"><div class="lsym">${s.sym}</div><div class="ls" style="background:${s.col}"></div><span>${label.abbr} — ${label.name}</span></div>`;
   });
-  // Color rows are clickable — click to swap that color for the active one.
+  // Color rows: tap/click swaps, long-press opens the action menu.
   usedCols.forEach(c => {
-    h += `<div class="li swap" onclick="swapColor('${c}')" title="Click to swap with active color">
+    h += `<div class="li swap" data-color="${c}" onclick="swapColor(this.dataset.color)" title="Tap to swap with active color; long-press for more actions">
             <div class="ls" style="background:${c};width:18px;height:13px"></div>
             <span style="font-size:9.5px">${c}</span>
           </div>`;
@@ -2294,19 +2476,21 @@ function clearAll() {
 
 function undoLast() {
   if (!undoStack.length) { toast('Nothing to undo'); return; }
-  redoStack.push(JSON.stringify(S.cells));
+  const prev = undoStack.pop();
+  redoStack.push(snapshotUndoState(undoStateIncludesUnderlay(prev)));
   if (redoStack.length > MAX_UNDO) redoStack.shift();
-  S.cells = JSON.parse(undoStack.pop());
+  restoreUndoState(prev);
   draw(); updateStats(); updateLegend(); toast('Undone'); scheduleAutosave();
 }
 
 function redoLast() {
   if (!redoStack.length) { toast('Nothing to redo'); return; }
+  const next = redoStack.pop();
   // Pushing onto undoStack here would clear redoStack via pushUndo's
   // redo-branch-invalidation; do it manually to preserve the redo chain.
-  undoStack.push(JSON.stringify(S.cells));
+  undoStack.push(snapshotUndoState(undoStateIncludesUnderlay(next)));
   if (undoStack.length > MAX_UNDO) undoStack.shift();
-  S.cells = JSON.parse(redoStack.pop());
+  restoreUndoState(next);
   draw(); updateStats(); updateLegend(); toast('Redone'); scheduleAutosave();
 }
 
@@ -3008,6 +3192,26 @@ function openNewModal() { document.getElementById('newM').classList.add('open');
 // so it scales naturally with cellSize zoom.
 
 const UNDERLAY_MAX_BYTES = 2 * 1024 * 1024; // 2 MB after dataURL encode
+const UNDERLAY_MAX_EDGE = 1500;             // px on the longer dimension
+
+// Re-encode `img` as JPEG, optionally shrinking its longest side to
+// maxEdge. Returns null if the image is already small and re-encoding
+// is not forced.
+function downsampleImage(img, maxEdge, forceReencode) {
+  const longer = Math.max(img.width, img.height);
+  if (longer <= maxEdge && !forceReencode) return null;
+  const scale = Math.min(1, maxEdge / longer);
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const cx = c.getContext('2d');
+  cx.imageSmoothingQuality = 'high';
+  cx.fillStyle = '#fff';
+  cx.fillRect(0, 0, w, h);
+  cx.drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', 0.85);
+}
 
 function loadUnderlay(input) {
   const file = input.files && input.files[0];
@@ -3019,37 +3223,61 @@ function loadUnderlay(input) {
   }
   const reader = new FileReader();
   reader.onload = () => {
-    const dataUrl = reader.result;
-    if (typeof dataUrl !== 'string' || dataUrl.length > UNDERLAY_MAX_BYTES) {
-      toast('Image is too big — try one under 2 MB');
+    const originalUrl = reader.result;
+    if (typeof originalUrl !== 'string') {
+      toast('Could not read that image');
       input.value = '';
       return;
     }
-    const img = new Image();
-    img.onload = () => {
-      _underlayImg = img;
-      // Default sizing: fit a sensible default into the painted area
-      // while keeping the image's aspect ratio. User can resize after.
-      const ratio = img.width / img.height;
-      let w = Math.min(60, S.sqW);
-      let h = Math.max(1, Math.round(w / ratio));
-      if (h > S.sqH) {
-        h = Math.min(60, S.sqH);
-        w = Math.max(1, Math.round(h * ratio));
+    const probe = new Image();
+    probe.onload = () => {
+      // Re-encode images that are too large by dimensions or bytes;
+      // otherwise keep the original dataURL.
+      let finalUrl = originalUrl;
+      const downsized = downsampleImage(
+        probe,
+        UNDERLAY_MAX_EDGE,
+        originalUrl.length > UNDERLAY_MAX_BYTES
+      );
+      if (downsized) finalUrl = downsized;
+      if (finalUrl.length > UNDERLAY_MAX_BYTES) {
+        toast('Image is still too big after compression — try a simpler picture');
+        input.value = '';
+        return;
       }
-      S.underlay = {
-        src: dataUrl,
-        x: 0, y: 0, w, h,
-        opacity: 0.3,
+      const finalImg = (finalUrl === originalUrl) ? probe : new Image();
+      const finish = () => {
+        pushUndo({ includeUnderlay: true });
+        _underlayImg = finalImg;
+        const ratio = finalImg.width / finalImg.height;
+        let w = Math.min(60, S.sqW);
+        let h = Math.max(1, Math.round(w / ratio));
+        if (h > S.sqH) {
+          h = Math.min(60, S.sqH);
+          w = Math.max(1, Math.round(h * ratio));
+        }
+        S.underlay = {
+          src: finalUrl,
+          x: 0, y: 0, w, h,
+          opacity: 0.3,
+        };
+        syncUnderlayUI();
+        draw();
+        scheduleAutosave();
+        if (downsized) toast('Underlay loaded (resized for storage) — trace cells over it');
+        else            toast('Underlay loaded — trace cells over it');
       };
-      syncUnderlayUI();
-      draw();
-      scheduleAutosave();
-      toast('Underlay loaded — trace cells over it');
+      if (finalImg === probe) {
+        finish();
+      } else {
+        finalImg.onload = finish;
+        finalImg.onerror = () => toast('Could not finalise the underlay');
+        finalImg.src = finalUrl;
+      }
+      input.value = '';
     };
-    img.onerror = () => { toast('Could not decode that image'); };
-    img.src = dataUrl;
-    input.value = '';
+    probe.onerror = () => { toast('Could not decode that image'); input.value = ''; };
+    probe.src = originalUrl;
   };
   reader.onerror = () => { toast('Could not read that file'); input.value = ''; };
   reader.readAsDataURL(file);
@@ -3075,6 +3303,7 @@ function updateUnderlayBounds() {
 }
 
 function clearUnderlay() {
+  pushUndo({ includeUnderlay: true });
   S.underlay = null;
   _underlayImg = null;
   syncUnderlayUI();
@@ -3219,6 +3448,7 @@ function generatePatternText() {
     lines.push('');
     lines.push('## Cables');
     cables.forEach(cb => {
+      if (cb.color) usedColors.add(cb.color);
       const labelNum = isKnit ? (S.sqH - cb.r) : (cb.r + 1);
       const half = cb.w / 2;
       const dirText = cb.dir === 'L' ? 'left-cross' : 'right-cross';
@@ -3316,10 +3546,17 @@ function doRepeat() {
   toast(`Repeat ×${count} added`);
 }
 function doNew() {
-  pushUndo();
+  pushUndo({ includeUnderlay: true });
   // Clear everything and reset to a fresh chart.
   S.cells = {};
+  S.cables = [];
+  S.repeats = [];
+  S.underlay = null;
+  _underlayImg = null;
+  _repeatAnchor = null;
+  _repeatPendingRegion = null;
   document.getElementById('patName').value = 'My Pattern';
+  syncUnderlayUI();
   closeM('newM');
   draw(); updateStats(); updateLegend(); scheduleAutosave();
   toast('Fresh canvas!');
@@ -3522,7 +3759,11 @@ function pdfLegendLines() {
   const usedStitches = [...new Set(cells.map(c => c.stitchId))]
     .map(id => stitches.find(s => s.id === id))
     .filter(Boolean);
-  const usedColors = [...new Set(cells.map(c => c.color))];
+  const usedColors = [...new Set(
+    cells.map(c => c.color)
+      .concat((S.cables || []).map(cb => cb.color))
+      .filter(Boolean)
+  )];
   const lines = [];
   lines.push('Stitches');
   if (usedStitches.length) {
@@ -3605,6 +3846,7 @@ function init() {
 
   renderStitches(); renderPalette(); renderPresets(); renderCables();
   bindRepeatAxisToggle();
+  bindLegendLongPress();
   syncUnderlayUI();
   buildRoundRows(); drawGrannyPreview();
   resize();
