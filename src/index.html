@@ -251,6 +251,26 @@
       Leave both at 0 for square cells. Try 20×28 for typical worsted knit fabric.
     </p>
   </div>
+  <div class="ps" id="underlayPanel" title="Drop a reference image behind the chart at low opacity, then trace cells over it.">
+    <div class="plbl">Underlay</div>
+    <button class="sbtn" onclick="document.getElementById('underlayFile').click()">📷 Load image…</button>
+    <div id="underlayCtrls" style="display:none;margin-top:8px">
+      <div class="prow" style="margin-bottom:8px">
+        <label>Opacity</label>
+        <input type="range" id="underlayOpacity" min="0" max="100" value="30"
+               oninput="setUnderlayOpacity(this.value)" style="flex:1;max-width:120px">
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-cell"><label>Col X</label><input type="number" id="underlayX" min="0" onchange="updateUnderlayBounds()"></div>
+        <div class="gauge-cell"><label>Row Y</label><input type="number" id="underlayY" min="0" onchange="updateUnderlayBounds()"></div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-cell"><label>Width</label><input type="number" id="underlayW" min="1" onchange="updateUnderlayBounds()"></div>
+        <div class="gauge-cell"><label>Height</label><input type="number" id="underlayH" min="1" onchange="updateUnderlayBounds()"></div>
+      </div>
+      <button class="sbtn" style="margin-top:6px" onclick="clearUnderlay()">🗑 Remove underlay</button>
+    </div>
+  </div>
   <div class="ps">
     <div class="plbl">Legend</div>
     <div class="leg" id="legend"></div>
@@ -337,6 +357,7 @@
 
 <div class="toast" id="toast"></div>
 <input type="file" id="projectFile" accept="application/json,.json" style="display:none" onchange="importProjectFile(this)">
+<input type="file" id="underlayFile" accept="image/*" style="display:none" onchange="loadUnderlay(this)">
 
 <!-- INJECT_JS -->
 </body>

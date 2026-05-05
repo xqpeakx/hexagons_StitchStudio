@@ -148,10 +148,12 @@ function setGridType(type) {
   const gb = document.getElementById('gridBadge');
   gb.textContent = type === 'hex' ? 'Hex Grid' : 'Square Grid';
   gb.className = 'badge ' + (type === 'hex' ? 'hex-badge' : 'sq-badge');
-  // Gauge controls and cables only meaningful on square grid.
+  // Gauge, cables, and underlay only meaningful on square grid.
   document.getElementById('gaugeRow').style.display = type === 'square' ? '' : 'none';
   const cablesPanel = document.getElementById('cablesPanel');
   if (cablesPanel) cablesPanel.style.display = type === 'square' ? '' : 'none';
+  const underlayPanel = document.getElementById('underlayPanel');
+  if (underlayPanel) underlayPanel.style.display = type === 'square' ? '' : 'none';
   // Switching to hex while a cable type is selected — clear it.
   if (type !== 'square' && S.activeCable) { S.activeCable = null; renderCables(); }
   if (document.getElementById('grannyPanel').classList.contains('vis')) onGStyleChange();

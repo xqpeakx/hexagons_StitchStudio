@@ -547,6 +547,26 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
       Leave both at 0 for square cells. Try 20×28 for typical worsted knit fabric.
     </p>
   </div>
+  <div class="ps" id="underlayPanel" title="Drop a reference image behind the chart at low opacity, then trace cells over it.">
+    <div class="plbl">Underlay</div>
+    <button class="sbtn" onclick="document.getElementById('underlayFile').click()">📷 Load image…</button>
+    <div id="underlayCtrls" style="display:none;margin-top:8px">
+      <div class="prow" style="margin-bottom:8px">
+        <label>Opacity</label>
+        <input type="range" id="underlayOpacity" min="0" max="100" value="30"
+               oninput="setUnderlayOpacity(this.value)" style="flex:1;max-width:120px">
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-cell"><label>Col X</label><input type="number" id="underlayX" min="0" onchange="updateUnderlayBounds()"></div>
+        <div class="gauge-cell"><label>Row Y</label><input type="number" id="underlayY" min="0" onchange="updateUnderlayBounds()"></div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-cell"><label>Width</label><input type="number" id="underlayW" min="1" onchange="updateUnderlayBounds()"></div>
+        <div class="gauge-cell"><label>Height</label><input type="number" id="underlayH" min="1" onchange="updateUnderlayBounds()"></div>
+      </div>
+      <button class="sbtn" style="margin-top:6px" onclick="clearUnderlay()">🗑 Remove underlay</button>
+    </div>
+  </div>
   <div class="ps">
     <div class="plbl">Legend</div>
     <div class="leg" id="legend"></div>
@@ -633,6 +653,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 
 <div class="toast" id="toast"></div>
 <input type="file" id="projectFile" accept="application/json,.json" style="display:none" onchange="importProjectFile(this)">
+<input type="file" id="underlayFile" accept="image/*" style="display:none" onchange="loadUnderlay(this)">
 
 <script>
 // ── 00-state.js ─────────────────────────────────────────────────
@@ -765,8 +786,16 @@ let S = {
   //   { r0, c0, r1, c1, count, axis:'across'|'down'|'both' }
   // r0<=r1 and c0<=c1 always. axis controls which brackets render.
   repeats: [],
+  // Image underlay (square-grid only). When set, an image renders
+  // behind the cells at low opacity so the user can trace cells over
+  // a reference photo. Stored as { src:dataURL, x, y, w, h, opacity }
+  // where x/y/w/h are in chart cells.
+  underlay: null,
   panX:0, panY:0,
 };
+
+// Cached HTMLImageElement built from S.underlay.src. Not persisted.
+let _underlayImg = null;
 
 // Repeat-tool selection state. The first tap stores an anchor; the
 // second tap opens the modal that captures count + axis. While the
@@ -936,6 +965,24 @@ function drawSquareGrid() {
   const gx = ox + col0 * cs, gy = oy + row0 * ch;
   ctx.fillStyle = '#faf8f5';
   ctx.fillRect(gx, gy, (colN - col0) * cs, (rowN - row0) * ch);
+
+  // Image underlay (drawn behind cells so painted cells cover it
+  // opaquely while empty cells let the picture show through).
+  if (S.underlay) {
+    if (!_underlayImg) {
+      ensureUnderlayImg(); // loads async; redraws when ready
+    } else {
+      const u = S.underlay;
+      const ux = ox + u.x * cs;
+      const uy = oy + u.y * ch;
+      const uw = u.w * cs;
+      const uh = u.h * ch;
+      ctx.save();
+      ctx.globalAlpha = u.opacity;
+      ctx.drawImage(_underlayImg, ux, uy, uw, uh);
+      ctx.restore();
+    }
+  }
 
   // WS row shading. Knitters chart bottom-up; row 0 in the array is
   // the last row knit, so the displayed row label is (sqH - r) for
@@ -1991,10 +2038,12 @@ function setGridType(type) {
   const gb = document.getElementById('gridBadge');
   gb.textContent = type === 'hex' ? 'Hex Grid' : 'Square Grid';
   gb.className = 'badge ' + (type === 'hex' ? 'hex-badge' : 'sq-badge');
-  // Gauge controls and cables only meaningful on square grid.
+  // Gauge, cables, and underlay only meaningful on square grid.
   document.getElementById('gaugeRow').style.display = type === 'square' ? '' : 'none';
   const cablesPanel = document.getElementById('cablesPanel');
   if (cablesPanel) cablesPanel.style.display = type === 'square' ? '' : 'none';
+  const underlayPanel = document.getElementById('underlayPanel');
+  if (underlayPanel) underlayPanel.style.display = type === 'square' ? '' : 'none';
   // Switching to hex while a cable type is selected — clear it.
   if (type !== 'square' && S.activeCable) { S.activeCable = null; renderCables(); }
   if (document.getElementById('grannyPanel').classList.contains('vis')) onGStyleChange();
@@ -2790,6 +2839,7 @@ function snapshotState() {
     stylusMode: S.stylusMode,
     cables: (S.cables || []).slice(),
     repeats: (S.repeats || []).slice(),
+    underlay: S.underlay ? { ...S.underlay } : null,
     palette: PALETTE.slice(),
     savedAt: new Date().toISOString(),
   };
@@ -2831,6 +2881,23 @@ function applyState(p) {
     : [];
   _repeatAnchor = null;
   _repeatPendingRegion = null;
+  // Underlay
+  _underlayImg = null;
+  if (p.underlay && typeof p.underlay === 'object'
+      && typeof p.underlay.src === 'string'
+      && Number.isFinite(p.underlay.w) && Number.isFinite(p.underlay.h)) {
+    S.underlay = {
+      src: p.underlay.src,
+      x: Number(p.underlay.x) || 0,
+      y: Number(p.underlay.y) || 0,
+      w: Math.max(1, Number(p.underlay.w) || 1),
+      h: Math.max(1, Number(p.underlay.h) || 1),
+      opacity: Math.max(0, Math.min(1, Number(p.underlay.opacity) || 0.3)),
+    };
+  } else {
+    S.underlay = null;
+  }
+  syncUnderlayUI();
   if (Array.isArray(p.palette) && p.palette.length) {
     PALETTE.length = 0;
     p.palette.forEach(c => PALETTE.push(c));
@@ -2933,6 +3000,115 @@ function deletePat(name) {
   localStorage.setItem('ss_patterns', JSON.stringify(s)); openLoadModal();
 }
 function openNewModal() { document.getElementById('newM').classList.add('open'); }
+
+// ── IMAGE UNDERLAY ──
+// Lets the user load a reference image that renders behind the chart
+// cells at low opacity so they can paint cells over the picture.
+// Square grid only; the underlay's x/y/w/h are measured in chart cells
+// so it scales naturally with cellSize zoom.
+
+const UNDERLAY_MAX_BYTES = 2 * 1024 * 1024; // 2 MB after dataURL encode
+
+function loadUnderlay(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    toast('Pick an image file');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    if (typeof dataUrl !== 'string' || dataUrl.length > UNDERLAY_MAX_BYTES) {
+      toast('Image is too big — try one under 2 MB');
+      input.value = '';
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      _underlayImg = img;
+      // Default sizing: fit a sensible default into the painted area
+      // while keeping the image's aspect ratio. User can resize after.
+      const ratio = img.width / img.height;
+      let w = Math.min(60, S.sqW);
+      let h = Math.max(1, Math.round(w / ratio));
+      if (h > S.sqH) {
+        h = Math.min(60, S.sqH);
+        w = Math.max(1, Math.round(h * ratio));
+      }
+      S.underlay = {
+        src: dataUrl,
+        x: 0, y: 0, w, h,
+        opacity: 0.3,
+      };
+      syncUnderlayUI();
+      draw();
+      scheduleAutosave();
+      toast('Underlay loaded — trace cells over it');
+    };
+    img.onerror = () => { toast('Could not decode that image'); };
+    img.src = dataUrl;
+    input.value = '';
+  };
+  reader.onerror = () => { toast('Could not read that file'); input.value = ''; };
+  reader.readAsDataURL(file);
+}
+
+function setUnderlayOpacity(v) {
+  if (!S.underlay) return;
+  S.underlay.opacity = Math.max(0, Math.min(1, (Number(v) || 0) / 100));
+  draw();
+  scheduleAutosave();
+}
+
+function updateUnderlayBounds() {
+  if (!S.underlay) return;
+  const x = Math.max(0, parseInt(document.getElementById('underlayX').value) || 0);
+  const y = Math.max(0, parseInt(document.getElementById('underlayY').value) || 0);
+  const w = Math.max(1, parseInt(document.getElementById('underlayW').value) || 1);
+  const h = Math.max(1, parseInt(document.getElementById('underlayH').value) || 1);
+  S.underlay.x = x; S.underlay.y = y;
+  S.underlay.w = w; S.underlay.h = h;
+  draw();
+  scheduleAutosave();
+}
+
+function clearUnderlay() {
+  S.underlay = null;
+  _underlayImg = null;
+  syncUnderlayUI();
+  draw();
+  scheduleAutosave();
+  toast('Underlay removed');
+}
+
+// Lazy-build the cached HTMLImageElement from the persisted dataURL.
+// Called from the render path the first time the underlay is needed
+// after a load/restore.
+function ensureUnderlayImg() {
+  if (!S.underlay || _underlayImg) return;
+  const img = new Image();
+  img.onload = () => { _underlayImg = img; draw(); };
+  img.onerror = () => { /* ignore — keep empty */ };
+  img.src = S.underlay.src;
+}
+
+// Reflect underlay state into the right-panel controls.
+function syncUnderlayUI() {
+  const ctrls = document.getElementById('underlayCtrls');
+  if (!ctrls) return;
+  if (!S.underlay) {
+    ctrls.style.display = 'none';
+    return;
+  }
+  ctrls.style.display = '';
+  document.getElementById('underlayOpacity').value = Math.round((S.underlay.opacity || 0) * 100);
+  document.getElementById('underlayX').value = S.underlay.x;
+  document.getElementById('underlayY').value = S.underlay.y;
+  document.getElementById('underlayW').value = S.underlay.w;
+  document.getElementById('underlayH').value = S.underlay.h;
+}
 
 // ── PATTERN TEXT EXPORT ──
 // Walks the square grid in pattern order (knit bottom-up, crochet
@@ -3429,6 +3605,7 @@ function init() {
 
   renderStitches(); renderPalette(); renderPresets(); renderCables();
   bindRepeatAxisToggle();
+  syncUnderlayUI();
   buildRoundRows(); drawGrannyPreview();
   resize();
 

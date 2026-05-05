@@ -62,6 +62,24 @@ function drawSquareGrid() {
   ctx.fillStyle = '#faf8f5';
   ctx.fillRect(gx, gy, (colN - col0) * cs, (rowN - row0) * ch);
 
+  // Image underlay (drawn behind cells so painted cells cover it
+  // opaquely while empty cells let the picture show through).
+  if (S.underlay) {
+    if (!_underlayImg) {
+      ensureUnderlayImg(); // loads async; redraws when ready
+    } else {
+      const u = S.underlay;
+      const ux = ox + u.x * cs;
+      const uy = oy + u.y * ch;
+      const uw = u.w * cs;
+      const uh = u.h * ch;
+      ctx.save();
+      ctx.globalAlpha = u.opacity;
+      ctx.drawImage(_underlayImg, ux, uy, uw, uh);
+      ctx.restore();
+    }
+  }
+
   // WS row shading. Knitters chart bottom-up; row 0 in the array is
   // the last row knit, so the displayed row label is (sqH - r) for
   // knit charts. WS rows are the ones whose label is even.

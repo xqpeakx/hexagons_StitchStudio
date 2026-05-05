@@ -126,8 +126,16 @@ let S = {
   //   { r0, c0, r1, c1, count, axis:'across'|'down'|'both' }
   // r0<=r1 and c0<=c1 always. axis controls which brackets render.
   repeats: [],
+  // Image underlay (square-grid only). When set, an image renders
+  // behind the cells at low opacity so the user can trace cells over
+  // a reference photo. Stored as { src:dataURL, x, y, w, h, opacity }
+  // where x/y/w/h are in chart cells.
+  underlay: null,
   panX:0, panY:0,
 };
+
+// Cached HTMLImageElement built from S.underlay.src. Not persisted.
+let _underlayImg = null;
 
 // Repeat-tool selection state. The first tap stores an anchor; the
 // second tap opens the modal that captures count + axis. While the

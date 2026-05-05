@@ -28,6 +28,7 @@ function snapshotState() {
     stylusMode: S.stylusMode,
     cables: (S.cables || []).slice(),
     repeats: (S.repeats || []).slice(),
+    underlay: S.underlay ? { ...S.underlay } : null,
     palette: PALETTE.slice(),
     savedAt: new Date().toISOString(),
   };
@@ -69,6 +70,23 @@ function applyState(p) {
     : [];
   _repeatAnchor = null;
   _repeatPendingRegion = null;
+  // Underlay
+  _underlayImg = null;
+  if (p.underlay && typeof p.underlay === 'object'
+      && typeof p.underlay.src === 'string'
+      && Number.isFinite(p.underlay.w) && Number.isFinite(p.underlay.h)) {
+    S.underlay = {
+      src: p.underlay.src,
+      x: Number(p.underlay.x) || 0,
+      y: Number(p.underlay.y) || 0,
+      w: Math.max(1, Number(p.underlay.w) || 1),
+      h: Math.max(1, Number(p.underlay.h) || 1),
+      opacity: Math.max(0, Math.min(1, Number(p.underlay.opacity) || 0.3)),
+    };
+  } else {
+    S.underlay = null;
+  }
+  syncUnderlayUI();
   if (Array.isArray(p.palette) && p.palette.length) {
     PALETTE.length = 0;
     p.palette.forEach(c => PALETTE.push(c));
@@ -171,6 +189,115 @@ function deletePat(name) {
   localStorage.setItem('ss_patterns', JSON.stringify(s)); openLoadModal();
 }
 function openNewModal() { document.getElementById('newM').classList.add('open'); }
+
+// ── IMAGE UNDERLAY ──
+// Lets the user load a reference image that renders behind the chart
+// cells at low opacity so they can paint cells over the picture.
+// Square grid only; the underlay's x/y/w/h are measured in chart cells
+// so it scales naturally with cellSize zoom.
+
+const UNDERLAY_MAX_BYTES = 2 * 1024 * 1024; // 2 MB after dataURL encode
+
+function loadUnderlay(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    toast('Pick an image file');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    if (typeof dataUrl !== 'string' || dataUrl.length > UNDERLAY_MAX_BYTES) {
+      toast('Image is too big — try one under 2 MB');
+      input.value = '';
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      _underlayImg = img;
+      // Default sizing: fit a sensible default into the painted area
+      // while keeping the image's aspect ratio. User can resize after.
+      const ratio = img.width / img.height;
+      let w = Math.min(60, S.sqW);
+      let h = Math.max(1, Math.round(w / ratio));
+      if (h > S.sqH) {
+        h = Math.min(60, S.sqH);
+        w = Math.max(1, Math.round(h * ratio));
+      }
+      S.underlay = {
+        src: dataUrl,
+        x: 0, y: 0, w, h,
+        opacity: 0.3,
+      };
+      syncUnderlayUI();
+      draw();
+      scheduleAutosave();
+      toast('Underlay loaded — trace cells over it');
+    };
+    img.onerror = () => { toast('Could not decode that image'); };
+    img.src = dataUrl;
+    input.value = '';
+  };
+  reader.onerror = () => { toast('Could not read that file'); input.value = ''; };
+  reader.readAsDataURL(file);
+}
+
+function setUnderlayOpacity(v) {
+  if (!S.underlay) return;
+  S.underlay.opacity = Math.max(0, Math.min(1, (Number(v) || 0) / 100));
+  draw();
+  scheduleAutosave();
+}
+
+function updateUnderlayBounds() {
+  if (!S.underlay) return;
+  const x = Math.max(0, parseInt(document.getElementById('underlayX').value) || 0);
+  const y = Math.max(0, parseInt(document.getElementById('underlayY').value) || 0);
+  const w = Math.max(1, parseInt(document.getElementById('underlayW').value) || 1);
+  const h = Math.max(1, parseInt(document.getElementById('underlayH').value) || 1);
+  S.underlay.x = x; S.underlay.y = y;
+  S.underlay.w = w; S.underlay.h = h;
+  draw();
+  scheduleAutosave();
+}
+
+function clearUnderlay() {
+  S.underlay = null;
+  _underlayImg = null;
+  syncUnderlayUI();
+  draw();
+  scheduleAutosave();
+  toast('Underlay removed');
+}
+
+// Lazy-build the cached HTMLImageElement from the persisted dataURL.
+// Called from the render path the first time the underlay is needed
+// after a load/restore.
+function ensureUnderlayImg() {
+  if (!S.underlay || _underlayImg) return;
+  const img = new Image();
+  img.onload = () => { _underlayImg = img; draw(); };
+  img.onerror = () => { /* ignore — keep empty */ };
+  img.src = S.underlay.src;
+}
+
+// Reflect underlay state into the right-panel controls.
+function syncUnderlayUI() {
+  const ctrls = document.getElementById('underlayCtrls');
+  if (!ctrls) return;
+  if (!S.underlay) {
+    ctrls.style.display = 'none';
+    return;
+  }
+  ctrls.style.display = '';
+  document.getElementById('underlayOpacity').value = Math.round((S.underlay.opacity || 0) * 100);
+  document.getElementById('underlayX').value = S.underlay.x;
+  document.getElementById('underlayY').value = S.underlay.y;
+  document.getElementById('underlayW').value = S.underlay.w;
+  document.getElementById('underlayH').value = S.underlay.h;
+}
 
 // ── PATTERN TEXT EXPORT ──
 // Walks the square grid in pattern order (knit bottom-up, crochet
