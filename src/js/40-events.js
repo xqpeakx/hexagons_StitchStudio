@@ -3,6 +3,106 @@
 // Wired up by main.js after the canvas exists.
 // ═══════════════════════════════════════════════════════════
 
+function clampKeyboardCell() {
+  const maxCol = S.gridType === 'square' ? S.sqW - 1 : S.hexCols - 1;
+  const maxRow = S.gridType === 'square' ? S.sqH - 1 : S.hexRows - 1;
+  _keyboardCell.col = Math.max(0, Math.min(maxCol, _keyboardCell.col || 0));
+  _keyboardCell.row = Math.max(0, Math.min(maxRow, _keyboardCell.row || 0));
+}
+
+function syncKeyboardCellFromPoint(ox, oy) {
+  const cell = getCell(ox, oy);
+  if (!cell) return;
+  _keyboardCell = S.gridType === 'square'
+    ? { row: cell.r, col: cell.c }
+    : { row: cell.row, col: cell.col };
+}
+
+function keyboardCellCenter() {
+  clampKeyboardCell();
+  if (S.gridType === 'square') {
+    const lo = S.showLabels ? 20 : 0;
+    const cs = S.cellSize;
+    const ch = cellHeightSq();
+    return {
+      x: S.panX + lo + _keyboardCell.col * cs + cs / 2,
+      y: S.panY + lo + _keyboardCell.row * ch + ch / 2,
+    };
+  }
+  const [cx, cy] = hexCenter(_keyboardCell.col, _keyboardCell.row, S.hexSize, S.hexFlat);
+  return { x: cx + S.panX, y: cy + S.panY };
+}
+
+function ensureKeyboardCellVisible() {
+  const margin = 42;
+  const pt = keyboardCellCenter();
+  let dx = 0, dy = 0;
+  if (pt.x < margin) dx = margin - pt.x;
+  else if (pt.x > canvas.width - margin) dx = canvas.width - margin - pt.x;
+  if (pt.y < margin) dy = margin - pt.y;
+  else if (pt.y > canvas.height - margin) dy = canvas.height - margin - pt.y;
+  if (dx || dy) {
+    S.panX += dx;
+    S.panY += dy;
+  }
+}
+
+function moveKeyboardCell(deltaCol, deltaRow) {
+  _keyboardCell.col += deltaCol;
+  _keyboardCell.row += deltaRow;
+  clampKeyboardCell();
+  ensureKeyboardCellVisible();
+  draw();
+}
+
+function applyKeyboardCell(forceErase = false) {
+  if (!canvas) return;
+  const pt = keyboardCellCenter();
+  lastKey = null;
+  if (forceErase) {
+    const tool = S.tool;
+    S.tool = 'erase';
+    pushUndo();
+    paintAt(pt.x, pt.y);
+    S.tool = tool;
+    draw();
+    canvas.focus({ preventScroll: true });
+    return;
+  }
+  if (S.tool === 'pan') {
+    toast('Choose Draw, Erase, Fill, or Pick to edit with the keyboard');
+    return;
+  }
+  if (S.tool === 'eye') {
+    paintAt(pt.x, pt.y);
+  } else if (S.tool === 'fill') {
+    floodFill(pt.x, pt.y);
+  } else {
+    pushUndo();
+    paintAt(pt.x, pt.y);
+  }
+  canvas.focus({ preventScroll: true });
+}
+
+function handleCanvasKeyboard(e) {
+  const step = e.shiftKey ? 5 : 1;
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); moveKeyboardCell(-step, 0); return true; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); moveKeyboardCell(step, 0); return true; }
+  if (e.key === 'ArrowUp')    { e.preventDefault(); moveKeyboardCell(0, -step); return true; }
+  if (e.key === 'ArrowDown')  { e.preventDefault(); moveKeyboardCell(0, step); return true; }
+  if (e.key === 'Home')       { e.preventDefault(); _keyboardCell.col = 0; ensureKeyboardCellVisible(); draw(); return true; }
+  if (e.key === 'End') {
+    e.preventDefault();
+    _keyboardCell.col = S.gridType === 'square' ? S.sqW - 1 : S.hexCols - 1;
+    ensureKeyboardCellVisible();
+    draw();
+    return true;
+  }
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyKeyboardCell(false); return true; }
+  if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); applyKeyboardCell(true); return true; }
+  return false;
+}
+
 function bindCanvasEvents() {
 
   // The Pan tool (or held Space) takes precedence over the active tool.
@@ -11,6 +111,8 @@ function bindCanvasEvents() {
     || (e && e.button === 0 && e.altKey);
 
   canvas.addEventListener('mousedown', e => {
+    canvas.focus({ preventScroll: true });
+    syncKeyboardCellFromPoint(e.offsetX, e.offsetY);
     if (isPanIntent(e)) {
       isPan = true; panSt = { x: e.clientX, y: e.clientY };
       panOr = { x: S.panX, y: S.panY };
@@ -38,6 +140,7 @@ function bindCanvasEvents() {
   canvas.addEventListener('mouseleave', () => { painting = false; });
 
   canvas.addEventListener('dblclick', e => {
+    syncKeyboardCellFromPoint(e.offsetX, e.offsetY);
     const cell = getCell(e.offsetX, e.offsetY);
     if (!cell) return;
     const existing = S.cells[cell.key];
@@ -59,11 +162,26 @@ function bindCanvasEvents() {
 
   // Keyboard. Delegating to document so it fires regardless of focus.
   document.addEventListener('keydown', e => {
+    const openModal = document.querySelector('.mo.open');
+    if (openModal) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeM(openModal.id);
+      } else if (e.key === 'Tab') {
+        trapModalFocus(e, openModal);
+      }
+      return;
+    }
+    if (e.target === canvas && handleCanvasKeyboard(e)) return;
+    if (e.key === 'Escape') {
+      return;
+    }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
     if (e.key === ' ' && !_spaceHeld) {
       _spaceHeld = true; document.getElementById('cw').classList.add('tool-pan');
       e.preventDefault();
     }
+    if (e.key === '?' || (e.key === '/' && e.shiftKey)) { e.preventDefault(); openHelpModal(); }
     if (e.key === '+' || e.key === '=') { e.preventDefault(); adjZoom(0.15); }
     if (e.key === '-' || e.key === '_') { e.preventDefault(); adjZoom(-0.15); }
     if (e.key === '0') { e.preventDefault(); resetZoom(); }
@@ -162,6 +280,7 @@ function bindCanvasEvents() {
       const r = canvas.getBoundingClientRect();
       const t = touches[0];
       const ox = t.clientX - r.left, oy = t.clientY - r.top;
+      syncKeyboardCellFromPoint(ox, oy);
 
       // ── STYLUS / FINGER SPLIT ──
       // Safari iOS exposes Touch.touchType ('stylus' | 'direct'). On
@@ -173,8 +292,8 @@ function bindCanvasEvents() {
         _stylusSeenAuto = true;
         S.stylusMode = true;
         if (document.getElementById('stOn')) {
-          document.getElementById('stOn').classList.add('on');
-          document.getElementById('stOff').classList.remove('on');
+          setPressed(document.getElementById('stOn'), true);
+          setPressed(document.getElementById('stOff'), false);
         }
         toast('Stylus detected — finger pans, pencil draws');
         scheduleAutosave();
@@ -336,5 +455,5 @@ function bindCanvasEvents() {
 
   // Modal close on overlay click
   document.querySelectorAll('.mo').forEach(o =>
-    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+    o.addEventListener('click', e => { if (e.target === o) closeM(o.id); }));
 }

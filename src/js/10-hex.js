@@ -1,6 +1,29 @@
 // ═══════════════════════════════════════════════════════════
-// HEX MATH — offset coordinates (even-q for flat, even-r for pointy)
+// HEX MATH — offset coordinates (odd-q for flat, odd-r for pointy)
 // ═══════════════════════════════════════════════════════════
+
+function hexMetrics(r, flat) {
+  if (flat) {
+    const rowStep = r * Math.sqrt(3);
+    return {
+      colStep: r * 1.5,
+      rowStep,
+      originX: r,
+      originY: r,
+      offsetX: 0,
+      offsetY: rowStep / 2,
+    };
+  }
+  const colStep = r * Math.sqrt(3);
+  return {
+    colStep,
+    rowStep: r * 1.5,
+    originX: colStep / 2,
+    originY: r,
+    offsetX: colStep / 2,
+    offsetY: 0,
+  };
+}
 
 function hexCorners(cx, cy, r, flat) {
   const pts = [];
@@ -12,19 +35,15 @@ function hexCorners(cx, cy, r, flat) {
 }
 
 function hexCenter(col, row, r, flat) {
+  const m = hexMetrics(r, flat);
   if (flat) {
-    const w = r * Math.sqrt(3);
-    const h = r * 2;
-    const x = col * (h * 0.75) + r;
-    const y = row * w + (col % 2 === 0 ? 0 : w / 2) + r;
-    return [x, y];
-  } else {
-    const w = r * 2;
-    const h = r * Math.sqrt(3);
-    const x = col * w + (row % 2 === 0 ? 0 : w / 2) + r;
-    const y = row * (h * 0.75) + r;
+    const x = col * m.colStep + m.originX;
+    const y = row * m.rowStep + (col % 2 === 0 ? 0 : m.offsetY) + m.originY;
     return [x, y];
   }
+  const x = col * m.colStep + (row % 2 === 0 ? 0 : m.offsetX) + m.originX;
+  const y = row * m.rowStep + m.originY;
+  return [x, y];
 }
 
 // Inverse of hexCenter. Returns {col,row} or null if (px,py) is outside
@@ -32,18 +51,15 @@ function hexCenter(col, row, r, flat) {
 // the click is inside the hex (within ~1.02 r of the centre).
 function hexAtPoint(px, py, r, flat, cols, rows) {
   let col, row;
+  const m = hexMetrics(r, flat);
   if (flat) {
-    const w = r * Math.sqrt(3);
-    const h = r * 2;
-    col = Math.round((px - r) / (h * 0.75));
-    const offY = (col % 2 + 2) % 2 === 1 ? w / 2 : 0;
-    row = Math.round((py - r - offY) / w);
+    col = Math.round((px - m.originX) / m.colStep);
+    const offY = (col % 2 + 2) % 2 === 1 ? m.offsetY : 0;
+    row = Math.round((py - m.originY - offY) / m.rowStep);
   } else {
-    const w = r * 2;
-    const h = r * Math.sqrt(3);
-    row = Math.round((py - r) / (h * 0.75));
-    const offX = (row % 2 + 2) % 2 === 1 ? w / 2 : 0;
-    col = Math.round((px - r - offX) / w);
+    row = Math.round((py - m.originY) / m.rowStep);
+    const offX = (row % 2 + 2) % 2 === 1 ? m.offsetX : 0;
+    col = Math.round((px - m.originX - offX) / m.colStep);
   }
   let best = null, bestD = Infinity;
   for (let dc = -1; dc <= 1; dc++) {

@@ -51,6 +51,21 @@ The numeric prefix on each JS module is the bundling order — earlier
 files declare globals that later files use. No imports/exports; the
 bundler just concatenates.
 
+### UI shell conventions
+
+- Put visual rules in `src/css/styles.css`; keep `src/index.html` free of
+  inline style attributes except semantic state such as `hidden`.
+- Static controls use `data-action`, `data-value`, `data-target`, and
+  `data-modal` instead of inline handlers. `bindUiActions()` in
+  `src/js/50-ui.js` routes those actions to app functions.
+- For form controls, use `data-input-action` or `data-change-action` so
+  input/change behavior follows the same delegated pattern.
+- Panel hierarchy uses tier classes such as `ps-primary`, `ps-core`,
+  `ps-support`, `ps-quiet`, `ps-summary`, and `ps-utility`.
+- Color literals should live in CSS theme tokens or the JS color token
+  tables in `src/js/00-state.js`; feature code should reference named
+  tokens such as `PRESET_COLORS` or `STITCH_COLORS`.
+
 ## Features
 
 - Square and hex grids with logical-grid limits up to 9999 × 9999.
@@ -64,7 +79,11 @@ bundler just concatenates.
 - Granny square builder — eight square + hex variants, stamps
   centred on the visible canvas.
 - Pan tool (one-finger on touch; spacebar on desktop) plus pinch zoom.
+- Keyboard canvas editing: focus the chart, move the cursor with arrow
+  keys, press Enter/Space to apply the active tool, or Delete to clear.
 - Wrong-side-row shading and active-row highlight (follow mode).
+- Top-toolbar shortcuts for undo/redo, named saves, and PDF/PNG/text export.
+- Built-in searchable guide with jump links to the relevant controls.
 - Click a colour chip in the legend to swap it globally for the
   active colour.
 - Protect-filled cells: a single tap won't overwrite an

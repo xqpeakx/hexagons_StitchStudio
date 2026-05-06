@@ -9,7 +9,7 @@ function presetClassicGranny() {
   clearAll();
   if (S.gridType === 'hex') {
     const cx = Math.floor(S.hexCols / 2), cy = Math.floor(S.hexRows / 2);
-    const colors = ['#d4688a','#3a8870','#c4963a','#6b4fa0'];
+    const colors = PRESET_COLORS.granny;
     S.cells[`hex:${cx},${cy}`] = { color: colors[0], stitchId: S.activeStitch };
     for (let ring = 1; ring <= 3; ring++) {
       const col = colors[ring % colors.length];
@@ -19,7 +19,7 @@ function presetClassicGranny() {
       }
     }
   } else {
-    const colors = ['#d4688a','#3a8870','#c4963a','#6b4fa0'];
+    const colors = PRESET_COLORS.granny;
     const half = S.sqW / 2, hr = S.sqH / 2;
     for (let i = 0; i < 4; i++) {
       for (let r = 0; r < S.sqH; r++) for (let c = 0; c < S.sqW; c++) {
@@ -35,7 +35,7 @@ function presetClassicGranny() {
 
 function presetShell() {
   clearAll();
-  const colors = ['#d4956a','#c4687a','#3d8b7a'];
+  const colors = PRESET_COLORS.shell;
   if (S.gridType === 'hex') {
     for (let r = 0; r < S.hexRows; r++) for (let c = 0; c < S.hexCols; c++) {
       const ci = (r + Math.floor(c / 3)) % colors.length;
@@ -52,7 +52,7 @@ function presetShell() {
 
 function presetRipple() {
   clearAll();
-  const colors = ['#f5e6d3','#d4956a','#c4687a','#7a5a9a','#3d8b7a'];
+  const colors = PRESET_COLORS.ripple;
   if (S.gridType === 'hex') {
     for (let r = 0; r < S.hexRows; r++) for (let c = 0; c < S.hexCols; c++) {
       const wave = Math.sin(c * .7 + r * .3) > .0;
@@ -82,7 +82,7 @@ function presetStockinette() {
   clearAll();
   const W = 40, H = 30;
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++)
-    S.cells[`sq:${r},${c}`] = { color: '#e8f4f1', stitchId: 'k' };
+    S.cells[`sq:${r},${c}`] = { color: PRESET_COLORS.stockinette, stitchId: 'k' };
   draw(); updateStats(); updateLegend(); toast('Stockinette'); scheduleAutosave();
 }
 
@@ -91,7 +91,7 @@ function presetRib() {
   const W = 40, H = 30;
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
     const k = c % 4 < 2;
-    S.cells[`sq:${r},${c}`] = { color: k ? '#e8f4f1' : '#faf8f5', stitchId: k ? 'k' : 'p' };
+    S.cells[`sq:${r},${c}`] = { color: k ? PRESET_COLORS.stockinette : PRESET_COLORS.ribPurl, stitchId: k ? 'k' : 'p' };
   }
   draw(); updateStats(); updateLegend(); toast('2×2 Rib'); scheduleAutosave();
 }
@@ -101,14 +101,15 @@ function presetSeed() {
   const W = 40, H = 30;
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
     const k = (r + c) % 2 === 0;
-    S.cells[`sq:${r},${c}`] = { color: k ? '#e8f4f1' : '#faeef0', stitchId: k ? 'k' : 'p' };
+    S.cells[`sq:${r},${c}`] = { color: k ? PRESET_COLORS.stockinette : PRESET_COLORS.seedPurl, stitchId: k ? 'k' : 'p' };
   }
   draw(); updateStats(); updateLegend(); toast('Seed stitch'); scheduleAutosave();
 }
 
 function presetChecker() {
   clearAll();
-  const c1 = '#3d8b7a', c2 = '#c4687a', W = 40, H = 30;
+  const [c1, c2] = PRESET_COLORS.checker;
+  const W = 40, H = 30;
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
     const a = (Math.floor(r / 4) + Math.floor(c / 4)) % 2 === 0;
     S.cells[`sq:${r},${c}`] = { color: a ? c1 : c2, stitchId: a ? 'k' : 'p' };

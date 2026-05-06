@@ -27,18 +27,17 @@ function visibleSqBounds() {
 
 function visibleHexBounds() {
   const r = S.hexSize, flat = S.hexFlat;
-  const colStep = flat ? r * 1.5 : r * Math.sqrt(3);
-  const rowStep = flat ? r * Math.sqrt(3) : r * 1.5;
-  const col0 = Math.max(0, Math.floor(-S.panX / colStep) - 1);
-  const row0 = Math.max(0, Math.floor(-S.panY / rowStep) - 1);
-  const colN = col0 + Math.ceil(canvas.width  / colStep) + 3;
-  const rowN = row0 + Math.ceil(canvas.height / rowStep) + 3;
+  const m = hexMetrics(r, flat);
+  const col0 = Math.max(0, Math.floor(-S.panX / m.colStep) - 1);
+  const row0 = Math.max(0, Math.floor(-S.panY / m.rowStep) - 1);
+  const colN = col0 + Math.ceil(canvas.width  / m.colStep) + 3;
+  const rowN = row0 + Math.ceil(canvas.height / m.rowStep) + 3;
   return { col0, row0, colN, rowN };
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#f0ece6';
+  ctx.fillStyle = canvasToken('--s2');
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   if (S.gridType === 'square') drawSquareGrid();
   else drawHexGrid();
@@ -59,7 +58,7 @@ function drawSquareGrid() {
 
   // Grid background
   const gx = ox + col0 * cs, gy = oy + row0 * ch;
-  ctx.fillStyle = '#faf8f5';
+  ctx.fillStyle = canvasToken('--bg');
   ctx.fillRect(gx, gy, (colN - col0) * cs, (rowN - row0) * ch);
 
   // Image underlay (drawn behind cells so painted cells cover it
@@ -84,7 +83,7 @@ function drawSquareGrid() {
   // the last row knit, so the displayed row label is (sqH - r) for
   // knit charts. WS rows are the ones whose label is even.
   if (S.shadeWS) {
-    ctx.fillStyle = 'rgba(107, 79, 160, 0.07)';
+    ctx.fillStyle = canvasToken('--canvas-ws-row');
     for (let r = row0; r < rowN; r++) {
       const labelRow = S.mode === 'knit' ? (S.sqH - r) : (r + 1);
       if (labelRow % 2 === 0) {
@@ -99,9 +98,9 @@ function drawSquareGrid() {
     const x = ox + c * cs, y = oy + r * ch;
     if (cell) {
       if (cell.stitchId === '_no') {
-        ctx.fillStyle = '#dcd5cb';
+        ctx.fillStyle = canvasToken('--s3');
         ctx.fillRect(x, y, cs, ch);
-        ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = 1;
+        ctx.strokeStyle = canvasToken('--border2'); ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + cs - 4, y + ch - 4);
         ctx.moveTo(x + cs - 4, y + 4); ctx.lineTo(x + 4, y + ch - 4);
@@ -135,7 +134,7 @@ function drawSquareGrid() {
     const ax = ox + _repeatAnchor.c * cs;
     const ay = oy + _repeatAnchor.r * ch;
     ctx.save();
-    ctx.strokeStyle = '#b85468';
+    ctx.strokeStyle = canvasToken('--rose');
     ctx.lineWidth = 2.5;
     ctx.setLineDash([5, 4]);
     ctx.strokeRect(ax + 1, ay + 1, cs - 2, ch - 2);
@@ -144,14 +143,16 @@ function drawSquareGrid() {
 
   // Active row highlight
   if (S.activeRow !== null && S.activeRow >= row0 && S.activeRow < rowN) {
-    ctx.strokeStyle = '#b85468';
+    ctx.strokeStyle = canvasToken('--rose');
     ctx.lineWidth = 2.5;
     ctx.strokeRect(gx, oy + S.activeRow * ch, (colN - col0) * cs, ch);
   }
 
+  drawKeyboardCursorSquare(ox, oy, cs, ch, row0, rowN, col0, colN);
+
   // Grid lines
   if (S.showGrid) {
-    ctx.strokeStyle = 'rgba(0,0,0,.1)'; ctx.lineWidth = .5;
+    ctx.strokeStyle = canvasToken('--border'); ctx.lineWidth = .5;
     for (let r = row0; r <= rowN; r++) {
       const y = oy + r * ch;
       ctx.beginPath(); ctx.moveTo(ox + col0 * cs, y); ctx.lineTo(ox + colN * cs, y); ctx.stroke();
@@ -165,9 +166,9 @@ function drawSquareGrid() {
   // Row/col labels (with per-row painted counts on square grids — useful
   // when knitting from a chart, especially on tablets with no hover).
   if (S.showLabels && lo > 0) {
-    ctx.fillStyle = '#b0a89f'; ctx.font = `9.5px DM Sans,sans-serif`;
+    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9.5px DM Sans,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#faf8f5';
+    ctx.fillStyle = canvasToken('--bg');
     ctx.fillRect(0, 0, lo, canvas.height);
     ctx.fillRect(0, 0, canvas.width, lo);
     // Pre-tally per-visible-row stitch counts in one cells pass.
@@ -179,7 +180,7 @@ function drawSquareGrid() {
       const [r] = rc.split(',').map(Number);
       if (r in rowCounts && S.cells[k].stitchId !== '_no') rowCounts[r]++;
     }
-    ctx.fillStyle = '#b0a89f';
+    ctx.fillStyle = canvasToken('--text3');
     for (let r = row0; r < rowN; r++) {
       const y = oy + r * ch + ch / 2;
       if (y <= 0 || y >= canvas.height) continue;
@@ -190,7 +191,7 @@ function drawSquareGrid() {
       // when the label strip is wide enough to fit it.
       if (count > 0 && lo >= 18 && ch >= 14) {
         ctx.save();
-        ctx.fillStyle = '#cabfb3';
+        ctx.fillStyle = canvasToken('--border2');
         ctx.font = `8px DM Sans,sans-serif`;
         ctx.fillText(count, lo / 2, y + ch / 2 - 4);
         ctx.restore();
@@ -207,16 +208,14 @@ function drawSquareGrid() {
 function drawHexGrid() {
   const r = S.hexSize, flat = S.hexFlat;
   const ox = S.panX, oy = S.panY;
+  const m = hexMetrics(r, flat);
 
-  const colStep = flat ? r * 1.5 : r * Math.sqrt(3);
-  const rowStep = flat ? r * Math.sqrt(3) : r * 1.5;
+  const col0 = Math.max(0, Math.floor(-ox / m.colStep) - 1);
+  const row0 = Math.max(0, Math.floor(-oy / m.rowStep) - 1);
+  const colN = Math.min(S.hexCols, col0 + Math.ceil(canvas.width  / m.colStep) + 3);
+  const rowN = Math.min(S.hexRows, row0 + Math.ceil(canvas.height / m.rowStep) + 3);
 
-  const col0 = Math.max(0, Math.floor(-ox / colStep) - 1);
-  const row0 = Math.max(0, Math.floor(-oy / rowStep) - 1);
-  const colN = Math.min(S.hexCols, col0 + Math.ceil(canvas.width  / colStep) + 3);
-  const rowN = Math.min(S.hexRows, row0 + Math.ceil(canvas.height / rowStep) + 3);
-
-  ctx.fillStyle = '#faf8f5';
+  ctx.fillStyle = canvasToken('--bg');
   const [bx0, by0] = hexCenter(col0, row0, r, flat);
   const [bxN, byN] = hexCenter(colN - 1, rowN - 1, r, flat);
   ctx.fillRect(bx0 + ox - r, by0 + oy - r, (bxN - bx0) + r * 3, (byN - by0) + r * 3);
@@ -236,22 +235,24 @@ function drawHexGrid() {
       ctx.closePath();
 
       if (cell && cell.stitchId === '_no') {
-        ctx.fillStyle = '#dcd5cb'; ctx.fill();
+        ctx.fillStyle = canvasToken('--s3'); ctx.fill();
       } else {
-        ctx.fillStyle = cell ? cell.color : '#faf8f5';
+        ctx.fillStyle = cell ? cell.color : canvasToken('--bg');
         ctx.fill();
         if (cell && S.showSyms && r >= 13) drawSymbol(ctx, cell, scx, scy, r * 1.2);
       }
       if (S.showGrid) {
-        ctx.strokeStyle = 'rgba(0,0,0,.13)'; ctx.lineWidth = .6;
+        ctx.strokeStyle = canvasToken('--border'); ctx.lineWidth = .6;
         ctx.stroke();
       }
     }
   }
 
+  drawKeyboardCursorHex(ox, oy, row0, rowN, col0, colN);
+
   // Labels
   if (S.showLabels) {
-    ctx.fillStyle = '#b0a89f'; ctx.font = `9px DM Sans,sans-serif`;
+    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9px DM Sans,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let row = row0; row < rowN; row++) {
       const [cx, cy] = hexCenter(col0, row, r, flat);
@@ -266,10 +267,80 @@ function drawHexGrid() {
   }
 }
 
+function canvasToken(name, fallback) {
+  const safeFallback = fallback || CSS_COLOR_FALLBACKS[name] || UI_COLORS.text;
+  if (typeof getComputedStyle !== 'function') return safeFallback;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim() || safeFallback;
+  return resolveCssColor(raw, safeFallback);
+}
+
+function resolveCssColor(raw, fallback) {
+  if (typeof document === 'undefined' || !document.documentElement) return raw || fallback;
+  const probe = resolveCssColor._probe || document.createElement('span');
+  if (!resolveCssColor._probe) {
+    resolveCssColor._probe = probe;
+    probe.hidden = true;
+    document.documentElement.appendChild(probe);
+  }
+  probe.style.color = '';
+  probe.style.color = raw;
+  if (!probe.style.color) return fallback;
+  return getComputedStyle(probe).color || raw || fallback;
+}
+
+function shouldDrawKeyboardCursor() {
+  return canvas && document.activeElement === canvas;
+}
+
+function drawKeyboardCursorSquare(ox, oy, cs, ch, row0, rowN, col0, colN) {
+  if (!shouldDrawKeyboardCursor()) return;
+  clampKeyboardCell();
+  const r = _keyboardCell.row;
+  const c = _keyboardCell.col;
+  if (r < row0 || r >= rowN || c < col0 || c >= colN) return;
+  const x = ox + c * cs;
+  const y = oy + r * ch;
+  ctx.save();
+  ctx.strokeStyle = canvasToken('--surface');
+  ctx.lineWidth = 4;
+  ctx.strokeRect(x + 2, y + 2, cs - 4, ch - 4);
+  ctx.strokeStyle = canvasToken('--accent');
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 3]);
+  ctx.strokeRect(x + 2, y + 2, cs - 4, ch - 4);
+  ctx.restore();
+}
+
+function drawKeyboardCursorHex(ox, oy, row0, rowN, col0, colN) {
+  if (!shouldDrawKeyboardCursor()) return;
+  clampKeyboardCell();
+  const row = _keyboardCell.row;
+  const col = _keyboardCell.col;
+  if (row < row0 || row >= rowN || col < col0 || col >= colN) return;
+  const [cx, cy] = hexCenter(col, row, S.hexSize, S.hexFlat);
+  const pts = hexCorners(cx, cy, S.hexSize * 0.88, S.hexFlat);
+  const strokePath = () => {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0] + ox, pts[0][1] + oy);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0] + ox, pts[i][1] + oy);
+    ctx.closePath();
+    ctx.stroke();
+  };
+  ctx.save();
+  ctx.strokeStyle = canvasToken('--surface');
+  ctx.lineWidth = 4;
+  strokePath();
+  ctx.strokeStyle = canvasToken('--accent');
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 3]);
+  strokePath();
+  ctx.restore();
+}
+
 function drawSymbol(ctx, cell, x, y, cs) {
   const s = CS[S.mode].find(s => s.id === cell.stitchId);
   if (!s) return;
-  ctx.fillStyle = lum(cell.color) > .5 ? 'rgba(0,0,0,.6)' : 'rgba(255,255,255,.85)';
+  ctx.fillStyle = lum(cell.color) > .5 ? canvasToken('--text') : canvasToken('--surface');
   ctx.font = `${Math.min(cs * .5, 13)}px DM Sans,monospace`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(s.sym, x, y);
@@ -370,7 +441,7 @@ function drawRepeatBracket(rp, ox, oy, cs, ch, tctx) {
   const y1 = oy + (rp.r1 + 1) * ch;
   const PAD = Math.max(3, Math.min(cs, ch) * 0.18);
   const TURN = Math.max(4, Math.min(cs, ch) * 0.32);
-  const STROKE = '#b85468';
+  const STROKE = canvasToken('--rose');
   const LINEW = Math.max(1.6, Math.min(2.6, cs * 0.08));
 
   t.save();

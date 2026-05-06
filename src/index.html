@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Stitch Studio</title>
 <!-- PWA / Add-to-Home-Screen support, especially for iPad. -->
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#8b5e3c">
+<meta name="theme-color" content="" data-theme-token="--theme-color">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Stitch Studio">
@@ -19,19 +19,17 @@
 <!-- HEADER -->
 <div class="hdr">
   <div class="logo">Stitch <em>Studio</em></div>
-  <div class="seg" id="modeTab">
-    <button class="on" onclick="setMode('crochet')">🧶 Crochet</button>
-    <button onclick="setMode('knit')">🪡 Knitting</button>
+  <div class="seg" id="modeTab" role="group" aria-label="Pattern mode">
+    <button class="on" aria-pressed="true" data-action="setMode" data-value="crochet">🧶 Crochet</button>
+    <button aria-pressed="false" data-action="setMode" data-value="knit">🪡 Knitting</button>
   </div>
-  <div class="seg" id="gridTab" style="margin-left:4px">
-    <button class="on" onclick="setGridType('square')">⬜ Square Grid</button>
-    <button onclick="setGridType('hex')">⬡ Hex Grid</button>
+  <div class="seg grid-seg" id="gridTab" role="group" aria-label="Grid type">
+    <button class="on" aria-pressed="true" data-action="setGridType" data-value="square">⬜ Square Grid</button>
+    <button aria-pressed="false" data-action="setGridType" data-value="hex">⬡ Hex Grid</button>
   </div>
   <div class="hdr-r">
-    <div class="ibt" onclick="openSaveModal()" title="Save">💾</div>
-    <div class="ibt" onclick="openLoadModal()" title="Load">📂</div>
-    <div class="ibt" onclick="exportCanvas()" title="Export PNG">⬇️</div>
-    <button class="pbtn" onclick="openNewModal()">+ New</button>
+    <button class="guide-btn" data-action="openHelpModal" title="Open guide (?)"><span aria-hidden="true">?</span> Guide</button>
+    <button class="pbtn" data-action="openNewModal">+ New</button>
   </div>
 </div>
 
@@ -39,109 +37,129 @@
 <div class="body">
 
 <!-- LEFT PANEL -->
-<div class="lp" id="leftPanel">
-  <div class="ps">
+<div class="lp" id="leftPanel" aria-hidden="false">
+  <div class="ps ps-primary" id="toolsPanel">
     <div class="plbl">Tools</div>
+    <p class="hint">Draw, erase, fill, pick colours, pan, or mark repeat regions.</p>
     <div class="tgrid">
-      <button class="tbtn on" id="tool-draw"  onclick="setTool('draw')"><span class="ic">✏️</span>Draw</button>
-      <button class="tbtn"    id="tool-erase" onclick="setTool('erase')"><span class="ic">🧹</span>Erase</button>
-      <button class="tbtn"    id="tool-fill"  onclick="setTool('fill')"><span class="ic">🪣</span>Fill</button>
-      <button class="tbtn"    id="tool-eye"   onclick="setTool('eye')"><span class="ic">💧</span>Pick</button>
-      <button class="tbtn"    id="tool-pan"   onclick="setTool('pan')" title="One-finger pan; or hold space"><span class="ic">✋</span>Pan</button>
-      <button class="tbtn"    id="tool-repeat" onclick="setTool('repeat')" title="Tap two corners to mark a repeat region. Square grid only."><span class="ic">🔁</span>Repeat</button>
+      <button class="tbtn on" id="tool-draw" aria-pressed="true" data-action="setTool" data-value="draw"><span class="ic" aria-hidden="true">✏️</span>Draw</button>
+      <button class="tbtn" id="tool-erase" aria-pressed="false" data-action="setTool" data-value="erase"><span class="ic" aria-hidden="true">🧹</span>Erase</button>
+      <button class="tbtn" id="tool-fill" aria-pressed="false" data-action="setTool" data-value="fill"><span class="ic" aria-hidden="true">🪣</span>Fill</button>
+      <button class="tbtn" id="tool-eye" aria-pressed="false" data-action="setTool" data-value="eye"><span class="ic" aria-hidden="true">💧</span>Pick</button>
+      <button class="tbtn" id="tool-pan" aria-pressed="false" data-action="setTool" data-value="pan" title="One-finger pan; or hold space"><span class="ic" aria-hidden="true">✋</span>Pan</button>
+      <button class="tbtn" id="tool-repeat" aria-pressed="false" data-action="setTool" data-value="repeat" title="Tap two corners to mark a repeat region. Square grid only."><span class="ic" aria-hidden="true">🔁</span>Repeat</button>
     </div>
   </div>
-  <div class="ps" id="stitchPanel">
+  <div class="ps ps-core" id="stitchPanel">
     <div class="plbl">Stitches</div>
+    <p class="hint">Pick the stitch symbol before painting cells.</p>
     <div class="slist" id="stitchList"></div>
   </div>
-  <div class="ps">
+  <div class="ps ps-core" id="colorPanel">
     <div class="plbl">Colorway</div>
+    <p class="hint">Choose the active colour. Add custom yarn colours below.</p>
     <div class="cgrid" id="colorGrid"></div>
-    <div style="margin-top:7px;display:flex;align-items:center;gap:5px">
-      <label style="font-size:10.5px;color:var(--text3)">Custom:</label>
-      <input type="color" id="customColor" value="#8b5e3c"
-             style="width:24px;height:24px;border:none;background:none;cursor:pointer;border-radius:50%;padding:0"
-             oninput="previewCustomColor(this.value)" onchange="addCustomColor(this.value)">
+    <div class="custom-color-row">
+      <label for="customColor">Custom:</label>
+      <input type="color" id="customColor" class="custom-color-input"
+             data-input-action="previewCustomColor" data-change-action="addCustomColor">
     </div>
   </div>
-  <div class="ps">
+  <div class="ps ps-quiet" id="presetPanel">
     <div class="plbl">Presets</div>
     <div class="plist" id="presetList"></div>
   </div>
-  <div class="ps" id="cablesPanel">
+  <div class="ps ps-support" id="cablesPanel">
     <div class="plbl" title="Multi-cell cable stitches. Square grid only — pick a width + direction, then tap the cell where the cable starts.">Cables</div>
+    <p class="hint">Square grid only. Pick a cable, then tap the start cell.</p>
     <div class="cab-grid" id="cablesGrid"></div>
   </div>
-  <div class="ps">
+  <div class="ps ps-quiet" id="specialPanel">
     <div class="plbl">Special</div>
-    <button class="tbtn" style="width:100%;flex-direction:row;gap:7px;justify-content:flex-start;padding:9px 11px" onclick="toggleGranny()">
-      <span class="ic" style="font-size:15px">🌸</span><span style="font-size:11.5px">Granny Square Builder</span>
+    <button class="tbtn special-btn" data-action="toggleGranny">
+      <span class="ic special-ic" aria-hidden="true">🌸</span><span>Granny Square Builder</span>
     </button>
   </div>
 </div>
 
-<div class="panel-toggle lp-toggle" id="lpToggle" onclick="toggleLP()" title="Toggle panel">‹</div>
+<button class="panel-toggle lp-toggle panel-open" id="lpToggle" data-action="toggleLP" title="Toggle left panel" aria-label="Collapse left panel" aria-expanded="true" aria-controls="leftPanel">‹</button>
 
 <!-- CANVAS -->
 <div class="ca">
-  <div class="ctb">
-    <div id="sqControls" style="display:flex;align-items:center;gap:7px">
+  <div class="ctb" id="canvasOptionsBar">
+    <div id="sqControls" class="grid-controls">
       <div class="gc">
-        <label>Max W</label>
+        <label for="sqW">Max W</label>
         <input class="ni" type="number" id="sqW" min="1" max="9999" value="200">
       </div>
-      <span style="color:var(--text3);font-size:13px">×</span>
+      <span class="dim-sep" aria-hidden="true">×</span>
       <div class="gc">
-        <label>H</label>
+        <label for="sqH">H</label>
         <input class="ni" type="number" id="sqH" min="1" max="9999" value="200">
       </div>
-      <button class="apply-btn" onclick="applySqSize()">Apply</button>
+      <button class="apply-btn" data-action="applySqSize">Apply</button>
       <div class="tbs"></div>
       <div class="gc">
-        <label>Cell size</label>
+        <label for="sqCell">Cell size</label>
         <input class="ni" type="number" id="sqCell" min="4" max="80" value="26">
-        <span style="font-size:10px;color:var(--text3)">px</span>
-        <button class="apply-btn" onclick="applyCellSize()">↵</button>
+        <span class="unit">px</span>
+        <button class="apply-btn" data-action="applyCellSize">↵</button>
       </div>
     </div>
-    <div id="hexControls" style="display:none;align-items:center;gap:7px">
+    <div id="hexControls" class="grid-controls" hidden>
       <div class="gc">
-        <label>Hex size</label>
+        <label for="hexSize">Hex size</label>
         <input class="ni" type="number" id="hexSize" min="4" max="80" value="26">
-        <span style="font-size:10px;color:var(--text3)">px</span>
-        <button class="apply-btn" onclick="applyHexSize()">↵</button>
+        <span class="unit">px</span>
+        <button class="apply-btn" data-action="applyHexSize">↵</button>
       </div>
       <div class="tbs"></div>
       <div class="gc">
-        <label>Grid limit</label>
+        <label for="hexCols">Grid limit</label>
         <input class="ni" type="number" id="hexCols" min="1" max="9999" value="300">
-        <span style="color:var(--text3);font-size:13px">×</span>
+        <span class="dim-sep" aria-hidden="true">×</span>
+        <label for="hexRows" class="visually-hidden">Hex rows</label>
         <input class="ni" type="number" id="hexRows" min="1" max="9999" value="300">
-        <button class="apply-btn" onclick="applyHexSize()">↵</button>
+        <button class="apply-btn" data-action="applyHexSize">↵</button>
       </div>
       <div class="tbs"></div>
-      <div class="hot-wrap">
-        <button class="hot on" id="hFlat"   onclick="setHexOrient('flat')">Flat</button>
-        <button class="hot"    id="hPointy" onclick="setHexOrient('pointy')">Pointy</button>
+      <div class="hot-wrap" role="group" aria-label="Hex orientation">
+        <button class="hot on" id="hFlat" aria-pressed="true" data-action="setHexOrient" data-value="flat">Flat</button>
+        <button class="hot" id="hPointy" aria-pressed="false" data-action="setHexOrient" data-value="pointy">Pointy</button>
       </div>
     </div>
     <div class="tbs"></div>
     <div class="badge" id="modeBadge">Crochet</div>
-    <div class="badge" id="gridBadge" style="background:var(--teal2);color:var(--teal)">Square Grid</div>
+    <div class="badge sq-badge" id="gridBadge">Square Grid</div>
+    <div class="ctb-spacer"></div>
+    <div class="quick-actions" id="quickActions" aria-label="Common chart actions">
+      <div class="qa-group qa-muted" role="group" aria-label="Edit actions">
+        <button class="qbtn qicon" data-action="undoLast" title="Undo (⌘Z)" aria-label="Undo">↩</button>
+        <button class="qbtn qicon" data-action="redoLast" title="Redo (⇧⌘Z)" aria-label="Redo">↪</button>
+      </div>
+      <div class="qa-group qa-file" role="group" aria-label="File actions">
+        <button class="qbtn" data-action="openSaveModal" title="Save named pattern">Save</button>
+        <button class="qbtn" data-action="openLoadModal" title="Load named pattern">Load</button>
+      </div>
+      <div class="qa-group qa-export" role="group" aria-label="Export actions">
+        <button class="qbtn qstrong" data-action="exportPDF" title="Export printable PDF">PDF</button>
+        <button class="qbtn" data-action="exportCanvas" title="Export PNG image">PNG</button>
+        <button class="qbtn" data-action="exportText" title="Generate written pattern text">Text</button>
+      </div>
+    </div>
   </div>
 
   <div class="cw" id="cw">
-    <canvas id="mc"></canvas>
+    <canvas id="mc" tabindex="0" role="application" aria-label="Chart canvas. Use arrow keys to move the keyboard cursor. Press Enter or Space to use the active tool, and Delete to clear the focused cell."></canvas>
     <div class="aind" id="aind">
       <div class="adot" id="adot"></div>
       <span id="alab">dc — Double Crochet</span>
     </div>
     <div class="zoom-bar">
-      <button onclick="adjZoom(-.15)" title="Zoom out (-)">−</button>
-      <span id="zl" style="min-width:38px;text-align:center">100%</span>
-      <button onclick="adjZoom(.15)" title="Zoom in (+)">+</button>
-      <button class="zreset" onclick="resetZoom()" title="Reset zoom (0)">⟳</button>
+      <button data-action="adjZoom" data-value="-0.15" title="Zoom out (-)">−</button>
+      <span id="zl" class="zoom-label">100%</span>
+      <button data-action="adjZoom" data-value="0.15" title="Zoom in (+)">+</button>
+      <button class="zreset" data-action="resetZoom" title="Reset zoom (0)">⟳</button>
     </div>
   </div>
 
@@ -149,13 +167,13 @@
   <div class="gp" id="grannyPanel">
     <div class="gph">
       <div class="gpt">🌸 Granny Square</div>
-      <div class="gpx" onclick="toggleGranny()">✕</div>
+      <button class="gpx" data-action="toggleGranny" aria-label="Close granny square builder">✕</button>
     </div>
     <div class="gpb">
       <div class="gprev"><canvas id="gpc" width="200" height="200"></canvas></div>
       <div class="gf">
-        <label>Square Style</label>
-        <select id="gStyle" onchange="onGStyleChange()">
+        <label for="gStyle">Square Style</label>
+        <select id="gStyle" data-change-action="onGStyleChange">
           <optgroup label="⬜ Square Shapes">
             <option value="classic">Classic Granny Square</option>
             <option value="solid">Solid Granny Square</option>
@@ -171,123 +189,133 @@
         </select>
       </div>
       <div class="gf">
-        <label>Rounds</label>
-        <input type="number" id="gRounds" min="1" max="8" value="4" onchange="buildRoundRows()">
+        <label for="gRounds">Rounds</label>
+        <input type="number" id="gRounds" min="1" max="8" value="4" data-change-action="buildRoundRows">
       </div>
       <div class="gf">
-        <label>Round Colors &amp; Stitches</label>
+        <span class="gf-label">Round Colors &amp; Stitches</span>
         <div class="rb" id="roundsB"></div>
       </div>
       <div id="cornerWrap" class="gf">
-        <label>Corner Style</label>
-        <select id="gCorner" onchange="drawGrannyPreview()">
+        <label for="gCorner">Corner Style</label>
+        <select id="gCorner" data-change-action="drawGrannyPreview">
           <option value="ch3">Chain-3 Corner</option>
           <option value="ch2">Chain-2 Corner</option>
           <option value="dc2">Double DC Corner</option>
         </select>
       </div>
-      <div id="hexnote" class="hexnote" style="display:none">
+      <div id="hexnote" class="hexnote" hidden>
         ⬡ Hex shapes render natively on the hex grid canvas. Switch to Hex Grid mode to stamp directly.
       </div>
-      <button class="pbtn" style="width:100%" onclick="stampToCanvas()">Stamp to Canvas ↗</button>
-      <button class="sbtn2" style="width:100%;margin-top:2px" onclick="exportGranny()">Export Square Image</button>
+      <button class="pbtn full-action" data-action="stampToCanvas">Stamp to Canvas ↗</button>
+      <button class="sbtn2 full-action secondary-action" data-action="exportGranny">Export Square Image</button>
     </div>
   </div>
 </div>
 
-<div class="panel-toggle rp-toggle" id="rpToggle" onclick="toggleRP()" title="Toggle panel">›</div>
+<button class="panel-toggle rp-toggle panel-open" id="rpToggle" data-action="toggleRP" title="Toggle right panel" aria-label="Collapse right panel" aria-expanded="true" aria-controls="rightPanel">›</button>
 
 <!-- RIGHT PANEL -->
-<div class="rp" id="rightPanel">
-  <div class="ps">
+<div class="rp" id="rightPanel" aria-hidden="false">
+  <div class="ps ps-summary" id="patternPanel">
     <div class="plbl">Pattern Info</div>
-    <input id="patName" value="My Pattern"
-           style="width:100%;border:1px solid var(--border);border-radius:var(--rsm);padding:5px 8px;font-family:'DM Sans',sans-serif;font-size:12.5px;background:var(--surface);color:var(--text);outline:none;margin-bottom:8px">
-    <div class="prow"><label>Rows</label><span class="v" id="sRows">20</span></div>
-    <div class="prow"><label>Cols</label><span class="v" id="sCols">20</span></div>
-    <div class="prow"><label>Painted</label><span class="v" id="sFill">0</span></div>
+    <label class="visually-hidden" for="patName">Pattern name</label>
+    <input id="patName" class="pattern-name" value="My Pattern">
+    <div class="prow"><span>Rows</span><span class="v" id="sRows">20</span></div>
+    <div class="prow"><span>Cols</span><span class="v" id="sCols">20</span></div>
+    <div class="prow"><span>Painted</span><span class="v" id="sFill">0</span></div>
   </div>
-  <div class="ps">
+  <div class="ps ps-callout option-map" id="optionMap">
+    <div class="plbl">Find Options</div>
+    <p class="hint">Left panel creates stitches. Top toolbar sizes the canvas and keeps common actions close. Right panel has the full option list.</p>
+    <div class="jump-grid">
+      <button data-action="guideJump" data-target="toolsPanel">Paint tools</button>
+      <button data-action="guideJump" data-target="canvasOptionsBar">Top toolbar</button>
+      <button data-action="guideJump" data-target="displayPanel">Display</button>
+      <button data-action="guideJump" data-target="actionsPanel">More actions</button>
+    </div>
+    <button class="guide-wide" data-action="openHelpModal">Open full guide</button>
+  </div>
+  <div class="ps ps-core" id="displayPanel">
     <div class="plbl">Display</div>
-    <div class="prow"><label>Grid lines</label>
-      <div class="tog"><button class="on" id="gOn" onclick="togGrid(true)">On</button><button id="gOff" onclick="togGrid(false)">Off</button></div>
+    <p class="hint">Tune how the chart behaves while you edit or follow a row.</p>
+    <div class="prow"><span>Grid lines</span>
+      <div class="tog" role="group" aria-label="Grid lines"><button class="on" id="gOn" aria-pressed="true" data-action="togGrid" data-value="true">On</button><button id="gOff" aria-pressed="false" data-action="togGrid" data-value="false">Off</button></div>
     </div>
-    <div class="prow"><label>Row labels</label>
-      <div class="tog"><button class="on" id="lOn" onclick="togLabels(true)">On</button><button id="lOff" onclick="togLabels(false)">Off</button></div>
+    <div class="prow"><span>Row labels</span>
+      <div class="tog" role="group" aria-label="Row labels"><button class="on" id="lOn" aria-pressed="true" data-action="togLabels" data-value="true">On</button><button id="lOff" aria-pressed="false" data-action="togLabels" data-value="false">Off</button></div>
     </div>
-    <div class="prow"><label>Symbols</label>
-      <div class="tog"><button class="on" id="sOn" onclick="togSyms(true)">On</button><button id="sOff" onclick="togSyms(false)">Off</button></div>
+    <div class="prow"><span>Symbols</span>
+      <div class="tog" role="group" aria-label="Symbols"><button class="on" id="sOn" aria-pressed="true" data-action="togSyms" data-value="true">On</button><button id="sOff" aria-pressed="false" data-action="togSyms" data-value="false">Off</button></div>
     </div>
-    <div class="prow" title="When on, already-colored cells need a second tap/double-click to be overwritten."><label>Protect filled</label>
-      <div class="tog"><button class="on" id="pOn" onclick="togProtect(true)">On</button><button id="pOff" onclick="togProtect(false)">Off</button></div>
+    <div class="prow" title="When on, already-colored cells need a second tap/double-click to be overwritten."><span>Protect filled</span>
+      <div class="tog" role="group" aria-label="Protect filled cells"><button class="on" id="pOn" aria-pressed="true" data-action="togProtect" data-value="true">On</button><button id="pOff" aria-pressed="false" data-action="togProtect" data-value="false">Off</button></div>
     </div>
-    <div class="prow" title="Shade wrong-side rows on knit charts."><label>Shade WS rows</label>
-      <div class="tog"><button id="wsOn" onclick="togWS(true)">On</button><button class="on" id="wsOff" onclick="togWS(false)">Off</button></div>
+    <div class="prow" title="Shade wrong-side rows on knit charts."><span>Shade WS rows</span>
+      <div class="tog" role="group" aria-label="Shade wrong-side rows"><button id="wsOn" aria-pressed="false" data-action="togWS" data-value="true">On</button><button class="on" id="wsOff" aria-pressed="true" data-action="togWS" data-value="false">Off</button></div>
     </div>
-    <div class="prow" title="Highlight one row at a time as you knit/crochet from the chart."><label>Follow row</label>
-      <div class="tog"><button id="foOn" onclick="togFollow(true)">On</button><button class="on" id="foOff" onclick="togFollow(false)">Off</button></div>
+    <div class="prow" title="Highlight one row at a time as you knit/crochet from the chart."><span>Follow row</span>
+      <div class="tog" role="group" aria-label="Follow row"><button id="foOn" aria-pressed="false" data-action="togFollow" data-value="true">On</button><button class="on" id="foOff" aria-pressed="true" data-action="togFollow" data-value="false">Off</button></div>
     </div>
-    <div class="prow" id="termRow" title="Switch crochet display labels between US and UK terminology."><label>Terminology</label>
-      <div class="tog"><button class="on" id="termUS" onclick="setCrochetTerms('us')">US</button><button id="termUK" onclick="setCrochetTerms('uk')">UK</button></div>
+    <div class="prow" id="termRow" title="Switch crochet display labels between US and UK terminology."><span>Terminology</span>
+      <div class="tog" role="group" aria-label="Crochet terminology"><button class="on" id="termUS" aria-pressed="true" data-action="setCrochetTerms" data-value="us">US</button><button id="termUK" aria-pressed="false" data-action="setCrochetTerms" data-value="uk">UK</button></div>
     </div>
-    <div class="prow" title="When on, finger taps always pan and a stylus uses the active tool. Auto-enables on first Apple Pencil contact."><label>Stylus mode</label>
-      <div class="tog"><button id="stOn" onclick="togStylus(true)">On</button><button class="on" id="stOff" onclick="togStylus(false)">Off</button></div>
+    <div class="prow" title="When on, finger taps always pan and a stylus uses the active tool. Auto-enables on first Apple Pencil contact."><span>Stylus mode</span>
+      <div class="tog" role="group" aria-label="Stylus mode"><button id="stOn" aria-pressed="false" data-action="togStylus" data-value="true">On</button><button class="on" id="stOff" aria-pressed="true" data-action="togStylus" data-value="false">Off</button></div>
     </div>
   </div>
-  <div class="ps" id="gaugeRow">
+  <div class="ps ps-support" id="gaugeRow">
     <div class="plbl" title="Stitches × Rows per 4 inches. Used to render cells with the correct aspect ratio.">Gauge (per 4″)</div>
     <div class="gauge-row">
       <div class="gauge-cell">
-        <label>Stitches</label>
+        <label for="gaugeSt">Stitches</label>
         <input type="number" id="gaugeSt" min="0" max="99" placeholder="—">
       </div>
       <div class="gauge-cell">
-        <label>Rows</label>
+        <label for="gaugeRo">Rows</label>
         <input type="number" id="gaugeRo" min="0" max="99" placeholder="—">
       </div>
     </div>
-    <button class="apply-btn" style="width:100%" onclick="applyGauge()">Apply gauge</button>
-    <p style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.45">
+    <button class="apply-btn full-action" data-action="applyGauge">Apply gauge</button>
+    <p class="micro-note">
       Leave both at 0 for square cells. Try 20×28 for typical worsted knit fabric.
     </p>
   </div>
-  <div class="ps" id="underlayPanel" title="Drop a reference image behind the chart at low opacity, then trace cells over it.">
+  <div class="ps ps-support" id="underlayPanel" title="Drop a reference image behind the chart at low opacity, then trace cells over it.">
     <div class="plbl">Underlay</div>
-    <button class="sbtn" onclick="document.getElementById('underlayFile').click()">📷 Load image…</button>
-    <div id="underlayCtrls" style="display:none;margin-top:8px">
-      <div class="prow" style="margin-bottom:8px">
-        <label>Opacity</label>
+    <p class="hint">Load a reference image behind the chart, then trace cells over it.</p>
+    <button class="sbtn sbtn-promote" data-action="openUnderlayFile">📷 Load image…</button>
+    <div id="underlayCtrls" class="underlay-controls" hidden>
+      <div class="prow underlay-row">
+        <label for="underlayOpacity">Opacity</label>
         <input type="range" id="underlayOpacity" min="0" max="100" value="30"
-               oninput="setUnderlayOpacity(this.value)" style="flex:1;max-width:120px">
+               data-input-action="setUnderlayOpacity" class="underlay-range">
       </div>
       <div class="gauge-row">
-        <div class="gauge-cell"><label>Col X</label><input type="number" id="underlayX" min="0" onchange="updateUnderlayBounds()"></div>
-        <div class="gauge-cell"><label>Row Y</label><input type="number" id="underlayY" min="0" onchange="updateUnderlayBounds()"></div>
+        <div class="gauge-cell"><label for="underlayX">Col X</label><input type="number" id="underlayX" min="0" data-change-action="updateUnderlayBounds"></div>
+        <div class="gauge-cell"><label for="underlayY">Row Y</label><input type="number" id="underlayY" min="0" data-change-action="updateUnderlayBounds"></div>
       </div>
       <div class="gauge-row">
-        <div class="gauge-cell"><label>Width</label><input type="number" id="underlayW" min="1" onchange="updateUnderlayBounds()"></div>
-        <div class="gauge-cell"><label>Height</label><input type="number" id="underlayH" min="1" onchange="updateUnderlayBounds()"></div>
+        <div class="gauge-cell"><label for="underlayW">Width</label><input type="number" id="underlayW" min="1" data-change-action="updateUnderlayBounds"></div>
+        <div class="gauge-cell"><label for="underlayH">Height</label><input type="number" id="underlayH" min="1" data-change-action="updateUnderlayBounds"></div>
       </div>
-      <button class="sbtn" style="margin-top:6px" onclick="clearUnderlay()">🗑 Remove underlay</button>
+      <button class="sbtn danger-action stacked-action" data-action="clearUnderlay">🗑 Remove underlay</button>
     </div>
   </div>
-  <div class="ps">
+  <div class="ps ps-quiet" id="legendPanel">
     <div class="plbl">Legend</div>
     <div class="leg" id="legend"></div>
-    <p style="font-size:10px;color:var(--text3);margin-top:6px">Tap a colour to swap with active. Long-press for more actions.</p>
+    <p class="micro-note">Tap a colour to swap with active. Long-press for more actions.</p>
   </div>
-  <div class="ps">
-    <div class="plbl">Actions</div>
+  <div class="ps ps-utility" id="actionsPanel">
+    <div class="plbl">More Actions</div>
+    <p class="hint">Project files, mirror, or clear. Quick exports and undo live in the top toolbar.</p>
     <div class="acts">
-      <button class="sbtn" onclick="exportPDF()">📄 Export PDF</button>
-      <button class="sbtn" onclick="exportProject()">⬇ Export project</button>
-      <button class="sbtn" onclick="openProjectImport()">⬆ Import project</button>
-      <button class="sbtn" onclick="exportText()">📝 Export as text</button>
-      <button class="sbtn" onclick="clearAll()">🗑 Clear canvas</button>
-      <button class="sbtn" onclick="undoLast()">↩ Undo</button>
-      <button class="sbtn" onclick="redoLast()">↪ Redo</button>
-      <button class="sbtn" onclick="mirrorH()">↔ Mirror H</button>
-      <button class="sbtn" onclick="mirrorV()">↕ Mirror V</button>
+      <button class="sbtn file-action" data-action="exportProject">⬇ Export project</button>
+      <button class="sbtn file-action" data-action="openProjectImport">⬆ Import project</button>
+      <button class="sbtn danger-action" data-action="clearAll">🗑 Clear canvas</button>
+      <button class="sbtn" data-action="mirrorH">↔ Mirror H</button>
+      <button class="sbtn" data-action="mirrorV">↕ Mirror V</button>
     </div>
   </div>
 </div>
@@ -295,84 +323,104 @@
 </div><!-- /body -->
 
 <!-- MODALS -->
-<div class="mo" id="saveM">
-  <div class="md">
-    <h3>Save Pattern</h3>
-    <label style="font-size:11.5px;color:var(--text2);display:block;margin-bottom:5px">Name</label>
-    <input id="saveName" style="width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:12.5px;background:var(--surface);color:var(--text);outline:none">
-    <div class="macts"><button class="sbtn2" onclick="closeM('saveM')">Cancel</button><button class="pbtn" onclick="doSave()">Save</button></div>
+<div class="mo" id="helpM" role="dialog" aria-modal="true" aria-labelledby="helpMTitle">
+  <div class="md help-md">
+    <div class="help-head">
+      <div>
+        <div class="plbl">Guide</div>
+        <h3 id="helpMTitle">Find a control</h3>
+      </div>
+      <button class="help-close" data-action="closeModal" data-modal="helpM" aria-label="Close guide">×</button>
+    </div>
+    <p class="help-intro">Search or choose a common task. The guide closes and highlights the control.</p>
+    <label class="visually-hidden" for="helpSearch">Search help topics</label>
+    <input id="helpSearch" class="help-search" type="search" placeholder="Search controls: export, gauge, pan, cables..." data-input-action="renderHelpTopics">
+    <div class="help-layout">
+      <div class="help-start">
+        <span class="help-pill">Start here</span>
+        <p>Choose a mode, pick a stitch and colour, then draw.</p>
+      </div>
+      <div class="help-results" id="helpResults" aria-live="polite"></div>
+    </div>
   </div>
 </div>
-<div class="mo" id="loadM">
+<div class="mo" id="saveM" role="dialog" aria-modal="true" aria-labelledby="saveMTitle">
   <div class="md">
-    <h3>Load Pattern</h3>
+    <h3 id="saveMTitle">Save Pattern</h3>
+    <label class="field-label" for="saveName">Name</label>
+    <input id="saveName" class="form-input">
+    <div class="macts"><button class="sbtn2" data-action="closeModal" data-modal="saveM">Cancel</button><button class="pbtn" data-action="doSave">Save</button></div>
+  </div>
+</div>
+<div class="mo" id="loadM" role="dialog" aria-modal="true" aria-labelledby="loadMTitle">
+  <div class="md">
+    <h3 id="loadMTitle">Load Pattern</h3>
     <div class="slist2" id="savedList"></div>
-    <div class="macts"><button class="sbtn2" onclick="closeM('loadM')">Close</button></div>
+    <div class="macts"><button class="sbtn2" data-action="closeModal" data-modal="loadM">Close</button></div>
   </div>
 </div>
-<div class="mo" id="newM">
+<div class="mo" id="newM" role="dialog" aria-modal="true" aria-labelledby="newMTitle">
   <div class="md">
-    <h3>New Pattern</h3>
-    <p style="font-size:12.5px;color:var(--text2);margin-bottom:14px">This will clear the current canvas.</p>
-    <div class="macts"><button class="sbtn2" onclick="closeM('newM')">Cancel</button><button class="pbtn" onclick="doNew()">Start Fresh</button></div>
+    <h3 id="newMTitle">New Pattern</h3>
+    <p class="modal-copy">This will clear the current canvas.</p>
+    <div class="macts"><button class="sbtn2" data-action="closeModal" data-modal="newM">Cancel</button><button class="pbtn" data-action="doNew">Start Fresh</button></div>
   </div>
 </div>
-<div class="mo" id="legendM">
-  <div class="md" style="width:320px">
-    <h3 id="legendMTitle" style="display:flex;align-items:center;gap:9px">
-      <span id="legendMSwatch" style="width:18px;height:18px;border-radius:5px;border:1px solid rgba(0,0,0,.1);display:inline-block"></span>
+<div class="mo" id="legendM" role="dialog" aria-modal="true" aria-labelledby="legendMLabel" aria-describedby="legendMCount">
+  <div class="md compact-md">
+    <h3 id="legendMTitle" class="legend-title">
+      <span id="legendMSwatch" class="legend-modal-swatch"></span>
       <span id="legendMLabel">Colour</span>
     </h3>
-    <p id="legendMCount" style="font-size:11.5px;color:var(--text2);margin-bottom:14px">…</p>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <button class="sbtn2" style="text-align:left" onclick="legendActionPick()">🎯 Pick this as active colour</button>
-      <button class="sbtn2" style="text-align:left" onclick="legendActionSwap()">🔄 Swap with active colour</button>
-      <button class="sbtn2" style="text-align:left" onclick="legendActionRemove()">🗑 Remove all cells of this colour</button>
+    <p id="legendMCount" class="modal-copy">…</p>
+    <div class="modal-stack">
+      <button class="sbtn2 action-row" data-action="legendActionPick">🎯 Pick this as active colour</button>
+      <button class="sbtn2 action-row" data-action="legendActionSwap">🔄 Swap with active colour</button>
+      <button class="sbtn2 action-row danger-row" data-action="legendActionRemove">🗑 Remove all cells of this colour</button>
     </div>
-    <div class="macts"><button class="sbtn2" onclick="closeM('legendM')">Close</button></div>
+    <div class="macts"><button class="sbtn2" data-action="closeModal" data-modal="legendM">Close</button></div>
   </div>
 </div>
-<div class="mo" id="txtM">
-  <div class="md" style="width:580px;max-width:94vw">
-    <h3>Pattern Text</h3>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Row-by-row written instructions generated from the chart. Copy or download as a .txt file.</p>
-    <textarea id="txtOut" readonly
-      style="width:100%;height:340px;padding:12px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'SF Mono', Menlo, monospace;font-size:12.5px;background:var(--s2);color:var(--text);outline:none;resize:vertical;line-height:1.55;white-space:pre"></textarea>
+<div class="mo" id="txtM" role="dialog" aria-modal="true" aria-labelledby="txtMTitle" aria-describedby="txtMDesc">
+  <div class="md text-modal">
+    <h3 id="txtMTitle">Pattern Text</h3>
+    <p id="txtMDesc" class="modal-copy">Row-by-row written instructions generated from the chart. Copy or download as a .txt file.</p>
+    <textarea id="txtOut" class="pattern-textarea" readonly></textarea>
     <div class="macts">
-      <button class="sbtn2" onclick="closeM('txtM')">Close</button>
-      <button class="sbtn2" onclick="copyPatternText()">Copy</button>
-      <button class="pbtn" onclick="downloadPatternText()">Download .txt</button>
+      <button class="sbtn2" data-action="closeModal" data-modal="txtM">Close</button>
+      <button class="sbtn2" data-action="copyPatternText">Copy</button>
+      <button class="pbtn" data-action="downloadPatternText">Download .txt</button>
     </div>
   </div>
 </div>
-<div class="mo" id="repeatM">
+<div class="mo" id="repeatM" role="dialog" aria-modal="true" aria-labelledby="repeatMTitle" aria-describedby="repeatRegionLabel">
   <div class="md">
-    <h3>Repeat Region</h3>
-    <p id="repeatRegionLabel" style="font-size:12px;color:var(--text2);margin-bottom:12px">…</p>
-    <div style="display:flex;flex-direction:column;gap:12px">
+    <h3 id="repeatMTitle">Repeat Region</h3>
+    <p id="repeatRegionLabel" class="modal-copy">…</p>
+    <div class="modal-stack modal-stack-loose">
       <div>
-        <label style="font-size:11.5px;color:var(--text2);display:block;margin-bottom:5px">Repeat count</label>
-        <input id="repeatCount" type="number" min="1" max="999" value="2" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);color:var(--text);outline:none;text-align:center">
+        <label class="field-label" for="repeatCount">Repeat count</label>
+        <input id="repeatCount" class="form-input center-input" type="number" min="1" max="999" value="2">
       </div>
       <div>
-        <label style="font-size:11.5px;color:var(--text2);display:block;margin-bottom:5px">Direction</label>
-        <div class="tog" id="repeatAxis" style="display:flex;width:100%">
-          <button class="on" data-axis="across" style="flex:1;padding:9px 8px">Across (cols)</button>
-          <button data-axis="down" style="flex:1;padding:9px 8px">Down (rows)</button>
-          <button data-axis="both" style="flex:1;padding:9px 8px">Both</button>
+        <span class="field-label">Direction</span>
+        <div class="tog repeat-axis" id="repeatAxis" role="group" aria-label="Repeat direction">
+          <button class="on" aria-pressed="true" data-axis="across">Across (cols)</button>
+          <button aria-pressed="false" data-axis="down">Down (rows)</button>
+          <button aria-pressed="false" data-axis="both">Both</button>
         </div>
       </div>
     </div>
     <div class="macts">
-      <button class="sbtn2" onclick="cancelRepeat()">Cancel</button>
-      <button class="pbtn" onclick="doRepeat()">Add Repeat</button>
+      <button class="sbtn2" data-action="cancelRepeat">Cancel</button>
+      <button class="pbtn" data-action="doRepeat">Add Repeat</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
-<input type="file" id="projectFile" accept="application/json,.json" style="display:none" onchange="importProjectFile(this)">
-<input type="file" id="underlayFile" accept="image/*" style="display:none" onchange="loadUnderlay(this)">
+<input type="file" id="projectFile" class="file-input" accept="application/json,.json" data-change-action="importProjectFile">
+<input type="file" id="underlayFile" class="file-input" accept="image/*" data-change-action="loadUnderlay">
 
 <!-- INJECT_JS -->
 </body>

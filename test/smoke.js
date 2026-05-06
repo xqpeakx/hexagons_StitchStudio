@@ -62,6 +62,11 @@ const EXPECTED_GLOBALS = [
   // Legend long-press
   'function bindLegendLongPress', 'function openLegendMenu',
   'function legendActionPick', 'function legendActionSwap', 'function legendActionRemove',
+  // Built-in help / option finder
+  'const HELP_TOPICS', 'function openHelpModal', 'function renderHelpTopics',
+  'function guideJump',
+  // Delegated UI action binding
+  'const UI_ACTIONS', 'function bindUiActions',
 ];
 
 const EXPECTED_DOM_IDS = [
@@ -81,7 +86,12 @@ const EXPECTED_DOM_IDS = [
   // Gauge
   'gaugeSt', 'gaugeRo', 'gaugeRow',
   // Modals
-  'saveM', 'loadM', 'newM', 'repeatM', 'txtM', 'legendM',
+  'saveM', 'loadM', 'newM', 'repeatM', 'txtM', 'legendM', 'helpM',
+  'helpSearch', 'helpResults',
+  // Discoverability panels / jump targets
+  'toolsPanel', 'stitchPanel', 'colorPanel', 'presetPanel', 'specialPanel',
+  'patternPanel', 'optionMap', 'displayPanel', 'legendPanel', 'actionsPanel',
+  'canvasOptionsBar', 'quickActions',
   // Underlay
   'underlayPanel', 'underlayCtrls', 'underlayFile', 'underlayOpacity',
   'underlayX', 'underlayY', 'underlayW', 'underlayH',

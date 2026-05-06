@@ -1,47 +1,158 @@
 // ═══════════════════════════════════════════════════════════
-// STATE & CONSTANTS
+// STATE, COLOR TOKENS & CONSTANTS
 // All globals live here; later modules read/mutate them via
 // the shared `S` object plus the named tables (CS, PALETTE, etc.).
 // ═══════════════════════════════════════════════════════════
+
+// Color tokens are intentionally centralized here so stitch catalogs,
+// presets, canvas fallbacks, and export code do not grow their own
+// accidental mini-palettes. CSS owns the live theme; these JS tokens are
+// stable data colors and no-DOM fallbacks.
+const UI_COLORS = Object.freeze({
+  theme:'#7c4f31',
+  bg:'#faf8f5',
+  surface:'#fffdf9',
+  s2:'#f3f0eb',
+  s3:'#ebe6df',
+  border:'#e2ddd7',
+  border2:'#cec8c0',
+  text:'#2a2520',
+  text3:'#73685f',
+  accent:'#7c4f31',
+  rose:'#943c50',
+});
+
+const CSS_COLOR_FALLBACKS = Object.freeze({
+  '--theme-color': UI_COLORS.theme,
+  '--bg': UI_COLORS.bg,
+  '--surface': UI_COLORS.surface,
+  '--s2': UI_COLORS.s2,
+  '--s3': UI_COLORS.s3,
+  '--border': UI_COLORS.border,
+  '--border2': UI_COLORS.border2,
+  '--text': UI_COLORS.text,
+  '--text3': UI_COLORS.text3,
+  '--accent': UI_COLORS.accent,
+  '--rose': UI_COLORS.rose,
+  '--canvas-ws-row': 'rgb(95 67 141 / 0.07)',
+  '--canvas-hairline': 'rgb(42 37 32 / 0.08)',
+});
+
+const YARN_COLORS = Object.freeze({
+  peachMist:'#fdf0e6',
+  peach:'#f5d0a8',
+  coralLight:'#e8a878',
+  coral:'#d4734a',
+  rust:'#b05028',
+  bark:'#6e3018',
+  roseMist:'#fce8ee',
+  roseLight:'#f0a8bc',
+  rose:'#d4688a',
+  berry:'#a04060',
+  mintMist:'#e8f4f0',
+  mint:'#8ecfc0',
+  teal:'#3a8870',
+  pine:'#245e50',
+  linen:'#f8f0e8',
+  straw:'#e8d4b8',
+  gold:'#c8a870',
+  umber:'#906830',
+  blueMist:'#e8eaf8',
+  blue:'#a8b0d8',
+  indigo:'#6070b8',
+  navy:'#303880',
+  lilacMist:'#f0e8f8',
+  lilac:'#c8a8e0',
+  violet:'#8858c0',
+  eggplant:'#502880',
+  ivory:'#fffff0',
+  fog:'#e8e8e8',
+  silver:'#b0b0b0',
+  charcoal:'#606060',
+  graphite:'#303030',
+  ink:'#101010',
+  apricot:'#d4956a',
+  cream:'#f5e6d3',
+  fabricMint:'#e8f4f1',
+  fabricRose:'#faeef0',
+  leaf:'#5a8b5a',
+  clay:'#8b5a3c',
+  denim:'#3c5a8b',
+});
+
+const STITCH_COLORS = Object.freeze({
+  chain:'#8b7355',
+  neutral:'#5a5a5a',
+  single:'#8b5e3c',
+  rose:'#c4687a',
+  teal:'#3d8b7a',
+  plum:'#7a5a9a',
+  gold:'#c4963a',
+  copper:'#c46a3c',
+  absent:'#c8c2b9',
+  blueGreen:'#3d7a8b',
+  cable:'#6b4fa0',
+});
+
+const PRESET_COLORS = Object.freeze({
+  granny:[YARN_COLORS.rose, YARN_COLORS.teal, STITCH_COLORS.gold, STITCH_COLORS.cable],
+  shell:[YARN_COLORS.apricot, STITCH_COLORS.rose, STITCH_COLORS.teal],
+  ripple:[YARN_COLORS.cream, YARN_COLORS.apricot, STITCH_COLORS.rose, STITCH_COLORS.plum, STITCH_COLORS.teal],
+  stockinette:YARN_COLORS.fabricMint,
+  ribPurl:UI_COLORS.bg,
+  seedPurl:YARN_COLORS.fabricRose,
+  checker:[STITCH_COLORS.teal, STITCH_COLORS.rose],
+});
+
+const GRANNY_ROUND_COLORS = Object.freeze([
+  YARN_COLORS.rose,
+  YARN_COLORS.teal,
+  STITCH_COLORS.gold,
+  STITCH_COLORS.cable,
+  YARN_COLORS.apricot,
+  YARN_COLORS.leaf,
+  YARN_COLORS.clay,
+  YARN_COLORS.denim,
+]);
 
 // Stitch catalogues. `_no` is the lace "no stitch" placeholder —
 // renders as a dimmed cell with a dash, never counts toward gauge.
 const CS = {
   crochet: [
-    {id:'ch', sym:'o', name:'Chain',         abbr:'ch',  col:'#8b7355'},
-    {id:'sl', sym:'•', name:'Slip Stitch',   abbr:'sl',  col:'#5a5a5a'},
-    {id:'sc', sym:'×', name:'Single Crochet',abbr:'sc',  col:'#8b5e3c'},
-    {id:'hdc',sym:'T', name:'Half Double',   abbr:'hdc', col:'#c4687a'},
-    {id:'dc', sym:'┤', name:'Double Crochet',abbr:'dc',  col:'#3d8b7a'},
-    {id:'tr', sym:'╪', name:'Treble',        abbr:'tr',  col:'#7a5a9a'},
-    {id:'cl', sym:'♦', name:'Cluster',       abbr:'cl',  col:'#c4963a'},
-    {id:'bb', sym:'●', name:'Bobble/Puff',   abbr:'bb',  col:'#c46a3c'},
-    {id:'_no',sym:'–', name:'No stitch',     abbr:'—',   col:'#c8c2b9'},
+    {id:'ch', sym:'o', name:'Chain',         abbr:'ch',  col:STITCH_COLORS.chain},
+    {id:'sl', sym:'•', name:'Slip Stitch',   abbr:'sl',  col:STITCH_COLORS.neutral},
+    {id:'sc', sym:'×', name:'Single Crochet',abbr:'sc',  col:STITCH_COLORS.single},
+    {id:'hdc',sym:'T', name:'Half Double',   abbr:'hdc', col:STITCH_COLORS.rose},
+    {id:'dc', sym:'┤', name:'Double Crochet',abbr:'dc',  col:STITCH_COLORS.teal},
+    {id:'tr', sym:'╪', name:'Treble',        abbr:'tr',  col:STITCH_COLORS.plum},
+    {id:'cl', sym:'♦', name:'Cluster',       abbr:'cl',  col:STITCH_COLORS.gold},
+    {id:'bb', sym:'●', name:'Bobble/Puff',   abbr:'bb',  col:STITCH_COLORS.copper},
+    {id:'_no',sym:'–', name:'No stitch',     abbr:'—',   col:STITCH_COLORS.absent},
   ],
   knit: [
-    {id:'k',  sym:'—', name:'Knit',          abbr:'k',   col:'#3d8b7a'},
-    {id:'p',  sym:'·', name:'Purl',          abbr:'p',   col:'#8b5e3c'},
-    {id:'k2t',sym:'/', name:'K2tog',         abbr:'k2t', col:'#c4687a'},
-    {id:'ssk',sym:'\\',name:'SSK',           abbr:'ssk', col:'#7a5a9a'},
-    {id:'yo', sym:'O', name:'Yarn Over',     abbr:'yo',  col:'#c4963a'},
-    {id:'m1', sym:'+', name:'M1 Inc',        abbr:'m1',  col:'#3d7a8b'},
-    {id:'sl1',sym:'>', name:'Slip 1',        abbr:'sl1', col:'#5a5a5a'},
-    {id:'cb', sym:'⧖', name:'Cable',         abbr:'cb',  col:'#6b4fa0'},
-    {id:'_no',sym:'–', name:'No stitch',     abbr:'—',   col:'#c8c2b9'},
+    {id:'k',  sym:'—', name:'Knit',          abbr:'k',   col:STITCH_COLORS.teal},
+    {id:'p',  sym:'·', name:'Purl',          abbr:'p',   col:STITCH_COLORS.single},
+    {id:'k2t',sym:'/', name:'K2tog',         abbr:'k2t', col:STITCH_COLORS.rose},
+    {id:'ssk',sym:'\\',name:'SSK',           abbr:'ssk', col:STITCH_COLORS.plum},
+    {id:'yo', sym:'O', name:'Yarn Over',     abbr:'yo',  col:STITCH_COLORS.gold},
+    {id:'m1', sym:'+', name:'M1 Inc',        abbr:'m1',  col:STITCH_COLORS.blueGreen},
+    {id:'sl1',sym:'>', name:'Slip 1',        abbr:'sl1', col:STITCH_COLORS.neutral},
+    {id:'cb', sym:'⧖', name:'Cable',         abbr:'cb',  col:STITCH_COLORS.cable},
+    {id:'_no',sym:'–', name:'No stitch',     abbr:'—',   col:STITCH_COLORS.absent},
   ]
 };
 
 // Default colorway. PALETTE is mutable: addCustomColor() unshifts new
 // picks onto the front, renderPalette() renders from this array.
 const PALETTE = [
-  '#fdf0e6','#f5d0a8','#e8a878','#d4734a',
-  '#b05028','#6e3018','#fce8ee','#f0a8bc',
-  '#d4688a','#a04060','#e8f4f0','#8ecfc0',
-  '#3a8870','#245e50','#f8f0e8','#e8d4b8',
-  '#c8a870','#906830','#e8eaf8','#a8b0d8',
-  '#6070b8','#303880','#f0e8f8','#c8a8e0',
-  '#8858c0','#502880','#fffff0','#e8e8e8',
-  '#b0b0b0','#606060','#303030','#101010',
+  YARN_COLORS.peachMist,YARN_COLORS.peach,YARN_COLORS.coralLight,YARN_COLORS.coral,
+  YARN_COLORS.rust,YARN_COLORS.bark,YARN_COLORS.roseMist,YARN_COLORS.roseLight,
+  YARN_COLORS.rose,YARN_COLORS.berry,YARN_COLORS.mintMist,YARN_COLORS.mint,
+  YARN_COLORS.teal,YARN_COLORS.pine,YARN_COLORS.linen,YARN_COLORS.straw,
+  YARN_COLORS.gold,YARN_COLORS.umber,YARN_COLORS.blueMist,YARN_COLORS.blue,
+  YARN_COLORS.indigo,YARN_COLORS.navy,YARN_COLORS.lilacMist,YARN_COLORS.lilac,
+  YARN_COLORS.violet,YARN_COLORS.eggplant,YARN_COLORS.ivory,YARN_COLORS.fog,
+  YARN_COLORS.silver,YARN_COLORS.charcoal,YARN_COLORS.graphite,YARN_COLORS.ink,
 ];
 
 const PRESETS_DEF = {
@@ -167,6 +278,10 @@ let _lastTapKey = null, _lastTapTime = 0;
 // the active tool and behaves like the Pan tool.
 let _spaceHeld = false;
 
+// Keyboard canvas fallback. Arrow keys move this cell cursor when the
+// canvas has focus; Enter/Space apply the active tool there.
+let _keyboardCell = { row: 0, col: 0 };
+
 // Custom-color picker debounce timer.
 let _customColorCommitTimer = null;
 
@@ -175,7 +290,7 @@ let _autosaveTimer = null;
 const AUTOSAVE_KEY = 'ss_autosave_v1';
 
 // Granny-square round colours (preview state only).
-let gRoundCols = ['#d4688a','#3a8870','#c4963a','#6b4fa0','#d4956a','#5a8b5a','#8b5a3c','#3c5a8b'];
+let gRoundCols = [...GRANNY_ROUND_COLORS];
 
 // Canvas refs are populated once `init()` runs, after the DOM exists.
 let canvas, ctx, gCanvas, gCtx;

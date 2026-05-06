@@ -14,8 +14,8 @@ function onGStyleChange() {
   const style = document.getElementById('gStyle').value;
   const isHex = style.startsWith('hex_');
   const alreadyHex = S.gridType === 'hex';
-  document.getElementById('hexnote').style.display = (isHex && !alreadyHex) ? 'block' : 'none';
-  document.getElementById('cornerWrap').style.display = isHex ? 'none' : '';
+  document.getElementById('hexnote').hidden = !(isHex && !alreadyHex);
+  document.getElementById('cornerWrap').hidden = isHex;
   drawGrannyPreview();
 }
 
@@ -23,15 +23,43 @@ function buildRoundRows() {
   const n = +document.getElementById('gRounds').value || 4;
   const stitches = CS[S.mode];
   const el = document.getElementById('roundsB');
-  el.innerHTML = '';
+  el.textContent = '';
   for (let i = 0; i < n; i++) {
     const row = document.createElement('div');
     row.className = 'rrow';
-    row.innerHTML = `<span class="rn">R${i + 1}</span>
-      <input type="color" class="rcp" value="${gRoundCols[i % gRoundCols.length]}" data-i="${i}" onchange="gRoundCols[${i}]=this.value;drawGrannyPreview()">
-      <select class="rst" data-i="${i}" onchange="drawGrannyPreview()">
-        ${stitches.map(s => `<option value="${s.id}">${s.abbr}</option>`).join('')}
-      </select>`;
+    const label = document.createElement('span');
+    label.className = 'rn';
+    label.textContent = `R${i + 1}`;
+    const colorLabel = document.createElement('label');
+    colorLabel.className = 'visually-hidden';
+    colorLabel.setAttribute('for', `roundColor${i}`);
+    colorLabel.textContent = `Round ${i + 1} colour`;
+    const color = document.createElement('input');
+    color.type = 'color';
+    color.className = 'rcp';
+    color.id = `roundColor${i}`;
+    color.value = gRoundCols[i % gRoundCols.length];
+    color.dataset.i = i;
+    color.addEventListener('change', () => {
+      gRoundCols[i] = color.value;
+      drawGrannyPreview();
+    });
+    const stitchLabelEl = document.createElement('label');
+    stitchLabelEl.className = 'visually-hidden';
+    stitchLabelEl.setAttribute('for', `roundStitch${i}`);
+    stitchLabelEl.textContent = `Round ${i + 1} stitch`;
+    const select = document.createElement('select');
+    select.className = 'rst';
+    select.id = `roundStitch${i}`;
+    select.dataset.i = i;
+    select.addEventListener('change', drawGrannyPreview);
+    stitches.forEach(s => {
+      const option = document.createElement('option');
+      option.value = s.id;
+      option.textContent = s.abbr;
+      select.append(option);
+    });
+    row.append(label, colorLabel, color, stitchLabelEl, select);
     el.appendChild(row);
   }
   drawGrannyPreview();
@@ -162,7 +190,7 @@ function gDrawHexSolid(cx, cy, rounds, size) {
       gCtx.globalCompositeOperation = 'source-over';
     }
   }
-  gCtx.strokeStyle = 'rgba(0,0,0,.08)'; gCtx.lineWidth = 1;
+  gCtx.strokeStyle = canvasToken('--canvas-hairline'); gCtx.lineWidth = 1;
   gHexPath(cx, cy, maxR, true); gCtx.stroke();
 }
 

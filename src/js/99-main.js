@@ -8,6 +8,8 @@ function init() {
   gCanvas = document.getElementById('gpc');
   gCtx    = gCanvas.getContext('2d');
 
+  syncThemeChrome();
+  bindUiActions();
   renderStitches(); renderPalette(); renderPresets(); renderCables();
   bindRepeatAxisToggle();
   bindLegendLongPress();

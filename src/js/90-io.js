@@ -105,21 +105,21 @@ function applyState(p) {
   document.getElementById('hexSize').value = S.hexSize;
   if (document.getElementById('gaugeSt')) document.getElementById('gaugeSt').value = S.gaugeStitches || '';
   if (document.getElementById('gaugeRo')) document.getElementById('gaugeRo').value = S.gaugeRows || '';
-  document.getElementById('gOn').classList.toggle('on', S.showGrid);
-  document.getElementById('gOff').classList.toggle('on', !S.showGrid);
-  document.getElementById('lOn').classList.toggle('on', S.showLabels);
-  document.getElementById('lOff').classList.toggle('on', !S.showLabels);
-  document.getElementById('sOn').classList.toggle('on', S.showSyms);
-  document.getElementById('sOff').classList.toggle('on', !S.showSyms);
-  document.getElementById('pOn').classList.toggle('on', S.protectFilled);
-  document.getElementById('pOff').classList.toggle('on', !S.protectFilled);
-  document.getElementById('wsOn').classList.toggle('on', S.shadeWS);
-  document.getElementById('wsOff').classList.toggle('on', !S.shadeWS);
-  document.getElementById('foOn').classList.toggle('on', S.activeRow !== null);
-  document.getElementById('foOff').classList.toggle('on', S.activeRow === null);
+  setPressed(document.getElementById('gOn'), S.showGrid);
+  setPressed(document.getElementById('gOff'), !S.showGrid);
+  setPressed(document.getElementById('lOn'), S.showLabels);
+  setPressed(document.getElementById('lOff'), !S.showLabels);
+  setPressed(document.getElementById('sOn'), S.showSyms);
+  setPressed(document.getElementById('sOff'), !S.showSyms);
+  setPressed(document.getElementById('pOn'), S.protectFilled);
+  setPressed(document.getElementById('pOff'), !S.protectFilled);
+  setPressed(document.getElementById('wsOn'), S.shadeWS);
+  setPressed(document.getElementById('wsOff'), !S.shadeWS);
+  setPressed(document.getElementById('foOn'), S.activeRow !== null);
+  setPressed(document.getElementById('foOff'), S.activeRow === null);
   if (document.getElementById('stOn')) {
-    document.getElementById('stOn').classList.toggle('on', S.stylusMode);
-    document.getElementById('stOff').classList.toggle('on', !S.stylusMode);
+    setPressed(document.getElementById('stOn'), S.stylusMode);
+    setPressed(document.getElementById('stOff'), !S.stylusMode);
   }
   updateTerminologyUI();
   setMode(S.mode);
@@ -156,7 +156,7 @@ function tryRestoreAutosave() {
 // ── NAMED PATTERNS ──
 function openSaveModal() {
   document.getElementById('saveName').value = document.getElementById('patName').value;
-  document.getElementById('saveM').classList.add('open');
+  openM('saveM', '#saveName');
 }
 function doSave() {
   const name = document.getElementById('saveName').value.trim() || 'Untitled';
@@ -170,13 +170,44 @@ function openLoadModal() {
   const saved = getSaved();
   const keys = Object.keys(saved).sort();
   const el = document.getElementById('savedList');
-  el.innerHTML = keys.length === 0
-    ? '<p style="font-size:12px;color:var(--text3);text-align:center;padding:18px">No saved patterns yet</p>'
-    : keys.map(k => `<div class="sli" onclick="loadPat('${k.replace(/'/g, "\\'")}')">
-        <div><div class="slin">${k}</div><div class="slim">${saved[k].mode} · ${saved[k].gridType || 'square'} · ${new Date(saved[k].savedAt).toLocaleDateString()}</div></div>
-        <span class="slid" onclick="event.stopPropagation();deletePat('${k.replace(/'/g, "\\'")}')">✕</span>
-      </div>`).join('');
-  document.getElementById('loadM').classList.add('open');
+  el.textContent = '';
+  if (keys.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'load-empty';
+    empty.textContent = 'No saved patterns yet';
+    el.append(empty);
+  } else {
+    keys.forEach(k => {
+      const savedAt = saved[k]?.savedAt ? new Date(saved[k].savedAt) : null;
+      const dateText = savedAt && !Number.isNaN(savedAt.valueOf())
+        ? savedAt.toLocaleDateString()
+        : 'No date';
+      const row = document.createElement('div');
+      row.className = 'sli';
+
+      const load = document.createElement('button');
+      load.type = 'button';
+      load.className = 'sli-main';
+      load.addEventListener('click', () => loadPat(k));
+      const name = document.createElement('span');
+      name.className = 'slin';
+      name.textContent = k;
+      const meta = document.createElement('span');
+      meta.className = 'slim';
+      meta.textContent = `${saved[k].mode || 'crochet'} · ${saved[k].gridType || 'square'} · ${dateText}`;
+      load.append(name, meta);
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'slid';
+      del.setAttribute('aria-label', 'Delete saved pattern ' + k);
+      del.textContent = '✕';
+      del.addEventListener('click', () => deletePat(k));
+      row.append(load, del);
+      el.append(row);
+    });
+  }
+  openM('loadM', '.sli-main, .sbtn2');
 }
 function loadPat(name) {
   const p = getSaved()[name]; if (!p) return;
@@ -188,7 +219,7 @@ function deletePat(name) {
   const s = getSaved(); delete s[name];
   localStorage.setItem('ss_patterns', JSON.stringify(s)); openLoadModal();
 }
-function openNewModal() { document.getElementById('newM').classList.add('open'); }
+function openNewModal() { openM('newM', '#newM .pbtn'); }
 
 // ── IMAGE UNDERLAY ──
 // Lets the user load a reference image that renders behind the chart
@@ -212,7 +243,7 @@ function downsampleImage(img, maxEdge, forceReencode) {
   c.width = w; c.height = h;
   const cx = c.getContext('2d');
   cx.imageSmoothingQuality = 'high';
-  cx.fillStyle = '#fff';
+  cx.fillStyle = canvasToken('--surface');
   cx.fillRect(0, 0, w, h);
   cx.drawImage(img, 0, 0, w, h);
   return c.toDataURL('image/jpeg', 0.85);
@@ -333,10 +364,10 @@ function syncUnderlayUI() {
   const ctrls = document.getElementById('underlayCtrls');
   if (!ctrls) return;
   if (!S.underlay) {
-    ctrls.style.display = 'none';
+    ctrls.hidden = true;
     return;
   }
-  ctrls.style.display = '';
+  ctrls.hidden = false;
   document.getElementById('underlayOpacity').value = Math.round((S.underlay.opacity || 0) * 100);
   document.getElementById('underlayX').value = S.underlay.x;
   document.getElementById('underlayY').value = S.underlay.y;
@@ -492,7 +523,7 @@ function generatePatternText() {
 function exportText() {
   const text = generatePatternText();
   document.getElementById('txtOut').value = text;
-  document.getElementById('txtM').classList.add('open');
+  openM('txtM', '#txtOut');
 }
 
 function copyPatternText() {
@@ -526,14 +557,14 @@ function openRepeatModal(r0, c0, r1, c1) {
   document.getElementById('repeatCount').value = '2';
   // Reset axis toggle to default 'across'
   document.querySelectorAll('#repeatAxis button').forEach(b => {
-    b.classList.toggle('on', b.dataset.axis === 'across');
+    setPressed(b, b.dataset.axis === 'across');
   });
-  document.getElementById('repeatM').classList.add('open');
+  openM('repeatM', '#repeatCount');
 }
 
 function cancelRepeat() {
   _repeatPendingRegion = null;
-  document.getElementById('repeatM').classList.remove('open');
+  closeM('repeatM');
   draw();
 }
 
@@ -566,7 +597,58 @@ function doNew() {
   draw(); updateStats(); updateLegend(); scheduleAutosave();
   toast('Fresh canvas!');
 }
-function closeM(id) { document.getElementById(id).classList.remove('open'); }
+let _modalReturnFocus = null;
+
+function modalFocusables(modal) {
+  return Array.from(modal.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  )).filter(el => !el.disabled && (el.offsetParent !== null || el.getClientRects().length > 0));
+}
+
+function openM(id, focusSelector) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  if (!modal.classList.contains('open')) {
+    _modalReturnFocus = typeof HTMLElement !== 'undefined' && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+  }
+  modal.setAttribute('tabindex', '-1');
+  modal.classList.add('open');
+  requestAnimationFrame(() => {
+    const target = focusSelector ? modal.querySelector(focusSelector) : null;
+    const fallback = modalFocusables(modal)[0] || modal;
+    (target || fallback).focus({ preventScroll: true });
+  });
+}
+
+function closeM(id, restoreFocus = true) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.remove('open');
+  if (restoreFocus && _modalReturnFocus && document.contains(_modalReturnFocus)) {
+    _modalReturnFocus.focus({ preventScroll: true });
+  }
+  _modalReturnFocus = null;
+}
+
+function trapModalFocus(event, modal) {
+  const focusables = modalFocusables(modal);
+  if (!focusables.length) {
+    event.preventDefault();
+    modal.focus({ preventScroll: true });
+    return;
+  }
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus({ preventScroll: true });
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus({ preventScroll: true });
+  }
+}
 
 // ── PROJECT FILES ──
 function safeFileStem(name) {
@@ -656,7 +738,7 @@ function buildExportCanvas(scale) {
   }
   exp.width = W; exp.height = H;
   const ec = exp.getContext('2d');
-  ec.fillStyle = '#fff'; ec.fillRect(0, 0, W, H);
+  ec.fillStyle = canvasToken('--surface'); ec.fillRect(0, 0, W, H);
   ec.scale(scale, scale);
 
   if (S.gridType === 'square') {
@@ -666,8 +748,8 @@ function buildExportCanvas(scale) {
       const x = lo + c * cs, y = lo + r * ch;
       if (cell) {
         if (cell.stitchId === '_no') {
-          ec.fillStyle = '#dcd5cb'; ec.fillRect(x, y, cs, ch);
-          ec.strokeStyle = 'rgba(0,0,0,.2)'; ec.lineWidth = 1;
+          ec.fillStyle = canvasToken('--s3'); ec.fillRect(x, y, cs, ch);
+          ec.strokeStyle = canvasToken('--border2'); ec.lineWidth = 1;
           ec.beginPath();
           ec.moveTo(x + 4, y + 4); ec.lineTo(x + cs - 4, y + ch - 4);
           ec.moveTo(x + cs - 4, y + 4); ec.lineTo(x + 4, y + ch - 4);
@@ -690,7 +772,7 @@ function buildExportCanvas(scale) {
       }
     }
     if (S.showGrid) {
-      ec.strokeStyle = 'rgba(0,0,0,.12)'; ec.lineWidth = .5;
+      ec.strokeStyle = canvasToken('--border'); ec.lineWidth = .5;
       for (let r = 0; r <= S.sqH; r++) { ec.beginPath(); ec.moveTo(lo, lo + r * ch); ec.lineTo(lo + S.sqW * cs, lo + r * ch); ec.stroke(); }
       for (let c = 0; c <= S.sqW; c++) { ec.beginPath(); ec.moveTo(lo + c * cs, lo); ec.lineTo(lo + c * cs, lo + S.sqH * ch); ec.stroke(); }
     }
@@ -704,10 +786,10 @@ function buildExportCanvas(scale) {
       for (let i = 1; i < 6; i++) ec.lineTo(pts[i][0], pts[i][1]);
       ec.closePath();
       if (cell) {
-        ec.fillStyle = cell.stitchId === '_no' ? '#dcd5cb' : cell.color;
+        ec.fillStyle = cell.stitchId === '_no' ? canvasToken('--s3') : cell.color;
         ec.fill();
       }
-      if (S.showGrid) { ec.strokeStyle = 'rgba(0,0,0,.13)'; ec.lineWidth = .6; ec.stroke(); }
+      if (S.showGrid) { ec.strokeStyle = canvasToken('--border'); ec.lineWidth = .6; ec.stroke(); }
     }
   }
   return exp;
@@ -725,7 +807,7 @@ function downloadBlob(blob, filename) {
 function exportCanvas() {
   const exp = buildExportCanvas(2);
   const link = document.createElement('a');
-  link.download = (document.getElementById('patName').value || 'pattern') + '.png';
+  link.download = safeFileStem(document.getElementById('patName').value || 'pattern') + '.png';
   link.href = exp.toDataURL('image/png');
   link.click();
   toast('PNG exported');
