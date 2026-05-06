@@ -30,6 +30,7 @@ function presetClassicGranny() {
       }
     }
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Classic granny loaded!'); scheduleAutosave();
 }
 
@@ -47,6 +48,7 @@ function presetShell() {
       S.cells[`sq:${r},${c}`] = { color: colors[ci], stitchId: c % 4 === 0 ? 'sc' : 'dc' };
     }
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Shell pattern loaded!'); scheduleAutosave();
 }
 
@@ -63,6 +65,7 @@ function presetRipple() {
       S.cells[`sq:${r},${c}`] = { color: colors[r % colors.length], stitchId: Math.sin(c * .6) > .0 ? 'dc' : 'hdc' };
     }
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Ripple loaded!'); scheduleAutosave();
 }
 
@@ -75,6 +78,7 @@ function presetSolid() {
     for (let r = 0; r < S.sqH; r++) for (let c = 0; c < S.sqW; c++)
       S.cells[`sq:${r},${c}`] = { color: S.activeColor, stitchId: 'sc' };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Solid block loaded!'); scheduleAutosave();
 }
 
@@ -83,6 +87,7 @@ function presetStockinette() {
   const W = 40, H = 30;
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++)
     S.cells[`sq:${r},${c}`] = { color: PRESET_COLORS.stockinette, stitchId: 'k' };
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Stockinette'); scheduleAutosave();
 }
 
@@ -93,6 +98,7 @@ function presetRib() {
     const k = c % 4 < 2;
     S.cells[`sq:${r},${c}`] = { color: k ? PRESET_COLORS.stockinette : PRESET_COLORS.ribPurl, stitchId: k ? 'k' : 'p' };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('2×2 Rib'); scheduleAutosave();
 }
 
@@ -103,6 +109,7 @@ function presetSeed() {
     const k = (r + c) % 2 === 0;
     S.cells[`sq:${r},${c}`] = { color: k ? PRESET_COLORS.stockinette : PRESET_COLORS.seedPurl, stitchId: k ? 'k' : 'p' };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Seed stitch'); scheduleAutosave();
 }
 
@@ -114,5 +121,6 @@ function presetChecker() {
     const a = (Math.floor(r / 4) + Math.floor(c / 4)) % 2 === 0;
     S.cells[`sq:${r},${c}`] = { color: a ? c1 : c2, stitchId: a ? 'k' : 'p' };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Checker'); scheduleAutosave();
 }

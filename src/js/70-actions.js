@@ -10,6 +10,7 @@ function clearAll() {
   const nc = {};
   Object.entries(S.cells).forEach(([k, v]) => { if (!k.startsWith(prefix)) nc[k] = v; });
   S.cells = nc;
+  markCellsDirty();
   // Cables and repeats only exist on the square grid; wipe them too.
   if (S.gridType === 'square') {
     S.cables = [];
@@ -76,6 +77,7 @@ function mirrorH() {
     });
     Object.assign(S.cells, add);
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Mirrored horizontally'); scheduleAutosave();
 }
 
@@ -116,5 +118,6 @@ function mirrorV() {
     });
     Object.assign(S.cells, add);
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Mirrored vertically'); scheduleAutosave();
 }

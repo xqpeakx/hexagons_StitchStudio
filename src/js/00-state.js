@@ -38,6 +38,8 @@ const CSS_COLOR_FALLBACKS = Object.freeze({
   '--canvas-hairline': 'rgb(42 37 32 / 0.08)',
 });
 
+const CANVAS_FONT_STACK = '"Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+
 const YARN_COLORS = Object.freeze({
   peachMist:'#fdf0e6',
   peach:'#f5d0a8',
@@ -81,15 +83,15 @@ const YARN_COLORS = Object.freeze({
 });
 
 const STITCH_COLORS = Object.freeze({
-  chain:'#8b7355',
+  chain:'#6f5437',
   neutral:'#5a5a5a',
   single:'#8b5e3c',
-  rose:'#c4687a',
-  teal:'#3d8b7a',
+  rose:'#9b3f5b',
+  teal:'#2f7064',
   plum:'#7a5a9a',
-  gold:'#c4963a',
-  copper:'#c46a3c',
-  absent:'#c8c2b9',
+  gold:'#8a610f',
+  copper:'#9c4828',
+  absent:'#6f675d',
   blueGreen:'#3d7a8b',
   cable:'#6b4fa0',
 });
@@ -203,6 +205,7 @@ const CROCHET_TERMS = {
 let S = {
   mode:'crochet', gridType:'square', tool:'draw',
   crochetTerms:'us',
+  textNoStitch:'mark',
   sqW:200, sqH:200, cellSize:26,
   hexCols:300, hexRows:300, hexSize:26, hexFlat:true,
   cells:{},

@@ -103,17 +103,19 @@ adding bigger features.
 
 ### ACT-012 - Pattern Text Export
 
-- Status: Needs design
+- Status: Done
 - Pain addressed: designers often need written instructions alongside a chart.
 - Scope:
   - Generate a simple row-by-row text summary from square charts.
   - Include stitch abbreviations and color changes.
-  - Start with a basic export rather than full natural-language pattern writing.
+  - Let users decide whether no-stitch placeholders are marked or skipped.
+  - Start with a structured export rather than full natural-language pattern writing.
 - Acceptance criteria:
   - Each row exports in chart order with counts grouped by consecutive stitch and
     color.
   - No-stitch cells are skipped or explicitly marked based on user choice.
   - Output can be copied as plain text.
+  - Output can be downloaded as a `.txt` file.
 - Likely files:
   - `src/js/90-io.js`
   - `src/js/50-ui.js`

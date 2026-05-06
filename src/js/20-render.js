@@ -5,6 +5,41 @@
 // Only visible cells are iterated, so the logical grid can be huge.
 // ═══════════════════════════════════════════════════════════
 
+// ── PERF CACHES ──
+// canvasToken() resolves CSS variables via getComputedStyle + a probe
+// span. That cost adds up fast in the cell-render loop where the same
+// token is queried per cell. We memoise resolutions for the duration
+// of a draw frame (or an export) so each token resolves at most once.
+let _tokenCache = null;
+function beginTokenCache() { _tokenCache = Object.create(null); }
+function endTokenCache()   { _tokenCache = null; }
+
+// Per-row painted-cell counts for the row-label badges. Lazily built
+// from S.cells; consumers must call markCellsDirty() after any change
+// so the next read recomputes.
+let _rowCountsCache = null;
+let _rowCountsDirty = true;
+function markCellsDirty() { _rowCountsDirty = true; }
+function rowCountsForLabels() {
+  if (!_rowCountsDirty && _rowCountsCache) return _rowCountsCache;
+  const counts = Object.create(null);
+  for (const k in S.cells) {
+    // Match keys of the form "sq:<r>,<c>" without paying for split/regex.
+    if (k.charCodeAt(0) !== 115 /* s */) continue;
+    if (k.charCodeAt(1) !== 113 /* q */) continue;
+    if (k.charCodeAt(2) !== 58  /* : */) continue;
+    const cell = S.cells[k];
+    if (!cell || cell.stitchId === '_no') continue;
+    const comma = k.indexOf(',', 3);
+    if (comma === -1) continue;
+    const r = +k.slice(3, comma);
+    counts[r] = (counts[r] || 0) + 1;
+  }
+  _rowCountsCache = counts;
+  _rowCountsDirty = false;
+  return counts;
+}
+
 // Effective cell height for square grids when gauge is set. Knit
 // fabric is wider than tall; gaugeStitches=20, gaugeRows=28 → cells
 // taller than wide by 28/20.
@@ -36,11 +71,16 @@ function visibleHexBounds() {
 }
 
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = canvasToken('--s2');
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if (S.gridType === 'square') drawSquareGrid();
-  else drawHexGrid();
+  beginTokenCache();
+  try {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = canvasToken('--s2');
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (S.gridType === 'square') drawSquareGrid();
+    else drawHexGrid();
+  } finally {
+    endTokenCache();
+  }
 }
 
 // ── SQUARE ──
@@ -166,20 +206,14 @@ function drawSquareGrid() {
   // Row/col labels (with per-row painted counts on square grids — useful
   // when knitting from a chart, especially on tablets with no hover).
   if (S.showLabels && lo > 0) {
-    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9.5px DM Sans,sans-serif`;
+    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9.5px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = canvasToken('--bg');
     ctx.fillRect(0, 0, lo, canvas.height);
     ctx.fillRect(0, 0, canvas.width, lo);
-    // Pre-tally per-visible-row stitch counts in one cells pass.
-    const rowCounts = {};
-    for (let r = row0; r < rowN; r++) rowCounts[r] = 0;
-    for (const k in S.cells) {
-      if (!k.startsWith('sq:')) continue;
-      const [, rc] = k.split(':');
-      const [r] = rc.split(',').map(Number);
-      if (r in rowCounts && S.cells[k].stitchId !== '_no') rowCounts[r]++;
-    }
+    // Pre-tally per-row stitch counts. Cached across draws so panning
+    // and re-renders that don't touch cells don't re-walk the dict.
+    const rowCounts = rowCountsForLabels();
     ctx.fillStyle = canvasToken('--text3');
     for (let r = row0; r < rowN; r++) {
       const y = oy + r * ch + ch / 2;
@@ -192,7 +226,7 @@ function drawSquareGrid() {
       if (count > 0 && lo >= 18 && ch >= 14) {
         ctx.save();
         ctx.fillStyle = canvasToken('--border2');
-        ctx.font = `8px DM Sans,sans-serif`;
+        ctx.font = `8px ${CANVAS_FONT_STACK}`;
         ctx.fillText(count, lo / 2, y + ch / 2 - 4);
         ctx.restore();
       }
@@ -252,7 +286,7 @@ function drawHexGrid() {
 
   // Labels
   if (S.showLabels) {
-    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9px DM Sans,sans-serif`;
+    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let row = row0; row < rowN; row++) {
       const [cx, cy] = hexCenter(col0, row, r, flat);
@@ -268,10 +302,13 @@ function drawHexGrid() {
 }
 
 function canvasToken(name, fallback) {
+  if (_tokenCache && name in _tokenCache) return _tokenCache[name];
   const safeFallback = fallback || CSS_COLOR_FALLBACKS[name] || UI_COLORS.text;
   if (typeof getComputedStyle !== 'function') return safeFallback;
   const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim() || safeFallback;
-  return resolveCssColor(raw, safeFallback);
+  const resolved = resolveCssColor(raw, safeFallback);
+  if (_tokenCache) _tokenCache[name] = resolved;
+  return resolved;
 }
 
 function resolveCssColor(raw, fallback) {
@@ -337,12 +374,62 @@ function drawKeyboardCursorHex(ox, oy, row0, rowN, col0, colN) {
   ctx.restore();
 }
 
+function colorChannels(color) {
+  if (typeof color !== 'string') return null;
+  const raw = color.trim();
+  if (raw[0] === '#') {
+    const hex = raw.slice(1);
+    if (hex.length === 3) {
+      return hex.split('').map(ch => parseInt(ch + ch, 16));
+    }
+    if (hex.length >= 6) {
+      return [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16));
+    }
+  }
+  const match = raw.match(/rgba?\(([^)]+)\)/i);
+  if (match) {
+    const parts = match[1].split(',').map(part => parseFloat(part));
+    if (parts.length >= 3 && parts.every((v, i) => i > 2 || Number.isFinite(v))) {
+      return parts.slice(0, 3);
+    }
+  }
+  return null;
+}
+
+function relativeLuminance(color) {
+  const rgb = colorChannels(color);
+  if (!rgb) return 0;
+  const channel = value => {
+    const c = Math.max(0, Math.min(255, value)) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const [r, g, b] = rgb.map(channel);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a, b) {
+  const l1 = relativeLuminance(a);
+  const l2 = relativeLuminance(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+function symbolInkForColor(fill, darkInk = UI_COLORS.text, lightInk = UI_COLORS.surface) {
+  return contrastRatio(fill, darkInk) >= contrastRatio(fill, lightInk) ? darkInk : lightInk;
+}
+
 function drawSymbol(ctx, cell, x, y, cs) {
   const s = CS[S.mode].find(s => s.id === cell.stitchId);
   if (!s) return;
-  ctx.fillStyle = lum(cell.color) > .5 ? canvasToken('--text') : canvasToken('--surface');
-  ctx.font = `${Math.min(cs * .5, 13)}px DM Sans,monospace`;
+  const darkInk = canvasToken('--text');
+  const lightInk = canvasToken('--surface');
+  const ink = symbolInkForColor(cell.color, darkInk, lightInk);
+  const outline = ink === darkInk ? lightInk : darkInk;
+  ctx.font = `${Math.min(cs * .5, 13)}px ${CANVAS_FONT_STACK}`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = Math.max(1, Math.min(2.25, cs * 0.09));
+  ctx.strokeStyle = outline;
+  ctx.strokeText(s.sym, x, y);
+  ctx.fillStyle = ink;
   ctx.fillText(s.sym, x, y);
 }
 
@@ -392,7 +479,7 @@ function drawCable(cb, ox, oy, cs, ch, targetCtx) {
   if (cb.w >= 4 && cs >= 16 && ch >= 16) {
     const half = cb.w / 2;
     const label = `${half}/${half}${cb.dir}`;
-    tctx.font = `${Math.min(10, ch * 0.32)}px DM Sans, sans-serif`;
+    tctx.font = `${Math.min(10, ch * 0.32)}px ${CANVAS_FONT_STACK}`;
     tctx.textAlign = 'center';
     tctx.textBaseline = 'top';
     tctx.fillStyle = darken(cb.color, 0.5);
@@ -489,7 +576,7 @@ function drawRepeatBracket(rp, ox, oy, cs, ch, tctx) {
   // Count label sits just above the top-right corner of the bracket.
   const labelText = '×' + rp.count;
   const labelSize = Math.min(13, Math.max(10, cs * 0.42));
-  t.font = `600 ${labelSize}px DM Sans, sans-serif`;
+  t.font = `600 ${labelSize}px ${CANVAS_FONT_STACK}`;
   t.textAlign = 'right';
   t.textBaseline = 'bottom';
   t.fillStyle = STROKE;

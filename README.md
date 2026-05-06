@@ -53,6 +53,10 @@ The numeric prefix on each JS module is the bundling order — earlier
 files declare globals that later files use. No imports/exports; the
 bundler just concatenates.
 
+`PRODUCT.md` captures product strategy for design work, and `DESIGN.md`
+captures the visual system used by Impeccable and other design-aware
+agents.
+
 ### UI shell conventions
 
 - Put visual rules in `src/css/styles.css`; keep `src/index.html` free of
@@ -84,8 +88,9 @@ bundler just concatenates.
 - Keyboard canvas editing: focus the chart, move the cursor with arrow
   keys, press Enter/Space to apply the active tool, or Delete to clear.
 - Wrong-side-row shading and active-row highlight (follow mode).
-- Top-toolbar shortcuts for undo/redo, named saves, and PDF/PNG/text export.
-- Built-in searchable guide with jump links to the relevant controls.
+- Top-toolbar shortcuts for undo/redo, local-library saves, and PDF/PNG/text export.
+- Pattern text export with color-change runs and no-stitch handling options.
+- Built-in searchable guide drawer with jump links to the relevant controls.
 - Click a colour chip in the legend to swap it globally for the
   active colour.
 - Protect-filled cells: a single tap won't overwrite an

@@ -18,6 +18,7 @@ function snapshotState() {
     appVersion: PROJECT_APP_VERSION,
     cells: S.cells, mode: S.mode, gridType: S.gridType,
     crochetTerms: S.crochetTerms,
+    textNoStitch: S.textNoStitch,
     name: document.getElementById('patName')?.value || 'My Pattern',
     activeColor: S.activeColor, activeStitch: S.activeStitch,
     sqW: S.sqW, sqH: S.sqH, cellSize: S.cellSize,
@@ -36,8 +37,10 @@ function snapshotState() {
 
 function applyState(p) {
   S.cells = p.cells || {};
+  markCellsDirty();
   S.mode = p.mode || 'crochet';
   S.crochetTerms = p.crochetTerms === 'uk' ? 'uk' : 'us';
+  S.textNoStitch = p.textNoStitch === 'skip' ? 'skip' : 'mark';
   S.sqW = p.sqW || 200; S.sqH = p.sqH || 200;
   S.hexCols = p.hexCols || 300; S.hexRows = p.hexRows || 300;
   S.hexSize = p.hexSize || 26; S.hexFlat = p.hexFlat !== false;
@@ -105,6 +108,7 @@ function applyState(p) {
   document.getElementById('hexSize').value = S.hexSize;
   if (document.getElementById('gaugeSt')) document.getElementById('gaugeSt').value = S.gaugeStitches || '';
   if (document.getElementById('gaugeRo')) document.getElementById('gaugeRo').value = S.gaugeRows || '';
+  if (document.getElementById('textNoStitch')) document.getElementById('textNoStitch').value = S.textNoStitch;
   setPressed(document.getElementById('gOn'), S.showGrid);
   setPressed(document.getElementById('gOff'), !S.showGrid);
   setPressed(document.getElementById('lOn'), S.showLabels);
@@ -384,6 +388,7 @@ function generatePatternText() {
   if (S.gridType !== 'square') {
     return 'Pattern text export is square-grid only.\n\nSwitch to a square grid first.';
   }
+  const skipNoStitch = S.textNoStitch === 'skip';
   const lines = [];
   const title = (document.getElementById('patName').value || 'Untitled').trim();
   lines.push('# ' + title);
@@ -398,6 +403,7 @@ function generatePatternText() {
   if (isKnit) {
     lines.push('Read bottom-up. RS rows worked right-to-left, WS rows left-to-right.');
   }
+  lines.push('Colours appear in brackets after each run. No-stitch cells are ' + (skipNoStitch ? 'skipped from counts.' : 'marked in rows.'));
   lines.push('');
 
   // Determine the actually-painted bounding box so we don't dump
@@ -453,7 +459,11 @@ function generatePatternText() {
       const cell = S.cells['sq:' + r + ',' + c];
       const stitch = cell ? cell.stitchId : null;
       const color = cell ? cell.color : null;
-      if (cell) { usedStitches.add(stitch); if (color) usedColors.add(color); }
+      if (cell && !(skipNoStitch && stitch === '_no')) {
+        usedStitches.add(stitch);
+        if (color && stitch !== '_no') usedColors.add(color);
+      }
+      if (skipNoStitch && stitch === '_no') continue;
       const last = runs[runs.length - 1];
       if (last && last.stitch === stitch && last.color === color) last.n++;
       else runs.push({ stitch, color, n: 1 });
@@ -472,7 +482,8 @@ function generatePatternText() {
       const stitchInfo = CS[S.mode].find(s => s.id === rn.stitch);
       const label = stitchInfo ? stitchLabel(stitchInfo) : { abbr: rn.stitch };
       const count = rn.n > 1 ? ' ×' + rn.n : '';
-      return label.abbr + count;
+      const color = rn.color ? ' [' + rn.color + ']' : '';
+      return label.abbr + count + color;
     });
     lines.push('Row ' + labelNum + rowKind + ': ' + parts.join(', '));
   });
@@ -521,9 +532,19 @@ function generatePatternText() {
 }
 
 function exportText() {
+  const opt = document.getElementById('textNoStitch');
+  if (opt) opt.value = S.textNoStitch;
   const text = generatePatternText();
   document.getElementById('txtOut').value = text;
   openM('txtM', '#txtOut');
+}
+
+function updatePatternTextOptions() {
+  const opt = document.getElementById('textNoStitch');
+  if (opt) S.textNoStitch = opt.value === 'skip' ? 'skip' : 'mark';
+  const out = document.getElementById('txtOut');
+  if (out) out.value = generatePatternText();
+  scheduleAutosave();
 }
 
 function copyPatternText() {
@@ -585,6 +606,7 @@ function doNew() {
   pushUndo({ includeUnderlay: true });
   // Clear everything and reset to a fresh chart.
   S.cells = {};
+  markCellsDirty();
   S.cables = [];
   S.repeats = [];
   S.underlay = null;
@@ -598,6 +620,7 @@ function doNew() {
   toast('Fresh canvas!');
 }
 let _modalReturnFocus = null;
+let _openModalId = null;
 
 function modalFocusables(modal) {
   return Array.from(modal.querySelectorAll(
@@ -605,9 +628,25 @@ function modalFocusables(modal) {
   )).filter(el => !el.disabled && (el.offsetParent !== null || el.getClientRects().length > 0));
 }
 
+function setModalIsolation(activeModal) {
+  const appMain = document.getElementById('appMain');
+  const header = document.querySelector('.hdr');
+  [appMain, header].forEach(el => {
+    if (!el) return;
+    if (activeModal) {
+      el.setAttribute('aria-hidden', 'true');
+      if ('inert' in el) el.inert = true;
+    } else {
+      el.removeAttribute('aria-hidden');
+      if ('inert' in el) el.inert = false;
+    }
+  });
+}
+
 function openM(id, focusSelector) {
   const modal = document.getElementById(id);
   if (!modal) return;
+  if (_openModalId && _openModalId !== id) closeM(_openModalId, false);
   if (!modal.classList.contains('open')) {
     _modalReturnFocus = typeof HTMLElement !== 'undefined' && document.activeElement instanceof HTMLElement
       ? document.activeElement
@@ -615,6 +654,8 @@ function openM(id, focusSelector) {
   }
   modal.setAttribute('tabindex', '-1');
   modal.classList.add('open');
+  _openModalId = id;
+  setModalIsolation(modal);
   requestAnimationFrame(() => {
     const target = focusSelector ? modal.querySelector(focusSelector) : null;
     const fallback = modalFocusables(modal)[0] || modal;
@@ -626,6 +667,10 @@ function closeM(id, restoreFocus = true) {
   const modal = document.getElementById(id);
   if (!modal) return;
   modal.classList.remove('open');
+  if (_openModalId === id) {
+    _openModalId = null;
+    setModalIsolation(null);
+  }
   if (restoreFocus && _modalReturnFocus && document.contains(_modalReturnFocus)) {
     _modalReturnFocus.focus({ preventScroll: true });
   }
@@ -722,7 +767,25 @@ function importProjectFile(input) {
 }
 
 // ── PNG / PDF EXPORT ──
+const EXPORT_MAX_EDGE = 16384;
+const EXPORT_MAX_PIXELS = 48000000;
+
+function canBuildExportCanvas(w, h) {
+  if (w <= EXPORT_MAX_EDGE && h <= EXPORT_MAX_EDGE && w * h <= EXPORT_MAX_PIXELS) return true;
+  toast('Export is too large for the browser canvas. Reduce grid limit or cell size, then export again.');
+  return false;
+}
+
 function buildExportCanvas(scale) {
+  beginTokenCache();
+  try {
+    return _buildExportCanvasInner(scale);
+  } finally {
+    endTokenCache();
+  }
+}
+
+function _buildExportCanvasInner(scale) {
   const exp = document.createElement('canvas');
   const lo = S.showLabels ? 20 : 0;
   const ch = cellHeightSq();
@@ -736,6 +799,9 @@ function buildExportCanvas(scale) {
     W = (last[0] - first[0] + S.hexSize * 3 + lo) * scale;
     H = (last[1] - first[1] + S.hexSize * 3 + lo) * scale;
   }
+  W = Math.ceil(W);
+  H = Math.ceil(H);
+  if (!canBuildExportCanvas(W, H)) return null;
   exp.width = W; exp.height = H;
   const ec = exp.getContext('2d');
   ec.fillStyle = canvasToken('--surface'); ec.fillRect(0, 0, W, H);
@@ -806,6 +872,7 @@ function downloadBlob(blob, filename) {
 
 function exportCanvas() {
   const exp = buildExportCanvas(2);
+  if (!exp) return;
   const link = document.createElement('a');
   link.download = safeFileStem(document.getElementById('patName').value || 'pattern') + '.png';
   link.href = exp.toDataURL('image/png');
@@ -815,6 +882,7 @@ function exportCanvas() {
 
 function exportPDF() {
   const exp = buildExportCanvas(1);
+  if (!exp) return;
   const jpeg = exp.toDataURL('image/jpeg', 0.92).split(',')[1];
   const imageBytes = base64ToBytes(jpeg);
   const pdf = makePdf(imageBytes, exp.width, exp.height);

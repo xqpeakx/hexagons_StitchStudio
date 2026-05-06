@@ -13,7 +13,6 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 :root {
   --bg:#faf8f5; --surface:#fffdf9; --s2:#f3f0eb; --s3:#ebe6df;
   --border:#e2ddd7; --border2:#cec8c0;
@@ -24,6 +23,9 @@
   --gold:#755512; --gold2:#fbf0d3;
   --purple:#5f438d; --purple2:#f0ebfa;
   --r:12px; --rsm:8px;
+  --font-ui:"Avenir Next","Segoe UI","Helvetica Neue",Arial,sans-serif;
+  --font-display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --font-mono:"SF Mono","Menlo","Consolas",monospace;
   --theme-color:var(--accent);
   --accent-hover:#6e452b;
   --surface-help:#f8f2ea;
@@ -77,7 +79,8 @@
   --ease:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-family:var(--font-ui);background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
 button,input,select,textarea{font:inherit}
 button{user-select:none}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,canvas#mc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -87,17 +90,17 @@ canvas#mc:focus-visible{outline-offset:-4px}
 
 /* ── HEADER ── */
 .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:58px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:100}
-.logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--accent);white-space:nowrap;margin-right:4px}
+.logo{font-family:var(--font-display);font-size:20px;font-weight:500;color:var(--accent);white-space:nowrap;margin-right:4px}
 .logo em{color:var(--text);font-style:normal}
 .seg{display:flex;background:var(--s2);border-radius:9px;padding:3px;gap:2px}
-.seg button{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);transition:background .18s,color .18s,box-shadow .18s;border:none;background:none;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.seg button{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);transition:background .18s,color .18s,box-shadow .18s;border:none;background:none;font-family:var(--font-ui);white-space:nowrap}
 .seg button.on{background:var(--surface);color:var(--accent);box-shadow:var(--sh)}
 .hdr-r{display:flex;gap:7px;align-items:center;margin-left:auto}
-.guide-btn{height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--border);background:linear-gradient(135deg,var(--gold2),var(--surface));color:var(--accent);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:.1px;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 3px 14px var(--glow-gold);transition:transform .15s,box-shadow .15s,border-color .15s}
+.guide-btn{height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--border);background:linear-gradient(135deg,var(--gold2),var(--surface));color:var(--accent);font-family:var(--font-ui);font-size:12px;font-weight:700;letter-spacing:.1px;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 3px 14px var(--glow-gold);transition:transform .15s,box-shadow .15s,border-color .15s}
 .guide-btn span{width:18px;height:18px;border-radius:50%;background:var(--accent);color:var(--surface);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1}
 .guide-btn:hover{border-color:var(--accent2);box-shadow:0 6px 18px var(--glow-gold-strong);transform:translateY(-1px)}
 .guide-btn:active{transform:scale(.97)}
-.pbtn{padding:7px 16px;border-radius:999px;border:none;background:var(--accent);color:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s var(--ease),box-shadow .15s var(--ease),background .15s;white-space:nowrap;box-shadow:0 5px 14px var(--glow-accent)}
+.pbtn{padding:7px 16px;border-radius:999px;border:none;background:var(--accent);color:var(--surface);font-family:var(--font-ui);font-size:13px;font-weight:700;cursor:pointer;transition:transform .15s var(--ease),box-shadow .15s var(--ease),background .15s;white-space:nowrap;box-shadow:0 5px 14px var(--glow-accent)}
 .pbtn:hover{background:var(--accent-hover);box-shadow:0 7px 18px var(--glow-accent-strong)}
 .pbtn:active{transform:scale(.97)}
 
@@ -105,7 +108,7 @@ canvas#mc:focus-visible{outline-offset:-4px}
 .body{--lp-w:188px;--rp-w:210px;display:flex;flex:1;overflow:hidden;position:relative}
 
 /* ── PANEL COLLAPSE TOGGLE BUTTONS ── */
-.panel-toggle{--toggle-x:0px;width:18px;flex-shrink:0;background:var(--surface);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:200;font-size:12px;color:var(--text3);transition:transform .2s var(--ease),background .15s,color .15s,box-shadow .15s;user-select:none;align-self:stretch;transform:translate3d(var(--toggle-x),0,0)}
+.panel-toggle{--toggle-x:0px;width:24px;flex-shrink:0;background:var(--surface);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:200;font-size:13px;color:var(--text3);transition:transform .2s var(--ease),background .15s,color .15s,box-shadow .15s;user-select:none;align-self:stretch;transform:translate3d(var(--toggle-x),0,0)}
 .panel-toggle:hover{background:var(--s2);color:var(--accent)}
 .lp-toggle{border-right:1px solid var(--border)}
 .rp-toggle{border-left:1px solid var(--border)}
@@ -118,6 +121,7 @@ canvas#mc:focus-visible{outline-offset:-4px}
 .ps{margin:0 8px;padding:11px 10px;border:1px solid transparent;border-radius:var(--r);background:transparent}
 .plbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px}
 .hint{font-size:10.5px;color:var(--text3);line-height:1.42;margin:-2px 0 9px}
+.hint,.micro-note,.modal-copy,.help-row-body,.sbtn,.sbtn2,.pit,.sit,.qbtn,.guide-wide,.jump-grid button{overflow-wrap:anywhere}
 .ps-primary{padding:12px;background:linear-gradient(145deg,var(--accent3),var(--wash-surface-96));border-color:var(--line-accent);box-shadow:0 10px 24px var(--glow-accent-soft)}
 .ps-primary .plbl,.ps-summary .plbl,.ps-callout .plbl{color:var(--accent);font-size:9.8px}
 .ps-primary .hint,.ps-summary .hint,.ps-callout .hint{color:var(--text2)}
@@ -135,31 +139,31 @@ canvas#mc:focus-visible{outline-offset:-4px}
   100%{box-shadow:none}
 }
 .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.tbtn{padding:9px 6px;border-radius:var(--rsm);border:1.5px solid var(--line-border-strong);background:var(--wash-surface-82);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;color:var(--text2);transition:transform .15s var(--ease),background .15s,border-color .15s,box-shadow .15s;font-family:'DM Sans',sans-serif;font-weight:700}
+.tbtn{padding:9px 6px;border-radius:var(--rsm);border:1.5px solid var(--line-border-strong);background:var(--wash-surface-82);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;color:var(--text2);transition:transform .15s var(--ease),background .15s,border-color .15s,box-shadow .15s;font-family:var(--font-ui);font-weight:700}
 .tbtn .ic{font-size:17px}
 .tbtn:hover{border-color:var(--accent2);background:var(--surface);transform:translateY(-1px)}
 .tbtn.on{border-color:var(--accent);background:var(--accent);color:var(--surface);box-shadow:0 7px 16px var(--glow-accent-raised)}
 
 .slist{display:flex;flex-direction:column;gap:4px}
-.sit{width:100%;display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--rsm);border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s,color .15s;font-size:11.5px;color:var(--text2);background:transparent;text-align:left;font-family:'DM Sans',sans-serif}
+.sit{width:100%;display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--rsm);border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s,color .15s;font-size:11.5px;color:var(--text2);background:transparent;text-align:left;font-family:var(--font-ui)}
 .sit:hover{background:var(--s2)}
 .sit.on{border-color:var(--line-accent);background:var(--surface);color:var(--accent);font-weight:700;box-shadow:inset 3px 0 0 var(--accent),var(--shs)}
-.ssym{width:21px;height:21px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--stitch-color,var(--text2));flex-shrink:0}
-.sit.on .ssym{background:var(--stitch-color,var(--accent));color:var(--surface)}
+.ssym{width:21px;height:21px;border-radius:50%;background:var(--stitch-color,var(--s2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--stitch-ink,var(--surface));border:1px solid var(--line-ink-soft);flex-shrink:0}
+.sit.on .ssym{background:var(--stitch-color,var(--accent));color:var(--stitch-ink,var(--surface))}
 
 .cgrid{display:flex;flex-wrap:wrap;gap:5px}
-.csw{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;background:var(--swatch-color,var(--surface));transition:transform .15s var(--ease),border-color .15s,box-shadow .15s;position:relative;flex-shrink:0}
+.csw{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;background:var(--swatch-color,var(--surface));transition:transform .15s var(--ease),border-color .15s,box-shadow .15s;position:relative;flex-shrink:0}
 .csw:hover{transform:scale(1.1)}
 .csw.on{border-color:var(--text)}
 .csw.on::after{content:'';position:absolute;inset:3px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line-ink)}
-.cadd{width:24px;height:24px;border-radius:50%;border:2px dashed var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text3);transition:border-color .15s,color .15s,transform .15s var(--ease);background:none}
+.cadd{width:28px;height:28px;border-radius:50%;border:2px dashed var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text3);transition:border-color .15s,color .15s,transform .15s var(--ease);background:none}
 .cadd:hover{border-color:var(--accent2);color:var(--accent2)}
 .custom-color-row{margin-top:7px;display:flex;align-items:center;gap:5px}
 .custom-color-row label{font-size:10.5px;color:var(--text3)}
-.custom-color-input{width:24px;height:24px;border:none;background:none;cursor:pointer;border-radius:50%;padding:0}
+.custom-color-input{width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:50%;padding:0}
 
 .plist{display:flex;flex-direction:column;gap:4px}
-.pit{width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 8px;border-radius:var(--rsm);border:1px solid transparent;cursor:pointer;font-size:11.5px;color:var(--text2);transition:background .15s,color .15s,border-color .15s;background:transparent;font-family:'DM Sans',sans-serif;text-align:left}
+.pit{width:100%;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:7px 8px;border-radius:var(--rsm);border:1px solid transparent;cursor:pointer;font-size:11.5px;color:var(--text2);transition:background .15s,color .15s,border-color .15s;background:transparent;font-family:var(--font-ui);text-align:left}
 .pit:hover{border-color:var(--line-accent-faint);background:var(--accent3);color:var(--accent)}
 .ptag{font-size:8.5px;background:var(--s2);color:var(--text3);padding:1px 5px;border-radius:4px;margin-left:3px;text-transform:uppercase;letter-spacing:.4px}
 .special-btn{width:100%;flex-direction:row;gap:7px;justify-content:flex-start;padding:9px 11px}
@@ -186,19 +190,20 @@ canvas#mc:focus-visible{outline-offset:-4px}
 .gc .sep{color:var(--text3)}
 .dim-sep{color:var(--text3);font-size:13px}
 .unit{font-size:10px;color:var(--text3)}
-.ni{width:52px;padding:3px 6px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--surface);outline:none;text-align:center}
+.ni{width:52px;padding:3px 6px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--font-ui);font-size:12px;color:var(--text);background:var(--surface);outline:none;text-align:center}
 .ni:focus{border-color:var(--accent2)}
-.apply-btn{padding:3px 10px;border-radius:var(--rsm);border:1px solid var(--accent2);background:var(--accent3);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;transition:background .15s,color .15s,border-color .15s,transform .15s var(--ease);white-space:nowrap}
+.apply-btn{padding:3px 10px;border-radius:var(--rsm);border:1px solid var(--accent2);background:var(--accent3);color:var(--accent);font-family:var(--font-ui);font-size:11px;font-weight:500;cursor:pointer;transition:background .15s,color .15s,border-color .15s,transform .15s var(--ease);white-space:nowrap}
 .apply-btn:hover{background:var(--accent);color:var(--surface);border-color:var(--accent)}
 .apply-btn:active{transform:scale(.96)}
 
 /* ── QUICK ACTION RAIL ── */
 .quick-actions{display:flex;align-items:center;gap:6px;flex:0 1 auto;min-width:min-content}
 .qa-group{display:flex;align-items:center;gap:2px;padding:2px;background:var(--wash-s2-74);border:1px solid var(--line-border-pill);border-radius:999px}
+.qa-label{padding:0 6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);white-space:nowrap}
 .qa-muted{background:transparent;border-color:transparent}
 .qa-file{background:var(--wash-surface-75)}
 .qa-export{background:var(--accent3);border-color:var(--line-accent-strong)}
-.qbtn{min-height:28px;padding:0 10px;border:none;border-radius:999px;background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:transform .15s var(--ease),background .15s,color .15s,box-shadow .15s}
+.qbtn{min-height:28px;padding:0 10px;border:none;border-radius:999px;background:transparent;color:var(--text2);font-family:var(--font-ui);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:transform .15s var(--ease),background .15s,color .15s,box-shadow .15s}
 .qbtn:hover{background:var(--surface);color:var(--accent);box-shadow:var(--sh)}
 .qbtn:active{transform:scale(.96)}
 .qicon{min-width:30px;padding:0 8px;font-size:14px}
@@ -207,7 +212,7 @@ canvas#mc:focus-visible{outline-offset:-4px}
 
 /* ── HEX ORIENT MINI ── */
 .hot-wrap{display:flex;gap:3px}
-.hot{padding:3px 8px;border-radius:var(--rsm);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:10.5px;font-weight:500;color:var(--text2);transition:background .15s,color .15s,border-color .15s,box-shadow .15s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.hot{padding:3px 8px;border-radius:var(--rsm);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:10.5px;font-weight:500;color:var(--text2);transition:background .15s,color .15s,border-color .15s,box-shadow .15s;font-family:var(--font-ui);white-space:nowrap}
 .hot.on{border-color:var(--purple);background:var(--purple2);color:var(--purple)}
 
 .cw{flex:1;overflow:hidden;position:relative;cursor:crosshair}
@@ -237,24 +242,27 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .prow .v{font-weight:800;color:var(--text);font-size:12.5px}
 .ps-summary .prow{padding:4px 7px;margin-bottom:5px;border:0;border-radius:999px;background:var(--wash-surface-60)}
 .ps-summary .prow:last-child{margin-bottom:0}
-.pattern-name{width:100%;border:0;border-bottom:1px solid var(--line-gold);border-radius:0;padding:3px 0 6px;font-family:'Playfair Display',serif;font-size:17px;background:transparent;color:var(--text);outline:none;margin-bottom:8px}
+.pattern-name{width:100%;border:0;border-bottom:1px solid var(--line-gold);border-radius:0;padding:3px 0 6px;font-family:var(--font-display);font-size:17px;background:transparent;color:var(--text);outline:none;margin-bottom:8px}
 .pattern-name:focus{border-bottom-color:var(--accent);box-shadow:0 1px 0 var(--accent)}
 .underlay-controls{margin-top:8px}
 .underlay-row{margin-bottom:8px}
 .underlay-range{flex:1;max-width:120px}
 .tog{display:flex;border-radius:999px;overflow:hidden;border:0;background:var(--s2);padding:2px}
-.tog button{padding:4px 9px;font-size:10.5px;border:none;border-radius:999px;background:transparent;cursor:pointer;color:var(--text2);font-family:'DM Sans',sans-serif;font-weight:700;transition:background .15s,color .15s,box-shadow .15s}
+.tog button{padding:4px 9px;font-size:10.5px;border:none;border-radius:999px;background:transparent;cursor:pointer;color:var(--text2);font-family:var(--font-ui);font-weight:700;transition:background .15s,color .15s,box-shadow .15s}
 .tog button.on{background:var(--accent);color:var(--surface);box-shadow:0 3px 9px var(--glow-accent-active)}
+.setting-group{padding-top:7px;margin-top:7px;border-top:1px solid var(--line-border-soft)}
+.settings-panel .hint + .setting-group{padding-top:0;margin-top:0;border-top:0}
+.setting-subhead{margin-bottom:3px;font-size:9.5px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.65px}
 .option-map{background:linear-gradient(160deg,var(--wash-accent3-96),var(--wash-surface-92))}
 .jump-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:7px}
-.jump-grid button,.guide-wide{border:1px solid transparent;background:var(--wash-surface-66);color:var(--text2);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:10.8px;font-weight:800;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .15s var(--ease)}
+.jump-grid button,.guide-wide{border:1px solid transparent;background:var(--wash-surface-66);color:var(--text2);border-radius:var(--rsm);font-family:var(--font-ui);font-size:10.8px;font-weight:800;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .15s var(--ease)}
 .jump-grid button{padding:7px 6px;text-align:center}
 .jump-grid button:hover,.guide-wide:hover{border-color:var(--accent2);background:var(--accent3);color:var(--accent)}
 .guide-wide{width:100%;padding:8px 10px;text-align:left}
 
 .leg{display:flex;flex-direction:column;gap:5px}
 .li{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--text2)}
-.li.swap{width:100%;cursor:pointer;border:0;border-radius:5px;padding:2px 4px;transition:background .15s,color .15s;background:transparent;text-align:left;font-family:'DM Sans',sans-serif}
+.li.swap{width:100%;cursor:pointer;border:0;border-radius:5px;padding:2px 4px;transition:background .15s,color .15s;background:transparent;text-align:left;font-family:var(--font-ui)}
 .li.swap:hover{background:var(--accent3);color:var(--accent)}
 .ls{width:13px;height:13px;border-radius:3px;border:1px solid var(--line-ink-faint);background:var(--swatch-color,transparent);flex-shrink:0}
 .lsym{font-size:9.5px;font-weight:700;color:var(--text3);width:13px;text-align:center}
@@ -263,7 +271,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .legend-empty{font-size:10.5px;color:var(--text3)}
 
 .acts{display:flex;flex-direction:column;gap:4px}
-.sbtn{width:100%;text-align:left;padding:7px 9px;border-radius:var(--rsm);border:1px solid transparent;background:var(--wash-surface-56);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:700;cursor:pointer;transition:background .15s,color .15s,border-color .15s,transform .15s var(--ease)}
+.sbtn{width:100%;text-align:left;padding:7px 9px;border-radius:var(--rsm);border:1px solid transparent;background:var(--wash-surface-56);color:var(--text2);font-family:var(--font-ui);font-size:11.5px;font-weight:700;cursor:pointer;transition:background .15s,color .15s,border-color .15s,transform .15s var(--ease)}
 .sbtn:hover{background:var(--surface);border-color:var(--border);color:var(--text)}
 .sbtn-promote,.file-action{background:var(--surface);border-color:var(--line-accent-faint);color:var(--accent)}
 .danger-action{color:var(--rose);background:var(--rose2)}
@@ -271,7 +279,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 
 /* ── CABLES PANEL ── */
 .cab-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.cab{padding:8px 6px;border-radius:var(--rsm);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:11px;font-weight:600;color:var(--text2);transition:background .15s,color .15s,border-color .15s,transform .15s var(--ease);font-family:'DM Sans',sans-serif}
+.cab{padding:8px 6px;border-radius:var(--rsm);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:11px;font-weight:600;color:var(--text2);transition:background .15s,color .15s,border-color .15s,transform .15s var(--ease);font-family:var(--font-ui)}
 .cab:hover{border-color:var(--purple);background:var(--purple2);color:var(--purple)}
 .cab.on{border-color:var(--purple);background:var(--purple2);color:var(--purple)}
 .cab-none{grid-column:1 / -1;font-size:10.5px;font-weight:500;padding:5px 6px;color:var(--text3)}
@@ -284,7 +292,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .gauge-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
 .gauge-row .gauge-cell{display:flex;flex-direction:column;gap:2px}
 .gauge-row label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)}
-.gauge-row input{width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:11.5px;color:var(--text);background:var(--surface);outline:none;text-align:center}
+.gauge-row input{width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--font-ui);font-size:11.5px;color:var(--text);background:var(--surface);outline:none;text-align:center}
 .gauge-row input:focus{border-color:var(--accent2)}
 .full-action{width:100%}
 .secondary-action{margin-top:2px}
@@ -294,52 +302,58 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .gp{display:none;position:absolute;right:0;top:0;bottom:0;width:268px;background:var(--surface);border-left:1px solid var(--border);z-index:50;overflow-y:auto;flex-direction:column}
 .gp.vis{display:flex}
 .gph{padding:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.gpt{font-family:'Playfair Display',serif;font-size:15px;font-weight:500}
-.gpx{cursor:pointer;color:var(--text3);font-size:17px;border:0;background:transparent;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+.gpt{font-family:var(--font-display);font-size:15px;font-weight:500}
+.gpx{cursor:pointer;color:var(--text3);font-size:17px;border:0;background:transparent;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center}
 .gpx:hover{background:var(--s2);color:var(--text)}
 .gpb{padding:13px;display:flex;flex-direction:column;gap:12px}
 .gf label,.gf-label{display:block;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:5px}
-.gf select,.gf input[type=number]{width:100%;padding:7px 9px;border-radius:var(--rsm);border:1px solid var(--border);font-family:'DM Sans',sans-serif;font-size:12.5px;background:var(--surface);color:var(--text);outline:none}
+.gf select,.gf input[type=number]{width:100%;padding:7px 9px;border-radius:var(--rsm);border:1px solid var(--border);font-family:var(--font-ui);font-size:12.5px;background:var(--surface);color:var(--text);outline:none}
 .gf select:focus,.gf input:focus{border-color:var(--accent2)}
 .rb{display:flex;flex-direction:column;gap:5px}
 .rrow{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:var(--rsm);background:var(--s2);border:1px solid var(--border)}
 .rn{font-size:10.5px;font-weight:600;color:var(--text3);width:18px}
 .rcp{width:19px;height:19px;border-radius:50%;cursor:pointer;border:2px solid var(--border);flex-shrink:0}
-.rst{flex:1;font-size:10.5px;color:var(--text2);padding:3px 5px;border:1px solid var(--border);border-radius:5px;background:var(--surface);font-family:'DM Sans',sans-serif;outline:none}
+.rst{flex:1;font-size:10.5px;color:var(--text2);padding:3px 5px;border:1px solid var(--border);border-radius:5px;background:var(--surface);font-family:var(--font-ui);outline:none}
 .gprev{display:flex;justify-content:center;padding:10px;background:var(--s2);border-radius:var(--r);border:1px solid var(--border)}
 
 /* ── MODAL ── */
 .mo{position:fixed;inset:0;background:var(--overlay-modal);z-index:500;display:none;align-items:center;justify-content:center}
 .mo.open{display:flex}
 .md{background:var(--surface);border-radius:var(--r);padding:22px;width:340px;max-width:90vw;box-shadow:var(--shl)}
-.md h3{font-family:'Playfair Display',serif;font-size:17px;margin-bottom:14px}
+.md h3{font-family:var(--font-display);font-size:17px;margin-bottom:14px}
 .compact-md{width:320px}
 .text-modal{width:580px;max-width:94vw}
 .modal-copy{font-size:12px;color:var(--text2);line-height:1.45;margin-bottom:12px}
 .modal-stack{display:flex;flex-direction:column;gap:6px}
 .modal-stack-loose{gap:12px}
-.form-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none}
+.form-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--font-ui);font-size:13px;background:var(--surface);color:var(--text);outline:none}
 .form-input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px var(--glow-accent-ring)}
 .center-input{text-align:center;font-size:14px}
 .legend-title{display:flex;align-items:center;gap:9px}
 .legend-modal-swatch{width:18px;height:18px;border-radius:5px;border:1px solid var(--line-ink-soft);background:var(--swatch-color,transparent);display:inline-block}
 .action-row{text-align:left;width:100%}
 .danger-row{color:var(--rose);background:var(--rose2)}
-.pattern-textarea{width:100%;height:340px;padding:12px;border:1px solid var(--border);border-radius:var(--rsm);font-family:'SF Mono',Menlo,monospace;font-size:12.5px;background:var(--s2);color:var(--text);outline:none;resize:vertical;line-height:1.55;white-space:pre}
+.pattern-textarea{width:100%;height:340px;padding:12px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--font-mono);font-size:12.5px;background:var(--s2);color:var(--text);outline:none;resize:vertical;line-height:1.55;white-space:pre}
+.text-options{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:8px 10px;border:1px solid var(--line-border-soft);border-radius:var(--rsm);background:var(--wash-surface-75)}
+.text-options label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3)}
+.text-options select{min-height:34px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--surface);color:var(--text);padding:5px 9px;font-family:var(--font-ui);font-size:12.5px}
+.help-drawer{position:fixed;top:58px;right:0;bottom:0;width:min(420px,92vw);z-index:460;display:flex;align-items:stretch;justify-content:flex-end;pointer-events:none;visibility:hidden;transform:translate3d(100%,0,0);transition:transform .22s var(--ease),visibility 0s linear .22s}
+.help-drawer.open{pointer-events:auto;visibility:visible;transform:translate3d(0,0,0);transition:transform .22s var(--ease),visibility 0s linear 0s}
+.help-drawer .help-md{width:100%;max-width:none;max-height:none;height:100%;border-radius:var(--r) 0 0 var(--r);box-shadow:var(--shl);border-left:1px solid var(--border)}
 .help-md{width:620px;max-width:94vw;max-height:88vh;overflow:hidden;padding:0;display:flex;flex-direction:column;background:linear-gradient(145deg,var(--surface) 0%,var(--surface) 58%,var(--surface-help) 100%)}
 .help-head{padding:20px 24px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--border)}
 .help-head h3{font-size:22px;margin:0;color:var(--text)}
 .help-close{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text3);font-size:22px;line-height:1;cursor:pointer}
 .help-close:hover{background:var(--s2);color:var(--text)}
 .help-intro{font-size:12.5px;color:var(--text2);line-height:1.45;padding:12px 24px 0}
-.help-search{margin:10px 24px 0;width:calc(100% - 48px);border:1px solid var(--border);border-radius:999px;padding:10px 14px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13.5px;outline:none;box-shadow:0 4px 18px var(--ink-shadow-soft)}
+.help-search{margin:10px 24px 0;width:calc(100% - 48px);border:1px solid var(--border);border-radius:999px;padding:10px 14px;background:var(--surface);color:var(--text);font-family:var(--font-ui);font-size:13.5px;outline:none;box-shadow:0 4px 18px var(--ink-shadow-soft)}
 .help-search:focus{border-color:var(--accent2);box-shadow:0 0 0 3px var(--glow-accent-ring)}
 .help-layout{display:flex;flex-direction:column;gap:12px;padding:14px 24px 22px;overflow:auto}
 .help-start{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:999px;background:var(--wash-surface-72);padding:8px 12px}
 .help-pill{display:inline-block;background:var(--accent);color:var(--surface);border-radius:999px;padding:3px 9px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap}
 .help-start p{font-size:12px;color:var(--text2);line-height:1.35}
 .help-results{display:flex;flex-direction:column;gap:6px}
-.help-row{width:100%;min-height:52px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--wash-surface-92);color:var(--text);padding:10px 12px;text-align:left;font-family:'DM Sans',sans-serif;cursor:pointer;box-shadow:0 2px 10px var(--ink-shadow-row);transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
+.help-row{width:100%;min-height:52px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--wash-surface-92);color:var(--text);padding:10px 12px;text-align:left;font-family:var(--font-ui);cursor:pointer;box-shadow:0 2px 10px var(--ink-shadow-row);transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
 .help-row:hover{border-color:var(--accent2);background:var(--surface);box-shadow:0 5px 16px var(--shadow-row-hover);transform:translateY(-1px)}
 .help-row:active{transform:scale(.99)}
 .help-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -349,12 +363,12 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .help-empty{border:1px dashed var(--border2);border-radius:var(--r);padding:18px;text-align:center;color:var(--text2);font-size:13px;background:var(--wash-surface-56)}
 .macts{display:flex;gap:7px;justify-content:flex-end;margin-top:18px}
 .field-label{font-size:11.5px;color:var(--text2);display:block;margin-bottom:5px}
-.sbtn2{padding:7px 14px;border-radius:var(--rsm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12.5px;cursor:pointer}
+.sbtn2{padding:7px 14px;border-radius:var(--rsm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--font-ui);font-size:12.5px;cursor:pointer}
 .sbtn2:hover{background:var(--s2)}
 .slist2{display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto}
 .sli{display:flex;align-items:stretch;justify-content:space-between;border-radius:var(--rsm);border:1px solid var(--border);font-size:11.5px;background:var(--surface);transition:background .15s,border-color .15s;overflow:hidden}
 .sli:hover{background:var(--s2)}
-.sli-main{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border:0;background:transparent;color:var(--text);font-family:'DM Sans',sans-serif;text-align:left;cursor:pointer}
+.sli-main{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border:0;background:transparent;color:var(--text);font-family:var(--font-ui);text-align:left;cursor:pointer}
 .slin{font-weight:500;color:var(--text)}
 .slim{display:block;font-size:10px;color:var(--text3)}
 .slid{width:36px;border:0;border-left:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;font-size:13px}
@@ -424,24 +438,25 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 
   /* Legend rows are already touch-friendly via .swap, but bump font */
   .li{font-size:12px;padding:4px 4px}
-  .li.swap{padding:6px 6px}
+  .li.swap{min-height:44px;padding:8px 6px}
   .ls{width:18px;height:18px}
 
   /* Action buttons in right panel */
-  .sbtn{padding:11px 12px;font-size:13px}
+  .sbtn{min-height:44px;padding:11px 12px;font-size:13px}
 
   /* Gauge inputs */
-  .gauge-row input{padding:8px 8px;font-size:13px;height:36px}
+  .gauge-row input{padding:8px 8px;font-size:13px;height:44px}
   .gauge-row label{font-size:10px}
 
   /* Granny panel — Round colour pickers */
   .rrow{padding:10px 11px;gap:9px}
-  .rcp{width:28px;height:28px}
-  .rst{padding:7px 7px;font-size:12px;height:34px}
+  .rcp{width:44px;height:44px}
+  .rst{padding:7px 7px;font-size:12px;min-height:44px}
   .rn{font-size:12px;width:24px}
+  .gpx{width:44px;height:44px}
 
   /* Modals: bigger targets */
-  .sbtn2{padding:11px 18px;font-size:14px}
+  .sbtn2{min-height:44px;padding:11px 18px;font-size:14px}
   .sli{font-size:13px}
   .sli-main{min-height:44px;padding:11px 12px}
   .slid{width:44px}
@@ -462,21 +477,32 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 
 /* ── RESPONSIVE: collapse panels on narrow screens ── */
 @media (max-width: 720px) {
-  .body{--lp-w:min(88vw,340px);--rp-w:min(90vw,360px);--mobile-toolbar-h:56px}
+  .body{--lp-w:min(88vw,340px);--rp-w:min(90vw,360px);--mobile-toolbar-h:148px}
   .lp,.rp{top:var(--mobile-toolbar-h);box-shadow:var(--shl)}
   .lp.collapsed,.rp.collapsed{box-shadow:none}
   .panel-toggle{position:absolute;top:50%;transform:translate3d(var(--toggle-x),-50%,0);height:48px;align-self:auto;width:32px;border-radius:0 var(--rsm) var(--rsm) 0;box-shadow:var(--sh);z-index:91}
   .lp-toggle{left:0}
   .rp-toggle{right:0;border-radius:var(--rsm) 0 0 var(--rsm)}
-  .hdr{padding:0 8px;gap:6px;height:52px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-  .hdr::-webkit-scrollbar,.ctb::-webkit-scrollbar{display:none}
+  .hdr{padding:6px 8px;gap:6px;height:auto;min-height:96px;flex-wrap:wrap;align-content:center;overflow:visible}
+  .hdr::-webkit-scrollbar{display:none}
   .logo{font-size:17px;flex:0 0 auto}
-  .hdr .seg,.hdr-r{flex:0 0 auto}
-  .seg button{padding:4px 8px;font-size:11px}
-  .ctb{height:var(--mobile-toolbar-h);min-height:var(--mobile-toolbar-h);max-height:var(--mobile-toolbar-h);padding:6px 8px;gap:6px;align-items:center;align-content:center;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
-  .grid-controls{flex:0 0 auto;flex-wrap:nowrap;gap:5px;min-width:max-content;scroll-snap-align:start}
-  .quick-actions{order:0;width:auto;overflow:visible;padding-bottom:0;flex:0 0 auto;scroll-snap-align:start}
-  .qa-group{flex:0 0 auto}
+  .hdr-r{flex:0 0 auto;order:1}
+  .hdr .seg{flex:1 1 160px;min-width:min(100%,160px);order:2}
+  .hdr #modeTab{order:2}
+  .hdr #gridTab{order:3}
+  .seg button{padding:4px 8px;font-size:11px;flex:1 1 0;text-align:center}
+  .ctb{height:auto;min-height:var(--mobile-toolbar-h);max-height:none;padding:6px 8px;gap:6px;align-items:center;align-content:flex-start;flex-wrap:wrap;overflow:visible;scrollbar-width:auto}
+  .grid-controls{flex:1 1 100%;flex-wrap:nowrap;gap:5px;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-align:start;-webkit-overflow-scrolling:touch}
+  .grid-controls{scrollbar-width:thin}
+  .grid-controls::-webkit-scrollbar{height:4px}
+  .grid-controls::-webkit-scrollbar-thumb{background:var(--border2);border-radius:999px}
+  .quick-actions{order:-1;width:100%;overflow:visible;padding-bottom:0;flex:1 0 100%;display:grid;grid-template-columns:auto 1fr;gap:5px;align-items:center}
+  .qa-group{min-width:0}
+  .qa-muted{justify-self:start}
+  .qa-file{justify-self:end}
+  .qa-export{grid-column:1 / -1;display:grid;grid-template-columns:auto repeat(3,minmax(0,1fr));width:100%}
+  .qa-export .qbtn{min-width:0}
+  .qa-label{align-self:center;padding:0 8px}
   .ctb-spacer{display:none}
   .tbs{height:24px}
   .badge{display:none}
@@ -499,6 +525,10 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   .help-start{align-items:flex-start;border-radius:var(--r)}
   .help-row{grid-template-columns:1fr;gap:7px}
   .help-where{justify-self:flex-start}
+  .help-drawer{top:96px;width:min(100vw,420px)}
+  .help-drawer .help-md{border-radius:0}
+  .text-options{align-items:stretch;flex-direction:column;gap:6px}
+  .text-options select{width:100%}
 }
 
 @media (max-width: 420px) {
@@ -522,12 +552,72 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   }
 }
 
+@media (forced-colors: active) {
+  :root{
+    --bg:Canvas;
+    --surface:Canvas;
+    --s2:Canvas;
+    --s3:ButtonFace;
+    --border:CanvasText;
+    --border2:CanvasText;
+    --text:CanvasText;
+    --text2:CanvasText;
+    --text3:CanvasText;
+    --accent:Highlight;
+    --accent2:Highlight;
+    --accent3:Canvas;
+    --rose:Highlight;
+    --rose2:Canvas;
+    --purple:Highlight;
+    --purple2:Canvas;
+    --teal:Highlight;
+    --teal2:Canvas;
+    --gold:Highlight;
+    --gold2:Canvas;
+  }
+  *,*::before,*::after{
+    box-shadow:none!important;
+    text-shadow:none!important;
+  }
+  body,.hdr,.lp,.rp,.ctb,.ps,.md,.help-md,.help-drawer .help-md,.gp,.zoom-bar,.aind{
+    background:Canvas!important;
+    color:CanvasText!important;
+    border-color:CanvasText!important;
+  }
+  button,input,select,textarea{
+    background:ButtonFace!important;
+    color:ButtonText!important;
+    border:1px solid ButtonText!important;
+  }
+  button.on,.pbtn,.qstrong,.tog button.on,.seg button.on,.hot.on,.cab.on,.help-pill{
+    background:Highlight!important;
+    color:HighlightText!important;
+    border-color:Highlight!important;
+  }
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,canvas#mc:focus-visible{
+    outline:3px solid Highlight!important;
+    outline-offset:2px;
+  }
+  .csw,.cadd,.rcp,.ls,.legend-modal-swatch,.adot{
+    forced-color-adjust:none;
+    border-color:CanvasText!important;
+  }
+  .toast{
+    background:CanvasText!important;
+    color:Canvas!important;
+    border:1px solid CanvasText;
+  }
+  canvas#mc{
+    background:Canvas!important;
+  }
+}
+
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
-<div class="hdr">
+<header class="hdr" role="banner">
   <div class="logo">Stitch <em>Studio</em></div>
   <div class="seg" id="modeTab" role="group" aria-label="Pattern mode">
     <button class="on" aria-pressed="true" data-action="setMode" data-value="crochet">🧶 Crochet</button>
@@ -541,13 +631,14 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <button class="guide-btn" data-action="openHelpModal" title="Open guide (?)"><span aria-hidden="true">?</span> Guide</button>
     <button class="pbtn" data-action="openNewModal">+ New</button>
   </div>
-</div>
+</header>
 
 <!-- BODY -->
-<div class="body">
+<main class="body" id="appMain">
 
 <!-- LEFT PANEL -->
-<div class="lp" id="leftPanel" aria-hidden="false">
+<aside class="lp" id="leftPanel" aria-hidden="false" aria-labelledby="leftPanelTitle">
+  <h2 id="leftPanelTitle" class="visually-hidden">Pattern building controls</h2>
   <div class="ps ps-primary" id="toolsPanel">
     <div class="plbl">Tools</div>
     <p class="hint">Draw, erase, fill, pick colours, pan, or mark repeat regions.</p>
@@ -590,13 +681,14 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
       <span class="ic special-ic" aria-hidden="true">🌸</span><span>Granny Square Builder</span>
     </button>
   </div>
-</div>
+</aside>
 
 <button class="panel-toggle lp-toggle panel-open" id="lpToggle" data-action="toggleLP" title="Toggle left panel" aria-label="Collapse left panel" aria-expanded="true" aria-controls="leftPanel">‹</button>
 
 <!-- CANVAS -->
-<div class="ca">
-  <div class="ctb" id="canvasOptionsBar">
+<section class="ca" aria-labelledby="chartRegionTitle">
+  <h1 id="chartRegionTitle" class="visually-hidden">Chart workspace</h1>
+  <div class="ctb" id="canvasOptionsBar" role="toolbar" aria-label="Chart options and exports">
     <div id="sqControls" class="grid-controls">
       <div class="gc">
         <label for="sqW">Max W</label>
@@ -613,7 +705,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
         <label for="sqCell">Cell size</label>
         <input class="ni" type="number" id="sqCell" min="4" max="80" value="26">
         <span class="unit">px</span>
-        <button class="apply-btn" data-action="applyCellSize">↵</button>
+        <button class="apply-btn" data-action="applyCellSize" aria-label="Apply cell size">↵</button>
       </div>
     </div>
     <div id="hexControls" class="grid-controls" hidden>
@@ -621,7 +713,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
         <label for="hexSize">Hex size</label>
         <input class="ni" type="number" id="hexSize" min="4" max="80" value="26">
         <span class="unit">px</span>
-        <button class="apply-btn" data-action="applyHexSize">↵</button>
+        <button class="apply-btn" data-action="applyHexSize" aria-label="Apply hex size">↵</button>
       </div>
       <div class="tbs"></div>
       <div class="gc">
@@ -630,7 +722,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
         <span class="dim-sep" aria-hidden="true">×</span>
         <label for="hexRows" class="visually-hidden">Hex rows</label>
         <input class="ni" type="number" id="hexRows" min="1" max="9999" value="300">
-        <button class="apply-btn" data-action="applyHexSize">↵</button>
+        <button class="apply-btn" data-action="applyHexSize" aria-label="Apply hex grid limit">↵</button>
       </div>
       <div class="tbs"></div>
       <div class="hot-wrap" role="group" aria-label="Hex orientation">
@@ -647,29 +739,33 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
         <button class="qbtn qicon" data-action="undoLast" title="Undo (⌘Z)" aria-label="Undo">↩</button>
         <button class="qbtn qicon" data-action="redoLast" title="Redo (⇧⌘Z)" aria-label="Redo">↪</button>
       </div>
-      <div class="qa-group qa-file" role="group" aria-label="File actions">
-        <button class="qbtn" data-action="openSaveModal" title="Save named pattern">Save</button>
-        <button class="qbtn" data-action="openLoadModal" title="Load named pattern">Load</button>
+      <div class="qa-group qa-file" role="group" aria-label="Local pattern library">
+        <span class="qa-label">Library</span>
+        <button class="qbtn" data-action="openSaveModal" title="Save to this browser">Save</button>
+        <button class="qbtn" data-action="openLoadModal" title="Open from this browser">Open</button>
       </div>
-      <div class="qa-group qa-export" role="group" aria-label="Export actions">
+      <div class="qa-group qa-export" role="group" aria-label="Print and export actions">
+        <span class="qa-label">Export</span>
         <button class="qbtn qstrong" data-action="exportPDF" title="Export printable PDF">PDF</button>
         <button class="qbtn" data-action="exportCanvas" title="Export PNG image">PNG</button>
-        <button class="qbtn" data-action="exportText" title="Generate written pattern text">Text</button>
+        <button class="qbtn" data-action="exportText" title="Export written instructions">Text</button>
       </div>
     </div>
   </div>
 
-  <div class="cw" id="cw">
-    <canvas id="mc" tabindex="0" role="application" aria-label="Chart canvas. Use arrow keys to move the keyboard cursor. Press Enter or Space to use the active tool, and Delete to clear the focused cell."></canvas>
+  <div class="cw" id="cw" aria-label="Editable chart area">
+    <canvas id="mc" tabindex="0" role="application" aria-label="Chart canvas. Use arrow keys to move the keyboard cursor. Press Enter or Space to use the active tool, and Delete to clear the focused cell." aria-describedby="canvasHelp canvasStatus"></canvas>
+    <p id="canvasHelp" class="visually-hidden">The chart announces the focused row, column, stitch, and colour as you move or edit with the keyboard.</p>
+    <div id="canvasStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">Chart ready.</div>
     <div class="aind" id="aind">
       <div class="adot" id="adot"></div>
       <span id="alab">dc — Double Crochet</span>
     </div>
     <div class="zoom-bar">
-      <button data-action="adjZoom" data-value="-0.15" title="Zoom out (-)">−</button>
+      <button data-action="adjZoom" data-value="-0.15" title="Zoom out (-)" aria-label="Zoom out">−</button>
       <span id="zl" class="zoom-label">100%</span>
-      <button data-action="adjZoom" data-value="0.15" title="Zoom in (+)">+</button>
-      <button class="zreset" data-action="resetZoom" title="Reset zoom (0)">⟳</button>
+      <button data-action="adjZoom" data-value="0.15" title="Zoom in (+)" aria-label="Zoom in">+</button>
+      <button class="zreset" data-action="resetZoom" title="Reset zoom (0)" aria-label="Reset zoom">⟳</button>
     </div>
   </div>
 
@@ -680,7 +776,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
       <button class="gpx" data-action="toggleGranny" aria-label="Close granny square builder">✕</button>
     </div>
     <div class="gpb">
-      <div class="gprev"><canvas id="gpc" width="200" height="200"></canvas></div>
+      <div class="gprev"><canvas id="gpc" width="200" height="200" role="img" aria-label="Granny square preview"></canvas></div>
       <div class="gf">
         <label for="gStyle">Square Style</label>
         <select id="gStyle" data-change-action="onGStyleChange">
@@ -721,14 +817,15 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
       <button class="sbtn2 full-action secondary-action" data-action="exportGranny">Export Square Image</button>
     </div>
   </div>
-</div>
+</section>
 
 <button class="panel-toggle rp-toggle panel-open" id="rpToggle" data-action="toggleRP" title="Toggle right panel" aria-label="Collapse right panel" aria-expanded="true" aria-controls="rightPanel">›</button>
 
 <!-- RIGHT PANEL -->
-<div class="rp" id="rightPanel" aria-hidden="false">
+<aside class="rp" id="rightPanel" aria-hidden="false" aria-labelledby="rightPanelTitle">
+  <h2 id="rightPanelTitle" class="visually-hidden">Pattern settings and actions</h2>
   <div class="ps ps-summary" id="patternPanel">
-    <div class="plbl">Pattern Info</div>
+    <div class="plbl">Current Pattern</div>
     <label class="visually-hidden" for="patName">Pattern name</label>
     <input id="patName" class="pattern-name" value="My Pattern">
     <div class="prow"><span>Rows</span><span class="v" id="sRows">20</span></div>
@@ -746,32 +843,41 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     </div>
     <button class="guide-wide" data-action="openHelpModal">Open full guide</button>
   </div>
-  <div class="ps ps-core" id="displayPanel">
+  <div class="ps ps-core settings-panel" id="displayPanel">
     <div class="plbl">Display</div>
-    <p class="hint">Tune how the chart behaves while you edit or follow a row.</p>
-    <div class="prow"><span>Grid lines</span>
-      <div class="tog" role="group" aria-label="Grid lines"><button class="on" id="gOn" aria-pressed="true" data-action="togGrid" data-value="true">On</button><button id="gOff" aria-pressed="false" data-action="togGrid" data-value="false">Off</button></div>
+    <p class="hint">Chart view, editing behavior, and pattern-reading options.</p>
+    <div class="setting-group">
+      <div class="setting-subhead">Chart view</div>
+      <div class="prow"><span>Grid lines</span>
+        <div class="tog" role="group" aria-label="Grid lines"><button class="on" id="gOn" aria-pressed="true" data-action="togGrid" data-value="true">On</button><button id="gOff" aria-pressed="false" data-action="togGrid" data-value="false">Off</button></div>
+      </div>
+      <div class="prow"><span>Row labels</span>
+        <div class="tog" role="group" aria-label="Row labels"><button class="on" id="lOn" aria-pressed="true" data-action="togLabels" data-value="true">On</button><button id="lOff" aria-pressed="false" data-action="togLabels" data-value="false">Off</button></div>
+      </div>
+      <div class="prow"><span>Symbols</span>
+        <div class="tog" role="group" aria-label="Symbols"><button class="on" id="sOn" aria-pressed="true" data-action="togSyms" data-value="true">On</button><button id="sOff" aria-pressed="false" data-action="togSyms" data-value="false">Off</button></div>
+      </div>
     </div>
-    <div class="prow"><span>Row labels</span>
-      <div class="tog" role="group" aria-label="Row labels"><button class="on" id="lOn" aria-pressed="true" data-action="togLabels" data-value="true">On</button><button id="lOff" aria-pressed="false" data-action="togLabels" data-value="false">Off</button></div>
+    <div class="setting-group">
+      <div class="setting-subhead">Editing</div>
+      <div class="prow" title="When on, already-colored cells need a second tap/double-click to be overwritten."><span>Protect filled</span>
+        <div class="tog" role="group" aria-label="Protect filled cells"><button class="on" id="pOn" aria-pressed="true" data-action="togProtect" data-value="true">On</button><button id="pOff" aria-pressed="false" data-action="togProtect" data-value="false">Off</button></div>
+      </div>
+      <div class="prow" title="When on, finger taps always pan and a stylus uses the active tool. Auto-enables on first Apple Pencil contact."><span>Stylus mode</span>
+        <div class="tog" role="group" aria-label="Stylus mode"><button id="stOn" aria-pressed="false" data-action="togStylus" data-value="true">On</button><button class="on" id="stOff" aria-pressed="true" data-action="togStylus" data-value="false">Off</button></div>
+      </div>
     </div>
-    <div class="prow"><span>Symbols</span>
-      <div class="tog" role="group" aria-label="Symbols"><button class="on" id="sOn" aria-pressed="true" data-action="togSyms" data-value="true">On</button><button id="sOff" aria-pressed="false" data-action="togSyms" data-value="false">Off</button></div>
-    </div>
-    <div class="prow" title="When on, already-colored cells need a second tap/double-click to be overwritten."><span>Protect filled</span>
-      <div class="tog" role="group" aria-label="Protect filled cells"><button class="on" id="pOn" aria-pressed="true" data-action="togProtect" data-value="true">On</button><button id="pOff" aria-pressed="false" data-action="togProtect" data-value="false">Off</button></div>
-    </div>
-    <div class="prow" title="Shade wrong-side rows on knit charts."><span>Shade WS rows</span>
-      <div class="tog" role="group" aria-label="Shade wrong-side rows"><button id="wsOn" aria-pressed="false" data-action="togWS" data-value="true">On</button><button class="on" id="wsOff" aria-pressed="true" data-action="togWS" data-value="false">Off</button></div>
-    </div>
-    <div class="prow" title="Highlight one row at a time as you knit/crochet from the chart."><span>Follow row</span>
-      <div class="tog" role="group" aria-label="Follow row"><button id="foOn" aria-pressed="false" data-action="togFollow" data-value="true">On</button><button class="on" id="foOff" aria-pressed="true" data-action="togFollow" data-value="false">Off</button></div>
-    </div>
-    <div class="prow" id="termRow" title="Switch crochet display labels between US and UK terminology."><span>Terminology</span>
-      <div class="tog" role="group" aria-label="Crochet terminology"><button class="on" id="termUS" aria-pressed="true" data-action="setCrochetTerms" data-value="us">US</button><button id="termUK" aria-pressed="false" data-action="setCrochetTerms" data-value="uk">UK</button></div>
-    </div>
-    <div class="prow" title="When on, finger taps always pan and a stylus uses the active tool. Auto-enables on first Apple Pencil contact."><span>Stylus mode</span>
-      <div class="tog" role="group" aria-label="Stylus mode"><button id="stOn" aria-pressed="false" data-action="togStylus" data-value="true">On</button><button class="on" id="stOff" aria-pressed="true" data-action="togStylus" data-value="false">Off</button></div>
+    <div class="setting-group">
+      <div class="setting-subhead">Pattern reading</div>
+      <div class="prow" title="Shade wrong-side rows on knit charts."><span>Shade WS rows</span>
+        <div class="tog" role="group" aria-label="Shade wrong-side rows"><button id="wsOn" aria-pressed="false" data-action="togWS" data-value="true">On</button><button class="on" id="wsOff" aria-pressed="true" data-action="togWS" data-value="false">Off</button></div>
+      </div>
+      <div class="prow" title="Highlight one row at a time as you knit/crochet from the chart."><span>Follow row</span>
+        <div class="tog" role="group" aria-label="Follow row"><button id="foOn" aria-pressed="false" data-action="togFollow" data-value="true">On</button><button class="on" id="foOff" aria-pressed="true" data-action="togFollow" data-value="false">Off</button></div>
+      </div>
+      <div class="prow" id="termRow" title="Switch crochet display labels between US and UK terminology."><span>Terminology</span>
+        <div class="tog" role="group" aria-label="Crochet terminology"><button class="on" id="termUS" aria-pressed="true" data-action="setCrochetTerms" data-value="us">US</button><button id="termUK" aria-pressed="false" data-action="setCrochetTerms" data-value="uk">UK</button></div>
+      </div>
     </div>
   </div>
   <div class="ps ps-support" id="gaugeRow">
@@ -818,31 +924,31 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <p class="micro-note">Tap a colour to swap with active. Long-press for more actions.</p>
   </div>
   <div class="ps ps-utility" id="actionsPanel">
-    <div class="plbl">More Actions</div>
-    <p class="hint">Project files, mirror, or clear. Quick exports and undo live in the top toolbar.</p>
+    <div class="plbl">Project Files</div>
+    <p class="hint">Portable .json files, mirror tools, and canvas reset.</p>
     <div class="acts">
-      <button class="sbtn file-action" data-action="exportProject">⬇ Export project</button>
-      <button class="sbtn file-action" data-action="openProjectImport">⬆ Import project</button>
+      <button class="sbtn file-action" data-action="exportProject">⬇ Export .json</button>
+      <button class="sbtn file-action" data-action="openProjectImport">⬆ Import .json</button>
       <button class="sbtn danger-action" data-action="clearAll">🗑 Clear canvas</button>
       <button class="sbtn" data-action="mirrorH">↔ Mirror H</button>
       <button class="sbtn" data-action="mirrorV">↕ Mirror V</button>
     </div>
   </div>
-</div>
+</aside>
 
-</div><!-- /body -->
+</main><!-- /body -->
 
 <!-- MODALS -->
-<div class="mo" id="helpM" role="dialog" aria-modal="true" aria-labelledby="helpMTitle">
+<aside class="help-drawer" id="helpM" role="complementary" aria-labelledby="helpMTitle" aria-hidden="true">
   <div class="md help-md">
     <div class="help-head">
       <div>
         <div class="plbl">Guide</div>
         <h3 id="helpMTitle">Find a control</h3>
       </div>
-      <button class="help-close" data-action="closeModal" data-modal="helpM" aria-label="Close guide">×</button>
+      <button class="help-close" data-action="closeHelpDrawer" aria-label="Close guide">×</button>
     </div>
-    <p class="help-intro">Search or choose a common task. The guide closes and highlights the control.</p>
+    <p class="help-intro">Search or choose a common task. The canvas stays visible while you look.</p>
     <label class="visually-hidden" for="helpSearch">Search help topics</label>
     <input id="helpSearch" class="help-search" type="search" placeholder="Search controls: export, gauge, pan, cables..." data-input-action="renderHelpTopics">
     <div class="help-layout">
@@ -853,7 +959,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
       <div class="help-results" id="helpResults" aria-live="polite"></div>
     </div>
   </div>
-</div>
+</aside>
 <div class="mo" id="saveM" role="dialog" aria-modal="true" aria-labelledby="saveMTitle">
   <div class="md">
     <h3 id="saveMTitle">Save Pattern</h3>
@@ -895,6 +1001,13 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   <div class="md text-modal">
     <h3 id="txtMTitle">Pattern Text</h3>
     <p id="txtMDesc" class="modal-copy">Row-by-row written instructions generated from the chart. Copy or download as a .txt file.</p>
+    <div class="text-options">
+      <label for="textNoStitch">No-stitch cells</label>
+      <select id="textNoStitch" data-change-action="updatePatternTextOptions">
+        <option value="mark">Mark in rows</option>
+        <option value="skip">Skip from counts</option>
+      </select>
+    </div>
     <textarea id="txtOut" class="pattern-textarea" readonly></textarea>
     <div class="macts">
       <button class="sbtn2" data-action="closeModal" data-modal="txtM">Close</button>
@@ -928,7 +1041,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 <input type="file" id="projectFile" class="file-input" accept="application/json,.json" data-change-action="importProjectFile">
 <input type="file" id="underlayFile" class="file-input" accept="image/*" data-change-action="loadUnderlay">
 
@@ -975,6 +1088,8 @@ const CSS_COLOR_FALLBACKS = Object.freeze({
   '--canvas-hairline': 'rgb(42 37 32 / 0.08)',
 });
 
+const CANVAS_FONT_STACK = '"Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+
 const YARN_COLORS = Object.freeze({
   peachMist:'#fdf0e6',
   peach:'#f5d0a8',
@@ -1018,15 +1133,15 @@ const YARN_COLORS = Object.freeze({
 });
 
 const STITCH_COLORS = Object.freeze({
-  chain:'#8b7355',
+  chain:'#6f5437',
   neutral:'#5a5a5a',
   single:'#8b5e3c',
-  rose:'#c4687a',
-  teal:'#3d8b7a',
+  rose:'#9b3f5b',
+  teal:'#2f7064',
   plum:'#7a5a9a',
-  gold:'#c4963a',
-  copper:'#c46a3c',
-  absent:'#c8c2b9',
+  gold:'#8a610f',
+  copper:'#9c4828',
+  absent:'#6f675d',
   blueGreen:'#3d7a8b',
   cable:'#6b4fa0',
 });
@@ -1140,6 +1255,7 @@ const CROCHET_TERMS = {
 let S = {
   mode:'crochet', gridType:'square', tool:'draw',
   crochetTerms:'us',
+  textNoStitch:'mark',
   sqW:200, sqH:200, cellSize:26,
   hexCols:300, hexRows:300, hexSize:26, hexFlat:true,
   cells:{},
@@ -1322,6 +1438,41 @@ function hexKey(col, row) { return `${col},${row}`; }
 // Only visible cells are iterated, so the logical grid can be huge.
 // ═══════════════════════════════════════════════════════════
 
+// ── PERF CACHES ──
+// canvasToken() resolves CSS variables via getComputedStyle + a probe
+// span. That cost adds up fast in the cell-render loop where the same
+// token is queried per cell. We memoise resolutions for the duration
+// of a draw frame (or an export) so each token resolves at most once.
+let _tokenCache = null;
+function beginTokenCache() { _tokenCache = Object.create(null); }
+function endTokenCache()   { _tokenCache = null; }
+
+// Per-row painted-cell counts for the row-label badges. Lazily built
+// from S.cells; consumers must call markCellsDirty() after any change
+// so the next read recomputes.
+let _rowCountsCache = null;
+let _rowCountsDirty = true;
+function markCellsDirty() { _rowCountsDirty = true; }
+function rowCountsForLabels() {
+  if (!_rowCountsDirty && _rowCountsCache) return _rowCountsCache;
+  const counts = Object.create(null);
+  for (const k in S.cells) {
+    // Match keys of the form "sq:<r>,<c>" without paying for split/regex.
+    if (k.charCodeAt(0) !== 115 /* s */) continue;
+    if (k.charCodeAt(1) !== 113 /* q */) continue;
+    if (k.charCodeAt(2) !== 58  /* : */) continue;
+    const cell = S.cells[k];
+    if (!cell || cell.stitchId === '_no') continue;
+    const comma = k.indexOf(',', 3);
+    if (comma === -1) continue;
+    const r = +k.slice(3, comma);
+    counts[r] = (counts[r] || 0) + 1;
+  }
+  _rowCountsCache = counts;
+  _rowCountsDirty = false;
+  return counts;
+}
+
 // Effective cell height for square grids when gauge is set. Knit
 // fabric is wider than tall; gaugeStitches=20, gaugeRows=28 → cells
 // taller than wide by 28/20.
@@ -1353,11 +1504,16 @@ function visibleHexBounds() {
 }
 
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = canvasToken('--s2');
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if (S.gridType === 'square') drawSquareGrid();
-  else drawHexGrid();
+  beginTokenCache();
+  try {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = canvasToken('--s2');
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (S.gridType === 'square') drawSquareGrid();
+    else drawHexGrid();
+  } finally {
+    endTokenCache();
+  }
 }
 
 // ── SQUARE ──
@@ -1483,20 +1639,14 @@ function drawSquareGrid() {
   // Row/col labels (with per-row painted counts on square grids — useful
   // when knitting from a chart, especially on tablets with no hover).
   if (S.showLabels && lo > 0) {
-    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9.5px DM Sans,sans-serif`;
+    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9.5px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = canvasToken('--bg');
     ctx.fillRect(0, 0, lo, canvas.height);
     ctx.fillRect(0, 0, canvas.width, lo);
-    // Pre-tally per-visible-row stitch counts in one cells pass.
-    const rowCounts = {};
-    for (let r = row0; r < rowN; r++) rowCounts[r] = 0;
-    for (const k in S.cells) {
-      if (!k.startsWith('sq:')) continue;
-      const [, rc] = k.split(':');
-      const [r] = rc.split(',').map(Number);
-      if (r in rowCounts && S.cells[k].stitchId !== '_no') rowCounts[r]++;
-    }
+    // Pre-tally per-row stitch counts. Cached across draws so panning
+    // and re-renders that don't touch cells don't re-walk the dict.
+    const rowCounts = rowCountsForLabels();
     ctx.fillStyle = canvasToken('--text3');
     for (let r = row0; r < rowN; r++) {
       const y = oy + r * ch + ch / 2;
@@ -1509,7 +1659,7 @@ function drawSquareGrid() {
       if (count > 0 && lo >= 18 && ch >= 14) {
         ctx.save();
         ctx.fillStyle = canvasToken('--border2');
-        ctx.font = `8px DM Sans,sans-serif`;
+        ctx.font = `8px ${CANVAS_FONT_STACK}`;
         ctx.fillText(count, lo / 2, y + ch / 2 - 4);
         ctx.restore();
       }
@@ -1569,7 +1719,7 @@ function drawHexGrid() {
 
   // Labels
   if (S.showLabels) {
-    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9px DM Sans,sans-serif`;
+    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let row = row0; row < rowN; row++) {
       const [cx, cy] = hexCenter(col0, row, r, flat);
@@ -1585,10 +1735,13 @@ function drawHexGrid() {
 }
 
 function canvasToken(name, fallback) {
+  if (_tokenCache && name in _tokenCache) return _tokenCache[name];
   const safeFallback = fallback || CSS_COLOR_FALLBACKS[name] || UI_COLORS.text;
   if (typeof getComputedStyle !== 'function') return safeFallback;
   const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim() || safeFallback;
-  return resolveCssColor(raw, safeFallback);
+  const resolved = resolveCssColor(raw, safeFallback);
+  if (_tokenCache) _tokenCache[name] = resolved;
+  return resolved;
 }
 
 function resolveCssColor(raw, fallback) {
@@ -1654,12 +1807,62 @@ function drawKeyboardCursorHex(ox, oy, row0, rowN, col0, colN) {
   ctx.restore();
 }
 
+function colorChannels(color) {
+  if (typeof color !== 'string') return null;
+  const raw = color.trim();
+  if (raw[0] === '#') {
+    const hex = raw.slice(1);
+    if (hex.length === 3) {
+      return hex.split('').map(ch => parseInt(ch + ch, 16));
+    }
+    if (hex.length >= 6) {
+      return [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16));
+    }
+  }
+  const match = raw.match(/rgba?\(([^)]+)\)/i);
+  if (match) {
+    const parts = match[1].split(',').map(part => parseFloat(part));
+    if (parts.length >= 3 && parts.every((v, i) => i > 2 || Number.isFinite(v))) {
+      return parts.slice(0, 3);
+    }
+  }
+  return null;
+}
+
+function relativeLuminance(color) {
+  const rgb = colorChannels(color);
+  if (!rgb) return 0;
+  const channel = value => {
+    const c = Math.max(0, Math.min(255, value)) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const [r, g, b] = rgb.map(channel);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(a, b) {
+  const l1 = relativeLuminance(a);
+  const l2 = relativeLuminance(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+
+function symbolInkForColor(fill, darkInk = UI_COLORS.text, lightInk = UI_COLORS.surface) {
+  return contrastRatio(fill, darkInk) >= contrastRatio(fill, lightInk) ? darkInk : lightInk;
+}
+
 function drawSymbol(ctx, cell, x, y, cs) {
   const s = CS[S.mode].find(s => s.id === cell.stitchId);
   if (!s) return;
-  ctx.fillStyle = lum(cell.color) > .5 ? canvasToken('--text') : canvasToken('--surface');
-  ctx.font = `${Math.min(cs * .5, 13)}px DM Sans,monospace`;
+  const darkInk = canvasToken('--text');
+  const lightInk = canvasToken('--surface');
+  const ink = symbolInkForColor(cell.color, darkInk, lightInk);
+  const outline = ink === darkInk ? lightInk : darkInk;
+  ctx.font = `${Math.min(cs * .5, 13)}px ${CANVAS_FONT_STACK}`;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = Math.max(1, Math.min(2.25, cs * 0.09));
+  ctx.strokeStyle = outline;
+  ctx.strokeText(s.sym, x, y);
+  ctx.fillStyle = ink;
   ctx.fillText(s.sym, x, y);
 }
 
@@ -1709,7 +1912,7 @@ function drawCable(cb, ox, oy, cs, ch, targetCtx) {
   if (cb.w >= 4 && cs >= 16 && ch >= 16) {
     const half = cb.w / 2;
     const label = `${half}/${half}${cb.dir}`;
-    tctx.font = `${Math.min(10, ch * 0.32)}px DM Sans, sans-serif`;
+    tctx.font = `${Math.min(10, ch * 0.32)}px ${CANVAS_FONT_STACK}`;
     tctx.textAlign = 'center';
     tctx.textBaseline = 'top';
     tctx.fillStyle = darken(cb.color, 0.5);
@@ -1806,7 +2009,7 @@ function drawRepeatBracket(rp, ox, oy, cs, ch, tctx) {
   // Count label sits just above the top-right corner of the bracket.
   const labelText = '×' + rp.count;
   const labelSize = Math.min(13, Math.max(10, cs * 0.42));
-  t.font = `600 ${labelSize}px DM Sans, sans-serif`;
+  t.font = `600 ${labelSize}px ${CANVAS_FONT_STACK}`;
   t.textAlign = 'right';
   t.textBaseline = 'bottom';
   t.fillStyle = STROKE;
@@ -1827,6 +2030,8 @@ function lum(hex) {
 // ═══════════════════════════════════════════════════════════
 // CELL HIT-DETECTION + PAINT/FILL/UNDO
 // ═══════════════════════════════════════════════════════════
+
+const FLOOD_FILL_EMPTY_CELL_LIMIT = 250000;
 
 function getSquareCell(ox, oy) {
   const cs = S.cellSize, ch = cellHeightSq();
@@ -1880,6 +2085,7 @@ function undoStateIncludesUnderlay(raw) {
 function restoreUndoState(raw) {
   const snap = parseUndoState(raw);
   S.cells = snap.cells || {};
+  markCellsDirty();
   S.cables = Array.isArray(snap.cables) ? snap.cables : [];
   S.repeats = Array.isArray(snap.repeats) ? snap.repeats : [];
   if (Object.prototype.hasOwnProperty.call(snap, 'underlay')) {
@@ -1943,6 +2149,7 @@ function paintAt(ox, oy) {
     if (existing && S.protectFilled && S.tool === 'draw') return;
     S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
@@ -1965,12 +2172,20 @@ function placeCableAt(key) {
 function floodFill(ox, oy) {
   const cell = getCell(ox, oy);
   if (!cell) return;
-  pushUndo();
   const orig = S.cells[cell.key];
   const origCol = orig?.color ?? null, origSt = orig?.stitchId ?? null;
   if (origCol === S.activeColor && origSt === S.activeStitch) return;
+  const totalCells = S.gridType === 'square'
+    ? S.sqW * S.sqH
+    : S.hexCols * S.hexRows;
+  if (!orig && totalCells > FLOOD_FILL_EMPTY_CELL_LIMIT) {
+    toast('Fill is limited on very large empty grids. Paint a boundary or reduce the grid limit first.');
+    return;
+  }
+  pushUndo();
 
   const queue = [cell.key];
+  let head = 0;
   const visited = new Set();
 
   function sqNeighbors(key) {
@@ -1996,8 +2211,8 @@ function floodFill(ox, oy) {
   }
   const getNeighbors = S.gridType === 'square' ? sqNeighbors : hexNeighbors;
 
-  while (queue.length) {
-    const k = queue.shift();
+  while (head < queue.length) {
+    const k = queue[head++];
     if (visited.has(k)) continue;
     visited.add(k);
     const c = S.cells[k];
@@ -2006,6 +2221,7 @@ function floodFill(ox, oy) {
     S.cells[k] = { color: S.activeColor, stitchId: S.activeStitch };
     getNeighbors(k).forEach(n => { if (!visited.has(n)) queue.push(n); });
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
@@ -2073,6 +2289,10 @@ function swapColor(fromColor) {
       cn++;
     }
   });
+  // swapColor only changes cell.color, not stitch presence — row counts
+  // don't change, but bumping the dirty flag is harmless and keeps the
+  // invalidation contract simple.
+  if (n) markCellsDirty();
   draw(); updateStats(); updateLegend(); scheduleAutosave();
   const parts = [];
   if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
@@ -2137,6 +2357,7 @@ function moveKeyboardCell(deltaCol, deltaRow) {
   clampKeyboardCell();
   ensureKeyboardCellVisible();
   draw();
+  updateCanvasStatus();
 }
 
 function applyKeyboardCell(forceErase = false) {
@@ -2150,6 +2371,7 @@ function applyKeyboardCell(forceErase = false) {
     paintAt(pt.x, pt.y);
     S.tool = tool;
     draw();
+    updateCanvasStatus('Cleared');
     canvas.focus({ preventScroll: true });
     return;
   }
@@ -2165,6 +2387,7 @@ function applyKeyboardCell(forceErase = false) {
     pushUndo();
     paintAt(pt.x, pt.y);
   }
+  updateCanvasStatus(S.tool === 'eye' ? 'Picked' : 'Updated');
   canvas.focus({ preventScroll: true });
 }
 
@@ -2174,12 +2397,13 @@ function handleCanvasKeyboard(e) {
   if (e.key === 'ArrowRight') { e.preventDefault(); moveKeyboardCell(step, 0); return true; }
   if (e.key === 'ArrowUp')    { e.preventDefault(); moveKeyboardCell(0, -step); return true; }
   if (e.key === 'ArrowDown')  { e.preventDefault(); moveKeyboardCell(0, step); return true; }
-  if (e.key === 'Home')       { e.preventDefault(); _keyboardCell.col = 0; ensureKeyboardCellVisible(); draw(); return true; }
+  if (e.key === 'Home')       { e.preventDefault(); _keyboardCell.col = 0; ensureKeyboardCellVisible(); draw(); updateCanvasStatus(); return true; }
   if (e.key === 'End') {
     e.preventDefault();
     _keyboardCell.col = S.gridType === 'square' ? S.sqW - 1 : S.hexCols - 1;
     ensureKeyboardCellVisible();
     draw();
+    updateCanvasStatus();
     return true;
   }
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyKeyboardCell(false); return true; }
@@ -2197,6 +2421,7 @@ function bindCanvasEvents() {
   canvas.addEventListener('mousedown', e => {
     canvas.focus({ preventScroll: true });
     syncKeyboardCellFromPoint(e.offsetX, e.offsetY);
+    updateCanvasStatus();
     if (isPanIntent(e)) {
       isPan = true; panSt = { x: e.clientX, y: e.clientY };
       panOr = { x: S.panX, y: S.panY };
@@ -2235,6 +2460,7 @@ function bindCanvasEvents() {
     } else {
       S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
     }
+    markCellsDirty();
     draw(); updateStats(); updateLegend(); scheduleAutosave();
   });
 
@@ -2246,6 +2472,12 @@ function bindCanvasEvents() {
 
   // Keyboard. Delegating to document so it fires regardless of focus.
   document.addEventListener('keydown', e => {
+    const openHelp = document.querySelector('.help-drawer.open');
+    if (openHelp && e.key === 'Escape') {
+      e.preventDefault();
+      closeHelpDrawer();
+      return;
+    }
     const openModal = document.querySelector('.mo.open');
     if (openModal) {
       if (e.key === 'Escape') {
@@ -2365,6 +2597,7 @@ function bindCanvasEvents() {
       const t = touches[0];
       const ox = t.clientX - r.left, oy = t.clientY - r.top;
       syncKeyboardCellFromPoint(ox, oy);
+      updateCanvasStatus();
 
       // ── STYLUS / FINGER SPLIT ──
       // Safari iOS exposes Touch.touchType ('stylus' | 'direct'). On
@@ -2559,6 +2792,7 @@ const UI_ACTIONS = {
   setMode: el => setMode(el.dataset.value),
   setGridType: el => setGridType(el.dataset.value),
   openHelpModal: () => openHelpModal(),
+  closeHelpDrawer: () => closeHelpDrawer(),
   openNewModal: () => openNewModal(),
   setTool: el => setTool(el.dataset.value),
   previewCustomColor: el => previewCustomColor(el.value),
@@ -2612,6 +2846,7 @@ const UI_ACTIONS = {
   legendActionRemove: () => legendActionRemove(),
   copyPatternText: () => copyPatternText(),
   downloadPatternText: () => downloadPatternText(),
+  updatePatternTextOptions: () => updatePatternTextOptions(),
   cancelRepeat: () => cancelRepeat(),
   doRepeat: () => doRepeat(),
   importProjectFile: el => importProjectFile(el),
@@ -2661,6 +2896,7 @@ function renderStitches() {
     btn.type = 'button';
     btn.className = 'sit' + (active ? ' on' : '');
     btn.style.setProperty('--stitch-color', s.col);
+    btn.style.setProperty('--stitch-ink', symbolInkForColor(s.col));
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     btn.addEventListener('click', () => setStitch(s.id));
 
@@ -2842,6 +3078,7 @@ function legendActionRemove() {
   Object.keys(S.cells).forEach(k => {
     if (S.cells[k].color === target) { delete S.cells[k]; n++; }
   });
+  if (n) markCellsDirty();
   // Also remove cables of this colour — they're tied to a colour at
   // placement time, so removing the colour should remove the cable.
   let cn = 0;
@@ -2998,19 +3235,39 @@ function renderHelpTopics(query = '') {
   });
 }
 
+let _helpReturnFocus = null;
+
 function openHelpModal(query = '') {
-  const modal = document.getElementById('helpM');
+  const drawer = document.getElementById('helpM');
   const search = document.getElementById('helpSearch');
-  if (!modal || !search) return;
+  if (!drawer || !search) return;
+  if (!drawer.classList.contains('open')) {
+    _helpReturnFocus = typeof HTMLElement !== 'undefined' && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+  }
   search.value = query;
   renderHelpTopics(query);
-  openM('helpM', '#helpSearch');
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => search.focus({ preventScroll: true }));
+}
+
+function closeHelpDrawer(restoreFocus = true) {
+  const drawer = document.getElementById('helpM');
+  if (!drawer) return;
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  if (restoreFocus && _helpReturnFocus && document.contains(_helpReturnFocus)) {
+    _helpReturnFocus.focus({ preventScroll: true });
+  }
+  _helpReturnFocus = null;
 }
 
 function guideJump(targetId) {
   const target = document.getElementById(targetId);
   if (!target) return;
-  closeM('helpM');
+  closeHelpDrawer(false);
   const left = document.getElementById('leftPanel');
   const right = document.getElementById('rightPanel');
   if (left && left.contains(target)) lpOpen = true;
@@ -3153,6 +3410,33 @@ function stitchLabel(s) {
   return CROCHET_TERMS[S.crochetTerms]?.[s.id] || { name: s.name, abbr: s.abbr };
 }
 
+function keyboardCellKey() {
+  clampKeyboardCell();
+  return S.gridType === 'square'
+    ? `sq:${_keyboardCell.row},${_keyboardCell.col}`
+    : `hex:${_keyboardCell.col},${_keyboardCell.row}`;
+}
+
+function describeCellForStatus(key) {
+  const cell = S.cells[key];
+  if (!cell) return 'empty';
+  const stitch = CS[S.mode].find(s => s.id === cell.stitchId);
+  const label = stitch ? stitchLabel(stitch) : { name: cell.stitchId || 'unknown stitch' };
+  return `${label.name}, colour ${cell.color}`;
+}
+
+function updateCanvasStatus(prefix = '') {
+  const status = document.getElementById('canvasStatus');
+  if (!status) return;
+  clampKeyboardCell();
+  const row = _keyboardCell.row + 1;
+  const col = _keyboardCell.col + 1;
+  const cellType = S.gridType === 'square' ? 'cell' : 'hex';
+  const state = describeCellForStatus(keyboardCellKey());
+  const lead = prefix ? prefix + '. ' : '';
+  status.textContent = `${lead}${cellType} row ${row}, column ${col}: ${state}.`;
+}
+
 // ── State setters ──
 function setStitch(id) { S.activeStitch = id; renderStitches(); updateIndicator(); scheduleAutosave(); }
 function setColor(c) {
@@ -3257,6 +3541,7 @@ function applySqSize() {
     } else nc[k] = v;
   });
   S.cells = nc; S.sqW = newW; S.sqH = newH;
+  markCellsDirty();
   updateStats(); draw(); toast(`Grid limit: ${newW} × ${newH}`); scheduleAutosave();
 }
 
@@ -3451,6 +3736,7 @@ function clearAll() {
   const nc = {};
   Object.entries(S.cells).forEach(([k, v]) => { if (!k.startsWith(prefix)) nc[k] = v; });
   S.cells = nc;
+  markCellsDirty();
   // Cables and repeats only exist on the square grid; wipe them too.
   if (S.gridType === 'square') {
     S.cables = [];
@@ -3517,6 +3803,7 @@ function mirrorH() {
     });
     Object.assign(S.cells, add);
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Mirrored horizontally'); scheduleAutosave();
 }
 
@@ -3557,6 +3844,7 @@ function mirrorV() {
     });
     Object.assign(S.cells, add);
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Mirrored vertically'); scheduleAutosave();
 }
 
@@ -3594,6 +3882,7 @@ function presetClassicGranny() {
       }
     }
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Classic granny loaded!'); scheduleAutosave();
 }
 
@@ -3611,6 +3900,7 @@ function presetShell() {
       S.cells[`sq:${r},${c}`] = { color: colors[ci], stitchId: c % 4 === 0 ? 'sc' : 'dc' };
     }
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Shell pattern loaded!'); scheduleAutosave();
 }
 
@@ -3627,6 +3917,7 @@ function presetRipple() {
       S.cells[`sq:${r},${c}`] = { color: colors[r % colors.length], stitchId: Math.sin(c * .6) > .0 ? 'dc' : 'hdc' };
     }
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Ripple loaded!'); scheduleAutosave();
 }
 
@@ -3639,6 +3930,7 @@ function presetSolid() {
     for (let r = 0; r < S.sqH; r++) for (let c = 0; c < S.sqW; c++)
       S.cells[`sq:${r},${c}`] = { color: S.activeColor, stitchId: 'sc' };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Solid block loaded!'); scheduleAutosave();
 }
 
@@ -3647,6 +3939,7 @@ function presetStockinette() {
   const W = 40, H = 30;
   for (let r = 0; r < H; r++) for (let c = 0; c < W; c++)
     S.cells[`sq:${r},${c}`] = { color: PRESET_COLORS.stockinette, stitchId: 'k' };
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Stockinette'); scheduleAutosave();
 }
 
@@ -3657,6 +3950,7 @@ function presetRib() {
     const k = c % 4 < 2;
     S.cells[`sq:${r},${c}`] = { color: k ? PRESET_COLORS.stockinette : PRESET_COLORS.ribPurl, stitchId: k ? 'k' : 'p' };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('2×2 Rib'); scheduleAutosave();
 }
 
@@ -3667,6 +3961,7 @@ function presetSeed() {
     const k = (r + c) % 2 === 0;
     S.cells[`sq:${r},${c}`] = { color: k ? PRESET_COLORS.stockinette : PRESET_COLORS.seedPurl, stitchId: k ? 'k' : 'p' };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Seed stitch'); scheduleAutosave();
 }
 
@@ -3678,6 +3973,7 @@ function presetChecker() {
     const a = (Math.floor(r / 4) + Math.floor(c / 4)) % 2 === 0;
     S.cells[`sq:${r},${c}`] = { color: a ? c1 : c2, stitchId: a ? 'k' : 'p' };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); toast('Checker'); scheduleAutosave();
 }
 
@@ -3974,6 +4270,7 @@ function stampToCanvas() {
         S.cells[`hex:${col},${row}`] = { color: rounds[dist].color, stitchId: rounds[dist].stitch };
       }
     }
+    markCellsDirty();
     draw(); updateStats(); updateLegend(); toast('Hex granny stamped!'); scheduleAutosave();
   } else {
     const lo = S.showLabels ? 20 : 0;
@@ -3995,6 +4292,7 @@ function stampToCanvas() {
         S.cells[`sq:${row},${col}`] = { color: rounds[ri].color, stitchId: rounds[ri].stitch };
       }
     }
+    markCellsDirty();
     draw(); updateStats(); updateLegend(); toast('Granny stamped to centre of view!'); scheduleAutosave();
   }
 }
@@ -4027,6 +4325,7 @@ function snapshotState() {
     appVersion: PROJECT_APP_VERSION,
     cells: S.cells, mode: S.mode, gridType: S.gridType,
     crochetTerms: S.crochetTerms,
+    textNoStitch: S.textNoStitch,
     name: document.getElementById('patName')?.value || 'My Pattern',
     activeColor: S.activeColor, activeStitch: S.activeStitch,
     sqW: S.sqW, sqH: S.sqH, cellSize: S.cellSize,
@@ -4045,8 +4344,10 @@ function snapshotState() {
 
 function applyState(p) {
   S.cells = p.cells || {};
+  markCellsDirty();
   S.mode = p.mode || 'crochet';
   S.crochetTerms = p.crochetTerms === 'uk' ? 'uk' : 'us';
+  S.textNoStitch = p.textNoStitch === 'skip' ? 'skip' : 'mark';
   S.sqW = p.sqW || 200; S.sqH = p.sqH || 200;
   S.hexCols = p.hexCols || 300; S.hexRows = p.hexRows || 300;
   S.hexSize = p.hexSize || 26; S.hexFlat = p.hexFlat !== false;
@@ -4114,6 +4415,7 @@ function applyState(p) {
   document.getElementById('hexSize').value = S.hexSize;
   if (document.getElementById('gaugeSt')) document.getElementById('gaugeSt').value = S.gaugeStitches || '';
   if (document.getElementById('gaugeRo')) document.getElementById('gaugeRo').value = S.gaugeRows || '';
+  if (document.getElementById('textNoStitch')) document.getElementById('textNoStitch').value = S.textNoStitch;
   setPressed(document.getElementById('gOn'), S.showGrid);
   setPressed(document.getElementById('gOff'), !S.showGrid);
   setPressed(document.getElementById('lOn'), S.showLabels);
@@ -4393,6 +4695,7 @@ function generatePatternText() {
   if (S.gridType !== 'square') {
     return 'Pattern text export is square-grid only.\n\nSwitch to a square grid first.';
   }
+  const skipNoStitch = S.textNoStitch === 'skip';
   const lines = [];
   const title = (document.getElementById('patName').value || 'Untitled').trim();
   lines.push('# ' + title);
@@ -4407,6 +4710,7 @@ function generatePatternText() {
   if (isKnit) {
     lines.push('Read bottom-up. RS rows worked right-to-left, WS rows left-to-right.');
   }
+  lines.push('Colours appear in brackets after each run. No-stitch cells are ' + (skipNoStitch ? 'skipped from counts.' : 'marked in rows.'));
   lines.push('');
 
   // Determine the actually-painted bounding box so we don't dump
@@ -4462,7 +4766,11 @@ function generatePatternText() {
       const cell = S.cells['sq:' + r + ',' + c];
       const stitch = cell ? cell.stitchId : null;
       const color = cell ? cell.color : null;
-      if (cell) { usedStitches.add(stitch); if (color) usedColors.add(color); }
+      if (cell && !(skipNoStitch && stitch === '_no')) {
+        usedStitches.add(stitch);
+        if (color && stitch !== '_no') usedColors.add(color);
+      }
+      if (skipNoStitch && stitch === '_no') continue;
       const last = runs[runs.length - 1];
       if (last && last.stitch === stitch && last.color === color) last.n++;
       else runs.push({ stitch, color, n: 1 });
@@ -4481,7 +4789,8 @@ function generatePatternText() {
       const stitchInfo = CS[S.mode].find(s => s.id === rn.stitch);
       const label = stitchInfo ? stitchLabel(stitchInfo) : { abbr: rn.stitch };
       const count = rn.n > 1 ? ' ×' + rn.n : '';
-      return label.abbr + count;
+      const color = rn.color ? ' [' + rn.color + ']' : '';
+      return label.abbr + count + color;
     });
     lines.push('Row ' + labelNum + rowKind + ': ' + parts.join(', '));
   });
@@ -4530,9 +4839,19 @@ function generatePatternText() {
 }
 
 function exportText() {
+  const opt = document.getElementById('textNoStitch');
+  if (opt) opt.value = S.textNoStitch;
   const text = generatePatternText();
   document.getElementById('txtOut').value = text;
   openM('txtM', '#txtOut');
+}
+
+function updatePatternTextOptions() {
+  const opt = document.getElementById('textNoStitch');
+  if (opt) S.textNoStitch = opt.value === 'skip' ? 'skip' : 'mark';
+  const out = document.getElementById('txtOut');
+  if (out) out.value = generatePatternText();
+  scheduleAutosave();
 }
 
 function copyPatternText() {
@@ -4594,6 +4913,7 @@ function doNew() {
   pushUndo({ includeUnderlay: true });
   // Clear everything and reset to a fresh chart.
   S.cells = {};
+  markCellsDirty();
   S.cables = [];
   S.repeats = [];
   S.underlay = null;
@@ -4607,6 +4927,7 @@ function doNew() {
   toast('Fresh canvas!');
 }
 let _modalReturnFocus = null;
+let _openModalId = null;
 
 function modalFocusables(modal) {
   return Array.from(modal.querySelectorAll(
@@ -4614,9 +4935,25 @@ function modalFocusables(modal) {
   )).filter(el => !el.disabled && (el.offsetParent !== null || el.getClientRects().length > 0));
 }
 
+function setModalIsolation(activeModal) {
+  const appMain = document.getElementById('appMain');
+  const header = document.querySelector('.hdr');
+  [appMain, header].forEach(el => {
+    if (!el) return;
+    if (activeModal) {
+      el.setAttribute('aria-hidden', 'true');
+      if ('inert' in el) el.inert = true;
+    } else {
+      el.removeAttribute('aria-hidden');
+      if ('inert' in el) el.inert = false;
+    }
+  });
+}
+
 function openM(id, focusSelector) {
   const modal = document.getElementById(id);
   if (!modal) return;
+  if (_openModalId && _openModalId !== id) closeM(_openModalId, false);
   if (!modal.classList.contains('open')) {
     _modalReturnFocus = typeof HTMLElement !== 'undefined' && document.activeElement instanceof HTMLElement
       ? document.activeElement
@@ -4624,6 +4961,8 @@ function openM(id, focusSelector) {
   }
   modal.setAttribute('tabindex', '-1');
   modal.classList.add('open');
+  _openModalId = id;
+  setModalIsolation(modal);
   requestAnimationFrame(() => {
     const target = focusSelector ? modal.querySelector(focusSelector) : null;
     const fallback = modalFocusables(modal)[0] || modal;
@@ -4635,6 +4974,10 @@ function closeM(id, restoreFocus = true) {
   const modal = document.getElementById(id);
   if (!modal) return;
   modal.classList.remove('open');
+  if (_openModalId === id) {
+    _openModalId = null;
+    setModalIsolation(null);
+  }
   if (restoreFocus && _modalReturnFocus && document.contains(_modalReturnFocus)) {
     _modalReturnFocus.focus({ preventScroll: true });
   }
@@ -4731,7 +5074,25 @@ function importProjectFile(input) {
 }
 
 // ── PNG / PDF EXPORT ──
+const EXPORT_MAX_EDGE = 16384;
+const EXPORT_MAX_PIXELS = 48000000;
+
+function canBuildExportCanvas(w, h) {
+  if (w <= EXPORT_MAX_EDGE && h <= EXPORT_MAX_EDGE && w * h <= EXPORT_MAX_PIXELS) return true;
+  toast('Export is too large for the browser canvas. Reduce grid limit or cell size, then export again.');
+  return false;
+}
+
 function buildExportCanvas(scale) {
+  beginTokenCache();
+  try {
+    return _buildExportCanvasInner(scale);
+  } finally {
+    endTokenCache();
+  }
+}
+
+function _buildExportCanvasInner(scale) {
   const exp = document.createElement('canvas');
   const lo = S.showLabels ? 20 : 0;
   const ch = cellHeightSq();
@@ -4745,6 +5106,9 @@ function buildExportCanvas(scale) {
     W = (last[0] - first[0] + S.hexSize * 3 + lo) * scale;
     H = (last[1] - first[1] + S.hexSize * 3 + lo) * scale;
   }
+  W = Math.ceil(W);
+  H = Math.ceil(H);
+  if (!canBuildExportCanvas(W, H)) return null;
   exp.width = W; exp.height = H;
   const ec = exp.getContext('2d');
   ec.fillStyle = canvasToken('--surface'); ec.fillRect(0, 0, W, H);
@@ -4815,6 +5179,7 @@ function downloadBlob(blob, filename) {
 
 function exportCanvas() {
   const exp = buildExportCanvas(2);
+  if (!exp) return;
   const link = document.createElement('a');
   link.download = safeFileStem(document.getElementById('patName').value || 'pattern') + '.png';
   link.href = exp.toDataURL('image/png');
@@ -4824,6 +5189,7 @@ function exportCanvas() {
 
 function exportPDF() {
   const exp = buildExportCanvas(1);
+  if (!exp) return;
   const jpeg = exp.toDataURL('image/jpeg', 0.92).split(',')[1];
   const imageBytes = base64ToBytes(jpeg);
   const pdf = makePdf(imageBytes, exp.width, exp.height);
@@ -4956,6 +5322,7 @@ function init() {
 
   draw();
   updateIndicator(); updateLegend(); updateStats();
+  updateCanvasStatus('Chart ready');
 
   bindCanvasEvents();
   window.addEventListener('resize', resize);

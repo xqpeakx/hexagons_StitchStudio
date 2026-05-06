@@ -55,6 +55,7 @@ const EXPECTED_GLOBALS = [
   // Pattern text export (ACT-012)
   'function generatePatternText', 'function exportText',
   'function copyPatternText', 'function downloadPatternText',
+  'function updatePatternTextOptions', 'textNoStitch',
   // Image underlay
   'function loadUnderlay', 'function clearUnderlay',
   'function downsampleImage', 'function ensureUnderlayImg',
@@ -64,7 +65,7 @@ const EXPECTED_GLOBALS = [
   'function legendActionPick', 'function legendActionSwap', 'function legendActionRemove',
   // Built-in help / option finder
   'const HELP_TOPICS', 'function openHelpModal', 'function renderHelpTopics',
-  'function guideJump',
+  'function guideJump', 'function closeHelpDrawer',
   // Delegated UI action binding
   'const UI_ACTIONS', 'function bindUiActions',
 ];
@@ -87,7 +88,7 @@ const EXPECTED_DOM_IDS = [
   'gaugeSt', 'gaugeRo', 'gaugeRow',
   // Modals
   'saveM', 'loadM', 'newM', 'repeatM', 'txtM', 'legendM', 'helpM',
-  'helpSearch', 'helpResults',
+  'helpSearch', 'helpResults', 'textNoStitch',
   // Discoverability panels / jump targets
   'toolsPanel', 'stitchPanel', 'colorPanel', 'presetPanel', 'specialPanel',
   'patternPanel', 'optionMap', 'displayPanel', 'legendPanel', 'actionsPanel',
@@ -98,7 +99,7 @@ const EXPECTED_DOM_IDS = [
   // Pattern info
   'patName', 'sRows', 'sCols', 'sFill',
   // Indicator + zoom + toast
-  'adot', 'alab', 'zl', 'toast',
+  'adot', 'alab', 'canvasHelp', 'canvasStatus', 'zl', 'toast',
   // Project import
   'projectFile',
   // Legend menu modal pieces

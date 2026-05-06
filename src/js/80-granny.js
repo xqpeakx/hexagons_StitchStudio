@@ -289,6 +289,7 @@ function stampToCanvas() {
         S.cells[`hex:${col},${row}`] = { color: rounds[dist].color, stitchId: rounds[dist].stitch };
       }
     }
+    markCellsDirty();
     draw(); updateStats(); updateLegend(); toast('Hex granny stamped!'); scheduleAutosave();
   } else {
     const lo = S.showLabels ? 20 : 0;
@@ -310,6 +311,7 @@ function stampToCanvas() {
         S.cells[`sq:${row},${col}`] = { color: rounds[ri].color, stitchId: rounds[ri].stitch };
       }
     }
+    markCellsDirty();
     draw(); updateStats(); updateLegend(); toast('Granny stamped to centre of view!'); scheduleAutosave();
   }
 }

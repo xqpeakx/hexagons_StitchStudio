@@ -2,6 +2,8 @@
 // CELL HIT-DETECTION + PAINT/FILL/UNDO
 // ═══════════════════════════════════════════════════════════
 
+const FLOOD_FILL_EMPTY_CELL_LIMIT = 250000;
+
 function getSquareCell(ox, oy) {
   const cs = S.cellSize, ch = cellHeightSq();
   const lo = S.showLabels ? 20 : 0;
@@ -54,6 +56,7 @@ function undoStateIncludesUnderlay(raw) {
 function restoreUndoState(raw) {
   const snap = parseUndoState(raw);
   S.cells = snap.cells || {};
+  markCellsDirty();
   S.cables = Array.isArray(snap.cables) ? snap.cables : [];
   S.repeats = Array.isArray(snap.repeats) ? snap.repeats : [];
   if (Object.prototype.hasOwnProperty.call(snap, 'underlay')) {
@@ -117,6 +120,7 @@ function paintAt(ox, oy) {
     if (existing && S.protectFilled && S.tool === 'draw') return;
     S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
@@ -139,12 +143,20 @@ function placeCableAt(key) {
 function floodFill(ox, oy) {
   const cell = getCell(ox, oy);
   if (!cell) return;
-  pushUndo();
   const orig = S.cells[cell.key];
   const origCol = orig?.color ?? null, origSt = orig?.stitchId ?? null;
   if (origCol === S.activeColor && origSt === S.activeStitch) return;
+  const totalCells = S.gridType === 'square'
+    ? S.sqW * S.sqH
+    : S.hexCols * S.hexRows;
+  if (!orig && totalCells > FLOOD_FILL_EMPTY_CELL_LIMIT) {
+    toast('Fill is limited on very large empty grids. Paint a boundary or reduce the grid limit first.');
+    return;
+  }
+  pushUndo();
 
   const queue = [cell.key];
+  let head = 0;
   const visited = new Set();
 
   function sqNeighbors(key) {
@@ -170,8 +182,8 @@ function floodFill(ox, oy) {
   }
   const getNeighbors = S.gridType === 'square' ? sqNeighbors : hexNeighbors;
 
-  while (queue.length) {
-    const k = queue.shift();
+  while (head < queue.length) {
+    const k = queue[head++];
     if (visited.has(k)) continue;
     visited.add(k);
     const c = S.cells[k];
@@ -180,6 +192,7 @@ function floodFill(ox, oy) {
     S.cells[k] = { color: S.activeColor, stitchId: S.activeStitch };
     getNeighbors(k).forEach(n => { if (!visited.has(n)) queue.push(n); });
   }
+  markCellsDirty();
   draw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
@@ -247,6 +260,10 @@ function swapColor(fromColor) {
       cn++;
     }
   });
+  // swapColor only changes cell.color, not stitch presence — row counts
+  // don't change, but bumping the dirty flag is harmless and keeps the
+  // invalidation contract simple.
+  if (n) markCellsDirty();
   draw(); updateStats(); updateLegend(); scheduleAutosave();
   const parts = [];
   if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));

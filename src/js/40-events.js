@@ -53,6 +53,7 @@ function moveKeyboardCell(deltaCol, deltaRow) {
   clampKeyboardCell();
   ensureKeyboardCellVisible();
   draw();
+  updateCanvasStatus();
 }
 
 function applyKeyboardCell(forceErase = false) {
@@ -66,6 +67,7 @@ function applyKeyboardCell(forceErase = false) {
     paintAt(pt.x, pt.y);
     S.tool = tool;
     draw();
+    updateCanvasStatus('Cleared');
     canvas.focus({ preventScroll: true });
     return;
   }
@@ -81,6 +83,7 @@ function applyKeyboardCell(forceErase = false) {
     pushUndo();
     paintAt(pt.x, pt.y);
   }
+  updateCanvasStatus(S.tool === 'eye' ? 'Picked' : 'Updated');
   canvas.focus({ preventScroll: true });
 }
 
@@ -90,12 +93,13 @@ function handleCanvasKeyboard(e) {
   if (e.key === 'ArrowRight') { e.preventDefault(); moveKeyboardCell(step, 0); return true; }
   if (e.key === 'ArrowUp')    { e.preventDefault(); moveKeyboardCell(0, -step); return true; }
   if (e.key === 'ArrowDown')  { e.preventDefault(); moveKeyboardCell(0, step); return true; }
-  if (e.key === 'Home')       { e.preventDefault(); _keyboardCell.col = 0; ensureKeyboardCellVisible(); draw(); return true; }
+  if (e.key === 'Home')       { e.preventDefault(); _keyboardCell.col = 0; ensureKeyboardCellVisible(); draw(); updateCanvasStatus(); return true; }
   if (e.key === 'End') {
     e.preventDefault();
     _keyboardCell.col = S.gridType === 'square' ? S.sqW - 1 : S.hexCols - 1;
     ensureKeyboardCellVisible();
     draw();
+    updateCanvasStatus();
     return true;
   }
   if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); applyKeyboardCell(false); return true; }
@@ -113,6 +117,7 @@ function bindCanvasEvents() {
   canvas.addEventListener('mousedown', e => {
     canvas.focus({ preventScroll: true });
     syncKeyboardCellFromPoint(e.offsetX, e.offsetY);
+    updateCanvasStatus();
     if (isPanIntent(e)) {
       isPan = true; panSt = { x: e.clientX, y: e.clientY };
       panOr = { x: S.panX, y: S.panY };
@@ -151,6 +156,7 @@ function bindCanvasEvents() {
     } else {
       S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
     }
+    markCellsDirty();
     draw(); updateStats(); updateLegend(); scheduleAutosave();
   });
 
@@ -162,6 +168,12 @@ function bindCanvasEvents() {
 
   // Keyboard. Delegating to document so it fires regardless of focus.
   document.addEventListener('keydown', e => {
+    const openHelp = document.querySelector('.help-drawer.open');
+    if (openHelp && e.key === 'Escape') {
+      e.preventDefault();
+      closeHelpDrawer();
+      return;
+    }
     const openModal = document.querySelector('.mo.open');
     if (openModal) {
       if (e.key === 'Escape') {
@@ -281,6 +293,7 @@ function bindCanvasEvents() {
       const t = touches[0];
       const ox = t.clientX - r.left, oy = t.clientY - r.top;
       syncKeyboardCellFromPoint(ox, oy);
+      updateCanvasStatus();
 
       // ── STYLUS / FINGER SPLIT ──
       // Safari iOS exposes Touch.touchType ('stylus' | 'direct'). On

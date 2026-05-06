@@ -13,6 +13,7 @@ const UI_ACTIONS = {
   setMode: el => setMode(el.dataset.value),
   setGridType: el => setGridType(el.dataset.value),
   openHelpModal: () => openHelpModal(),
+  closeHelpDrawer: () => closeHelpDrawer(),
   openNewModal: () => openNewModal(),
   setTool: el => setTool(el.dataset.value),
   previewCustomColor: el => previewCustomColor(el.value),
@@ -66,6 +67,7 @@ const UI_ACTIONS = {
   legendActionRemove: () => legendActionRemove(),
   copyPatternText: () => copyPatternText(),
   downloadPatternText: () => downloadPatternText(),
+  updatePatternTextOptions: () => updatePatternTextOptions(),
   cancelRepeat: () => cancelRepeat(),
   doRepeat: () => doRepeat(),
   importProjectFile: el => importProjectFile(el),
@@ -115,6 +117,7 @@ function renderStitches() {
     btn.type = 'button';
     btn.className = 'sit' + (active ? ' on' : '');
     btn.style.setProperty('--stitch-color', s.col);
+    btn.style.setProperty('--stitch-ink', symbolInkForColor(s.col));
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     btn.addEventListener('click', () => setStitch(s.id));
 
@@ -296,6 +299,7 @@ function legendActionRemove() {
   Object.keys(S.cells).forEach(k => {
     if (S.cells[k].color === target) { delete S.cells[k]; n++; }
   });
+  if (n) markCellsDirty();
   // Also remove cables of this colour — they're tied to a colour at
   // placement time, so removing the colour should remove the cable.
   let cn = 0;
@@ -452,19 +456,39 @@ function renderHelpTopics(query = '') {
   });
 }
 
+let _helpReturnFocus = null;
+
 function openHelpModal(query = '') {
-  const modal = document.getElementById('helpM');
+  const drawer = document.getElementById('helpM');
   const search = document.getElementById('helpSearch');
-  if (!modal || !search) return;
+  if (!drawer || !search) return;
+  if (!drawer.classList.contains('open')) {
+    _helpReturnFocus = typeof HTMLElement !== 'undefined' && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+  }
   search.value = query;
   renderHelpTopics(query);
-  openM('helpM', '#helpSearch');
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => search.focus({ preventScroll: true }));
+}
+
+function closeHelpDrawer(restoreFocus = true) {
+  const drawer = document.getElementById('helpM');
+  if (!drawer) return;
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  if (restoreFocus && _helpReturnFocus && document.contains(_helpReturnFocus)) {
+    _helpReturnFocus.focus({ preventScroll: true });
+  }
+  _helpReturnFocus = null;
 }
 
 function guideJump(targetId) {
   const target = document.getElementById(targetId);
   if (!target) return;
-  closeM('helpM');
+  closeHelpDrawer(false);
   const left = document.getElementById('leftPanel');
   const right = document.getElementById('rightPanel');
   if (left && left.contains(target)) lpOpen = true;
@@ -607,6 +631,33 @@ function stitchLabel(s) {
   return CROCHET_TERMS[S.crochetTerms]?.[s.id] || { name: s.name, abbr: s.abbr };
 }
 
+function keyboardCellKey() {
+  clampKeyboardCell();
+  return S.gridType === 'square'
+    ? `sq:${_keyboardCell.row},${_keyboardCell.col}`
+    : `hex:${_keyboardCell.col},${_keyboardCell.row}`;
+}
+
+function describeCellForStatus(key) {
+  const cell = S.cells[key];
+  if (!cell) return 'empty';
+  const stitch = CS[S.mode].find(s => s.id === cell.stitchId);
+  const label = stitch ? stitchLabel(stitch) : { name: cell.stitchId || 'unknown stitch' };
+  return `${label.name}, colour ${cell.color}`;
+}
+
+function updateCanvasStatus(prefix = '') {
+  const status = document.getElementById('canvasStatus');
+  if (!status) return;
+  clampKeyboardCell();
+  const row = _keyboardCell.row + 1;
+  const col = _keyboardCell.col + 1;
+  const cellType = S.gridType === 'square' ? 'cell' : 'hex';
+  const state = describeCellForStatus(keyboardCellKey());
+  const lead = prefix ? prefix + '. ' : '';
+  status.textContent = `${lead}${cellType} row ${row}, column ${col}: ${state}.`;
+}
+
 // ── State setters ──
 function setStitch(id) { S.activeStitch = id; renderStitches(); updateIndicator(); scheduleAutosave(); }
 function setColor(c) {
@@ -711,6 +762,7 @@ function applySqSize() {
     } else nc[k] = v;
   });
   S.cells = nc; S.sqW = newW; S.sqH = newH;
+  markCellsDirty();
   updateStats(); draw(); toast(`Grid limit: ${newW} × ${newH}`); scheduleAutosave();
 }
 

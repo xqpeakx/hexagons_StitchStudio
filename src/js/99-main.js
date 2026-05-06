@@ -24,6 +24,7 @@ function init() {
 
   draw();
   updateIndicator(); updateLegend(); updateStats();
+  updateCanvasStatus('Chart ready');
 
   bindCanvasEvents();
   window.addEventListener('resize', resize);
