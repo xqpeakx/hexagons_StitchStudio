@@ -32,6 +32,7 @@ import sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC  = os.path.join(ROOT, 'src')
 OUT  = os.path.join(ROOT, 'stitch-studio.html')
+OUT_INDEX = os.path.join(ROOT, 'index.html')
 
 
 def read(p: str) -> str:
@@ -67,8 +68,17 @@ def main() -> int:
     with open(OUT, 'w', encoding='utf-8') as f:
         f.write(out)
 
+    # Also write a real index.html so GitHub Pages (and any static host)
+    # can serve it without relying on a symlink. Remove anything already
+    # at that path first — including symlinks — so we never write through
+    # one to a stale target.
+    if os.path.lexists(OUT_INDEX):
+        os.remove(OUT_INDEX)
+    with open(OUT_INDEX, 'w', encoding='utf-8') as f:
+        f.write(out)
+
     size_kb = round(os.path.getsize(OUT) / 1024, 1)
-    print(f'✓ Built stitch-studio.html ({size_kb} KB) — {len(js_files)} JS modules')
+    print(f'✓ Built stitch-studio.html + index.html ({size_kb} KB) — {len(js_files)} JS modules')
     return 0
 
 

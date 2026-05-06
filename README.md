@@ -6,8 +6,10 @@ any modern browser by double-clicking the HTML file.
 
 ## Try it
 
-Open `stitch-studio.html` in any browser. No server, no build step
-required just to run it.
+Open `stitch-studio.html` (or the equivalent `index.html`) in any
+browser. No server, no build step required just to run it. GitHub Pages
+serves `index.html` directly — both files are produced by `build.py` and
+are byte-for-byte identical.
 
 ## Develop
 
@@ -32,7 +34,7 @@ src/
     └── 99-main.js          # init() + DOMContentLoaded boot
 ```
 
-To rebuild the bundled `stitch-studio.html`:
+To rebuild the bundled `stitch-studio.html` and `index.html`:
 
 ```bash
 python3 build.py

@@ -64,9 +64,15 @@ fi
 
 cd "$LOCAL_DIR"
 
-# Make sure index.html stays linked to stitch-studio.html
-if [ -e index.html ] && [ ! -L index.html ]; then rm -f index.html; fi
-[ -e index.html ] || ln -sf stitch-studio.html index.html
+# index.html should already be a real file produced by build.py. If an
+# old symlink (or absolute-path symlink left over from prior versions of
+# this script) made it into the clone, drop it so the next rsync will
+# replace it with the real file. We do NOT recreate a symlink — GitHub
+# Pages chokes on absolute symlink targets.
+if [ -L index.html ]; then rm -f index.html; fi
+if [ ! -f index.html ] && [ -f stitch-studio.html ]; then
+  cp stitch-studio.html index.html
+fi
 
 cat > .gitignore << 'EOF'
 .DS_Store
