@@ -98,7 +98,7 @@ function paintAt(ox, oy) {
       const idx = S.cables.findIndex(cb => cb.r === r && c >= cb.c && c < cb.c + cb.w);
       if (idx !== -1) {
         S.cables.splice(idx, 1);
-        draw(); updateStats(); updateLegend(); scheduleAutosave();
+        scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
         return;
       }
     }
@@ -110,7 +110,7 @@ function paintAt(ox, oy) {
       placeCableAt(cell.key);
       // Mark this stroke "done" so dragging across cells doesn't spam cables.
       lastKey = '__cable_placed__';
-      draw(); updateStats(); updateLegend(); scheduleAutosave();
+      scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
       return;
     }
     const existing = S.cells[cell.key];
@@ -121,7 +121,7 @@ function paintAt(ox, oy) {
     S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
   }
   markCellsDirty();
-  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
 // Place a cable starting at the given square-grid cell key. Refuses
@@ -132,7 +132,7 @@ function placeCableAt(key) {
   const [r, c] = rc.split(',').map(Number);
   const w = S.activeCable.w;
   const dir = S.activeCable.dir;
-  if (c + w > S.sqW) { toast('Cable extends past the row — move left'); return; }
+  if (c + w > S.sqW) { toast('Cable extends past the row. Move left.'); return; }
   if (r < 0 || r >= S.sqH) return;
   // Remove any existing cable that overlaps this one (same row, intersecting cols).
   S.cables = S.cables.filter(cb =>
@@ -226,7 +226,7 @@ function handleRepeatTap(cell) {
   if (!_repeatAnchor) {
     _repeatAnchor = { r, c };
     draw();
-    toast('First corner set — tap the opposite corner');
+    toast('First corner set. Tap the opposite corner.');
     return;
   }
 

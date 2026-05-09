@@ -8,6 +8,9 @@ function init() {
   gCanvas = document.getElementById('gpc');
   gCtx    = gCanvas.getContext('2d');
 
+  // Apply the saved low-light preference before any paint so users don't
+  // see a flash of light chrome.
+  restoreTheme();
   syncThemeChrome();
   bindUiActions();
   renderStitches(); renderPalette(); renderPresets(); renderCables();

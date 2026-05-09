@@ -71,7 +71,7 @@
     <div class="plist" id="presetList"></div>
   </div>
   <div class="ps ps-support" id="cablesPanel">
-    <div class="plbl" title="Multi-cell cable stitches. Square grid only — pick a width + direction, then tap the cell where the cable starts.">Cables</div>
+    <div class="plbl" title="Multi-cell cable stitches. Square grid only. Pick a width and direction, then tap the cell where the cable starts.">Cables</div>
     <p class="hint">Square grid only. Pick a cable, then tap the start cell.</p>
     <div class="cab-grid" id="cablesGrid"></div>
   </div>
@@ -159,7 +159,7 @@
     <div id="canvasStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">Chart ready.</div>
     <div class="aind" id="aind">
       <div class="adot" id="adot"></div>
-      <span id="alab">dc — Double Crochet</span>
+      <span id="alab">dc: Double Crochet</span>
     </div>
     <div class="zoom-bar">
       <button data-action="adjZoom" data-value="-0.15" title="Zoom out (-)" aria-label="Zoom out">−</button>
@@ -246,6 +246,12 @@
   <div class="ps ps-core settings-panel" id="displayPanel">
     <div class="plbl">Display</div>
     <p class="hint">Chart view, editing behavior, and pattern-reading options.</p>
+    <div class="setting-group">
+      <div class="setting-subhead">Display mode</div>
+      <div class="prow" title="Dim the panels and toolbar for low-light use. Chart paper stays paper-like; exports always render light."><span>Low light</span>
+        <div class="tog" role="group" aria-label="Display mode"><button id="thOn" aria-pressed="false" data-action="togTheme" data-value="true">On</button><button class="on" id="thOff" aria-pressed="true" data-action="togTheme" data-value="false">Off</button></div>
+      </div>
+    </div>
     <div class="setting-group">
       <div class="setting-subhead">Chart view</div>
       <div class="prow"><span>Grid lines</span>
@@ -382,20 +388,17 @@
     <div class="macts"><button class="sbtn2" data-action="closeModal" data-modal="newM">Cancel</button><button class="pbtn" data-action="doNew">Start Fresh</button></div>
   </div>
 </div>
-<div class="mo" id="legendM" role="dialog" aria-modal="true" aria-labelledby="legendMLabel" aria-describedby="legendMCount">
-  <div class="md compact-md">
-    <h3 id="legendMTitle" class="legend-title">
-      <span id="legendMSwatch" class="legend-modal-swatch"></span>
-      <span id="legendMLabel">Colour</span>
-    </h3>
-    <p id="legendMCount" class="modal-copy">…</p>
-    <div class="modal-stack">
-      <button class="sbtn2 action-row" data-action="legendActionPick">🎯 Pick this as active colour</button>
-      <button class="sbtn2 action-row" data-action="legendActionSwap">🔄 Swap with active colour</button>
-      <button class="sbtn2 action-row danger-row" data-action="legendActionRemove">🗑 Remove all cells of this colour</button>
+<div class="lpop" id="legendPop" aria-label="Color actions" hidden>
+  <div class="lpop-head">
+    <span id="legendPopSwatch" class="lpop-swatch"></span>
+    <div class="lpop-meta">
+      <span id="legendPopLabel" class="lpop-label">Colour</span>
+      <span id="legendPopCount" class="lpop-count">…</span>
     </div>
-    <div class="macts"><button class="sbtn2" data-action="closeModal" data-modal="legendM">Close</button></div>
   </div>
+  <button class="lpop-action" data-action="legendActionPick">Pick as active colour</button>
+  <button class="lpop-action" data-action="legendActionSwap">Swap with active colour</button>
+  <button class="lpop-action danger" data-action="legendActionRemove">Remove all cells of this colour</button>
 </div>
 <div class="mo" id="txtM" role="dialog" aria-modal="true" aria-labelledby="txtMTitle" aria-describedby="txtMDesc">
   <div class="md text-modal">

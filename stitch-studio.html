@@ -147,7 +147,7 @@ canvas#mc:focus-visible{outline-offset:-4px}
 .slist{display:flex;flex-direction:column;gap:4px}
 .sit{width:100%;display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--rsm);border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s,color .15s;font-size:11.5px;color:var(--text2);background:transparent;text-align:left;font-family:var(--font-ui)}
 .sit:hover{background:var(--s2)}
-.sit.on{border-color:var(--line-accent);background:var(--surface);color:var(--accent);font-weight:700;box-shadow:inset 3px 0 0 var(--accent),var(--shs)}
+.sit.on{border-color:var(--line-accent);background:var(--surface);color:var(--accent);font-weight:700;box-shadow:var(--shs)}
 .ssym{width:21px;height:21px;border-radius:50%;background:var(--stitch-color,var(--s2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--stitch-ink,var(--surface));border:1px solid var(--line-ink-soft);flex-shrink:0}
 .sit.on .ssym{background:var(--stitch-color,var(--accent));color:var(--stitch-ink,var(--surface))}
 
@@ -671,7 +671,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <div class="plist" id="presetList"></div>
   </div>
   <div class="ps ps-support" id="cablesPanel">
-    <div class="plbl" title="Multi-cell cable stitches. Square grid only — pick a width + direction, then tap the cell where the cable starts.">Cables</div>
+    <div class="plbl" title="Multi-cell cable stitches. Square grid only. Pick a width and direction, then tap the cell where the cable starts.">Cables</div>
     <p class="hint">Square grid only. Pick a cable, then tap the start cell.</p>
     <div class="cab-grid" id="cablesGrid"></div>
   </div>
@@ -759,7 +759,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <div id="canvasStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">Chart ready.</div>
     <div class="aind" id="aind">
       <div class="adot" id="adot"></div>
-      <span id="alab">dc — Double Crochet</span>
+      <span id="alab">dc: Double Crochet</span>
     </div>
     <div class="zoom-bar">
       <button data-action="adjZoom" data-value="-0.15" title="Zoom out (-)" aria-label="Zoom out">−</button>
@@ -1503,6 +1503,22 @@ function visibleHexBounds() {
   return { col0, row0, colN, rowN };
 }
 
+// rAF coalescing for hot input loops. Pointer/touch streams (paintAt drag,
+// mouse/touch pan, pinch-zoom, held arrow keys) call scheduleDraw() instead
+// of draw(). Multiple schedules in one frame collapse into one render.
+// One-shot paths (clicks, taps, exports, undo, fills, repeats, swaps) still
+// call draw() directly so the canvas is pixel-accurate the moment anything
+// reads from it.
+let _drawScheduled = false;
+function scheduleDraw() {
+  if (_drawScheduled) return;
+  _drawScheduled = true;
+  requestAnimationFrame(() => {
+    _drawScheduled = false;
+    draw();
+  });
+}
+
 function draw() {
   beginTokenCache();
   try {
@@ -2127,7 +2143,7 @@ function paintAt(ox, oy) {
       const idx = S.cables.findIndex(cb => cb.r === r && c >= cb.c && c < cb.c + cb.w);
       if (idx !== -1) {
         S.cables.splice(idx, 1);
-        draw(); updateStats(); updateLegend(); scheduleAutosave();
+        scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
         return;
       }
     }
@@ -2139,7 +2155,7 @@ function paintAt(ox, oy) {
       placeCableAt(cell.key);
       // Mark this stroke "done" so dragging across cells doesn't spam cables.
       lastKey = '__cable_placed__';
-      draw(); updateStats(); updateLegend(); scheduleAutosave();
+      scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
       return;
     }
     const existing = S.cells[cell.key];
@@ -2150,7 +2166,7 @@ function paintAt(ox, oy) {
     S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
   }
   markCellsDirty();
-  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
 // Place a cable starting at the given square-grid cell key. Refuses
@@ -2161,7 +2177,7 @@ function placeCableAt(key) {
   const [r, c] = rc.split(',').map(Number);
   const w = S.activeCable.w;
   const dir = S.activeCable.dir;
-  if (c + w > S.sqW) { toast('Cable extends past the row — move left'); return; }
+  if (c + w > S.sqW) { toast('Cable extends past the row. Move left.'); return; }
   if (r < 0 || r >= S.sqH) return;
   // Remove any existing cable that overlaps this one (same row, intersecting cols).
   S.cables = S.cables.filter(cb =>
@@ -2255,7 +2271,7 @@ function handleRepeatTap(cell) {
   if (!_repeatAnchor) {
     _repeatAnchor = { r, c };
     draw();
-    toast('First corner set — tap the opposite corner');
+    toast('First corner set. Tap the opposite corner.');
     return;
   }
 
@@ -2356,7 +2372,7 @@ function moveKeyboardCell(deltaCol, deltaRow) {
   _keyboardCell.row += deltaRow;
   clampKeyboardCell();
   ensureKeyboardCellVisible();
-  draw();
+  scheduleDraw();
   updateCanvasStatus();
 }
 
@@ -2437,7 +2453,7 @@ function bindCanvasEvents() {
     if (isPan) {
       S.panX = panOr.x + (e.clientX - panSt.x);
       S.panY = panOr.y + (e.clientY - panSt.y);
-      draw(); return;
+      scheduleDraw(); return;
     }
     if (painting) paintAt(e.offsetX, e.offsetY);
   });
@@ -2612,7 +2628,7 @@ function bindCanvasEvents() {
           setPressed(document.getElementById('stOn'), true);
           setPressed(document.getElementById('stOff'), false);
         }
-        toast('Stylus detected — finger pans, pencil draws');
+        toast('Stylus detected: finger pans, pencil draws.');
         scheduleAutosave();
       }
       if (S.stylusMode && !isStylus) {
@@ -2697,7 +2713,7 @@ function bindCanvasEvents() {
       if (isPan) {
         S.panX = panOr.x + (t.clientX - panSt.x);
         S.panY = panOr.y + (t.clientY - panSt.y);
-        draw(); return;
+        scheduleDraw(); return;
       }
       const r = canvas.getBoundingClientRect();
       if (touchPaintPending) {
@@ -2731,7 +2747,7 @@ function bindCanvasEvents() {
       S.panX = panOr.x + (mx - panSt.x);
       S.panY = panOr.y + (my - panSt.y);
       updateZoomLabel();
-      draw();
+      scheduleDraw();
     }
   }, { passive: false });
 
@@ -3316,12 +3332,12 @@ function bindRepeatAxisToggle() {
 function setCable(wOrNull, dir) {
   if (wOrNull === null) {
     S.activeCable = null;
-    toast('Cable picker off — single-cell painting');
+    toast('Cable picker off. Single-cell painting.');
   } else {
     S.activeCable = { w: wOrNull, dir };
     // Clearing implicitly sets the draw tool so taps actually place.
     if (S.tool !== 'draw') setTool('draw');
-    toast(`Cable: ${wOrNull / 2}/${wOrNull / 2} ${dir} — tap a cell to place`);
+    toast(`Cable: ${wOrNull / 2}/${wOrNull / 2} ${dir}. Tap a cell to place.`);
   }
   renderCables();
 }
@@ -3362,7 +3378,7 @@ function updateLegend() {
     swatch.className = 'ls';
     swatch.style.setProperty('--swatch-color', s.col);
     const text = document.createElement('span');
-    text.textContent = `${label.abbr} — ${label.name}`;
+    text.textContent = `${label.abbr}: ${label.name}`;
     row.append(sym, swatch, text);
     legend.append(row);
     rendered++;
@@ -3402,7 +3418,7 @@ function updateIndicator() {
     return;
   }
   const label = stitchLabel(s);
-  document.getElementById('alab').textContent = `${s.sym} — ${label.name}`;
+  document.getElementById('alab').textContent = `${s.sym}: ${label.name}`;
 }
 
 function stitchLabel(s) {
@@ -3479,7 +3495,7 @@ function setGridType(type) {
   if (type !== 'square' && S.activeCable) { S.activeCable = null; renderCables(); }
   if (document.getElementById('grannyPanel').classList.contains('vis')) onGStyleChange();
   draw(); updateStats();
-  toast(type === 'hex' ? 'Hex grid — tap hexagons to paint!' : 'Square grid active');
+  toast(type === 'hex' ? 'Hex grid. Tap hexagons to paint.' : 'Square grid active.');
   scheduleAutosave();
 }
 
@@ -3571,9 +3587,9 @@ function applyGauge() {
   document.getElementById('gaugeRo').value = S.gaugeRows || '';
   draw(); updateStats();
   if (S.gaugeStitches && S.gaugeRows) {
-    toast(`Gauge ${S.gaugeStitches}×${S.gaugeRows} — cells aspect-corrected`);
+    toast(`Gauge ${S.gaugeStitches}×${S.gaugeRows}: cells aspect-corrected.`);
   } else {
-    toast('Gauge cleared — square cells');
+    toast('Gauge cleared. Square cells.');
   }
   scheduleAutosave();
 }
@@ -3668,14 +3684,14 @@ function togFollow(on)  {
   setPressed(document.getElementById('foOn'), on);
   setPressed(document.getElementById('foOff'), !on);
   draw();
-  toast(on ? 'Follow mode — use ↑/↓ keys to step rows' : 'Follow mode off');
+  toast(on ? 'Follow mode: use ↑/↓ keys to step rows.' : 'Follow mode off.');
   scheduleAutosave();
 }
 function togStylus(on) {
   S.stylusMode = !!on;
   setPressed(document.getElementById('stOn'), on);
   setPressed(document.getElementById('stOff'), !on);
-  toast(on ? 'Stylus mode — finger pans, pencil draws' : 'Stylus mode off');
+  toast(on ? 'Stylus mode: finger pans, pencil draws.' : 'Stylus mode off.');
   scheduleAutosave();
 }
 
@@ -4588,7 +4604,7 @@ function loadUnderlay(input) {
       );
       if (downsized) finalUrl = downsized;
       if (finalUrl.length > UNDERLAY_MAX_BYTES) {
-        toast('Image is still too big after compression — try a simpler picture');
+        toast('Image is still too big after compression. Try a simpler picture.');
         input.value = '';
         return;
       }
@@ -4611,8 +4627,8 @@ function loadUnderlay(input) {
         syncUnderlayUI();
         draw();
         scheduleAutosave();
-        if (downsized) toast('Underlay loaded (resized for storage) — trace cells over it');
-        else            toast('Underlay loaded — trace cells over it');
+        if (downsized) toast('Underlay loaded (resized for storage). Trace cells over it.');
+        else            toast('Underlay loaded. Trace cells over it.');
       };
       if (finalImg === probe) {
         finish();
@@ -4724,7 +4740,7 @@ function generatePatternText() {
     if (c < minC) minC = c; if (c > maxC) maxC = c;
   }
   if (maxR < 0) {
-    lines.push('(Empty chart — paint some cells first.)');
+    lines.push('(Empty chart. Paint some cells first.)');
     return lines.join('\n');
   }
 
@@ -4861,11 +4877,11 @@ function copyPatternText() {
     navigator.clipboard.writeText(ta.value).then(
       () => toast('Copied to clipboard'),
       () => { try { document.execCommand('copy'); toast('Copied'); }
-              catch { toast('Copy failed — select manually'); } }
+              catch { toast('Copy failed. Select manually.'); } }
     );
   } else {
     try { document.execCommand('copy'); toast('Copied'); }
-    catch { toast('Copy failed — select manually'); }
+    catch { toast('Copy failed. Select manually.'); }
   }
 }
 

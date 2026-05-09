@@ -48,6 +48,7 @@ const UI_ACTIONS = {
   togFollow: el => togFollow(el.dataset.value === 'true'),
   setCrochetTerms: el => setCrochetTerms(el.dataset.value),
   togStylus: el => togStylus(el.dataset.value === 'true'),
+  togTheme: el => togTheme(el.dataset.value === 'true'),
   applyGauge: () => applyGauge(),
   openUnderlayFile: () => document.getElementById('underlayFile').click(),
   setUnderlayOpacity: el => setUnderlayOpacity(el.value),
@@ -232,7 +233,7 @@ function bindLegendLongPress() {
     _legendLongPressTimer = setTimeout(() => {
       _legendLongPressTimer = null;
       legend._lpFired = true;
-      openLegendMenu(color);
+      openLegendPop(color, el);
     }, HOLD_MS);
   };
   const cancel = () => {
@@ -266,34 +267,191 @@ function bindLegendLongPress() {
   }, true);
 }
 
-function openLegendMenu(color) {
-  _legendMenuColor = color;
+// ── LEGEND POPOVER ──
+// Replaces the centered legendM modal with an anchored popover. The
+// trigger element (long-pressed legend row) and the affected color are
+// stashed on legendPop.dataset so the action handlers don't depend on
+// any module-level state. Outside click, Esc, scroll, and resize all
+// close. The Remove action arms itself for 3s when ≥REMOVE_CONFIRM_AT
+// cells would be deleted, requiring a second tap.
+
+const LEGEND_POP_GUTTER = 8;          // minimum px from any viewport edge
+const LEGEND_POP_OFFSET = 8;          // gap between anchor row and popover
+const REMOVE_CONFIRM_AT = 20;         // arm tap-again confirm at this count
+const REMOVE_ARM_MS     = 3000;
+
+let _legendPopReturnFocus = null;
+let _legendPopRemoveArmedAt = 0;
+let _legendPopRemoveArmTimer = null;
+
+function legendPopEl() { return document.getElementById('legendPop'); }
+function legendPopColor() {
+  const pop = legendPopEl();
+  return pop ? pop.dataset.color || null : null;
+}
+function legendPopIsOpen() {
+  const pop = legendPopEl();
+  return !!(pop && pop.classList.contains('open'));
+}
+
+function placeLegendPop(pop, anchorEl) {
+  // Reset any previous placement so measurement is clean.
+  pop.style.top = '0px';
+  pop.style.left = '0px';
+  pop.hidden = false;
+  // Force a layout read after un-hiding so offsetWidth/Height are real.
+  // The popover is fixed-positioned so we work in viewport coordinates.
+  const aRect = anchorEl.getBoundingClientRect();
+  const pRect = pop.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Horizontal: align to anchor's left edge, then clamp inside the
+  // viewport with an 8px gutter on either side. If the popover is wider
+  // than the viewport (very narrow phone), fall back to the gutter.
+  let left = aRect.left;
+  if (left + pRect.width + LEGEND_POP_GUTTER > vw) {
+    left = vw - pRect.width - LEGEND_POP_GUTTER;
+  }
+  if (left < LEGEND_POP_GUTTER) left = LEGEND_POP_GUTTER;
+
+  // Vertical: prefer above the anchor; flip below if it would clip the
+  // viewport top. The anchor is a legend row inside the right panel so
+  // "above" reads as "growing up from the row toward the toolbar."
+  let top = aRect.top - pRect.height - LEGEND_POP_OFFSET;
+  if (top < LEGEND_POP_GUTTER) {
+    top = aRect.bottom + LEGEND_POP_OFFSET;
+  }
+  // And clamp the bottom edge so a tall popover near the bottom of the
+  // viewport doesn't disappear off-screen.
+  if (top + pRect.height + LEGEND_POP_GUTTER > vh) {
+    top = Math.max(LEGEND_POP_GUTTER, vh - pRect.height - LEGEND_POP_GUTTER);
+  }
+
+  pop.style.top  = `${Math.round(top)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
+function onLegendPopOutside(e) {
+  const pop = legendPopEl();
+  if (!pop) return;
+  if (pop.contains(e.target)) return;
+  closeLegendPop();
+}
+function onLegendPopKey(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    closeLegendPop();
+  }
+}
+function onLegendPopDismissEvent() { closeLegendPop(); }
+
+function clearRemoveArmTimer() {
+  if (_legendPopRemoveArmTimer) {
+    clearTimeout(_legendPopRemoveArmTimer);
+    _legendPopRemoveArmTimer = null;
+  }
+  _legendPopRemoveArmedAt = 0;
+  const btn = document.querySelector('#legendPop .lpop-action.danger');
+  if (btn) {
+    btn.classList.remove('armed');
+    btn.textContent = 'Remove all cells of this colour';
+  }
+}
+
+function openLegendPop(color, anchorEl) {
+  if (!color || !anchorEl) return;
+  const pop = legendPopEl();
+  if (!pop) return;
+
+  pop.dataset.color = color;
   const count = Object.values(S.cells).filter(c => c.color === color).length;
   const cableCount = (S.cables || []).filter(cb => cb.color === color).length;
-  document.getElementById('legendMSwatch').style.setProperty('--swatch-color', color);
-  document.getElementById('legendMLabel').textContent = color;
-  document.getElementById('legendMCount').textContent =
+  document.getElementById('legendPopSwatch').style.setProperty('--swatch-color', color);
+  document.getElementById('legendPopLabel').textContent = color;
+  document.getElementById('legendPopCount').textContent =
     `Used in ${count} cell${count === 1 ? '' : 's'}` +
     (cableCount ? ` and ${cableCount} cable${cableCount === 1 ? '' : 's'}` : '');
-  openM('legendM', '#legendM .sbtn2');
+
+  clearRemoveArmTimer();
+  _legendPopReturnFocus = anchorEl;
+
+  placeLegendPop(pop, anchorEl);
+  pop.classList.add('open');
+
+  // Defer listener wiring so the same pointerdown that opened the popover
+  // doesn't immediately count as an "outside click" on its own bubble pass.
+  requestAnimationFrame(() => {
+    document.addEventListener('mousedown', onLegendPopOutside, true);
+    document.addEventListener('touchstart', onLegendPopOutside, { capture: true, passive: true });
+    document.addEventListener('keydown', onLegendPopKey, true);
+    window.addEventListener('scroll', onLegendPopDismissEvent, true);
+    window.addEventListener('resize', onLegendPopDismissEvent);
+    const first = pop.querySelector('.lpop-action');
+    if (first) first.focus({ preventScroll: true });
+  });
+}
+
+function closeLegendPop() {
+  const pop = legendPopEl();
+  if (!pop || !pop.classList.contains('open')) return;
+  pop.classList.remove('open');
+  pop.hidden = true;
+  pop.dataset.color = '';
+  clearRemoveArmTimer();
+  document.removeEventListener('mousedown', onLegendPopOutside, true);
+  document.removeEventListener('touchstart', onLegendPopOutside, { capture: true });
+  document.removeEventListener('keydown', onLegendPopKey, true);
+  window.removeEventListener('scroll', onLegendPopDismissEvent, true);
+  window.removeEventListener('resize', onLegendPopDismissEvent);
+  if (_legendPopReturnFocus && document.contains(_legendPopReturnFocus)) {
+    _legendPopReturnFocus.focus({ preventScroll: true });
+  }
+  _legendPopReturnFocus = null;
 }
 
 function legendActionPick() {
-  if (_legendMenuColor) {
-    setColor(_legendMenuColor);
-    toast('Picked active colour ' + _legendMenuColor);
+  const color = legendPopColor();
+  if (color) {
+    setColor(color);
+    toast('Picked active colour ' + color);
   }
-  closeM('legendM');
+  closeLegendPop();
 }
 
 function legendActionSwap() {
-  if (_legendMenuColor) swapColor(_legendMenuColor);
-  closeM('legendM');
+  const color = legendPopColor();
+  if (color) swapColor(color);
+  closeLegendPop();
 }
 
 function legendActionRemove() {
-  if (!_legendMenuColor) { closeM('legendM'); return; }
-  const target = _legendMenuColor;
+  const target = legendPopColor();
+  if (!target) { closeLegendPop(); return; }
+
+  // Count what would be deleted. If it's large, arm a tap-again confirm
+  // instead of running immediately. Second tap (within REMOVE_ARM_MS)
+  // commits.
+  const cellCount  = Object.values(S.cells).filter(c => c.color === target).length;
+  const cableCount = (S.cables || []).filter(cb => cb.color === target).length;
+  const total = cellCount + cableCount;
+  const armed = _legendPopRemoveArmedAt && (Date.now() - _legendPopRemoveArmedAt < REMOVE_ARM_MS);
+
+  if (total >= REMOVE_CONFIRM_AT && !armed) {
+    _legendPopRemoveArmedAt = Date.now();
+    const btn = document.querySelector('#legendPop .lpop-action.danger');
+    if (btn) {
+      btn.classList.add('armed');
+      btn.textContent = `Tap again to remove ${cellCount} cell${cellCount === 1 ? '' : 's'}`
+        + (cableCount ? ` + ${cableCount} cable${cableCount === 1 ? '' : 's'}` : '');
+      btn.focus({ preventScroll: true });
+    }
+    if (_legendPopRemoveArmTimer) clearTimeout(_legendPopRemoveArmTimer);
+    _legendPopRemoveArmTimer = setTimeout(clearRemoveArmTimer, REMOVE_ARM_MS);
+    return;
+  }
+
   pushUndo();
   let n = 0;
   Object.keys(S.cells).forEach(k => {
@@ -312,7 +470,7 @@ function legendActionRemove() {
   if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
   if (cn) parts.push(cn + ' cable' + (cn === 1 ? '' : 's'));
   toast('Removed ' + parts.join(' + '));
-  closeM('legendM');
+  closeLegendPop();
 }
 
 const HELP_TOPICS = [
@@ -537,12 +695,12 @@ function bindRepeatAxisToggle() {
 function setCable(wOrNull, dir) {
   if (wOrNull === null) {
     S.activeCable = null;
-    toast('Cable picker off — single-cell painting');
+    toast('Cable picker off. Single-cell painting.');
   } else {
     S.activeCable = { w: wOrNull, dir };
     // Clearing implicitly sets the draw tool so taps actually place.
     if (S.tool !== 'draw') setTool('draw');
-    toast(`Cable: ${wOrNull / 2}/${wOrNull / 2} ${dir} — tap a cell to place`);
+    toast(`Cable: ${wOrNull / 2}/${wOrNull / 2} ${dir}. Tap a cell to place.`);
   }
   renderCables();
 }
@@ -583,7 +741,7 @@ function updateLegend() {
     swatch.className = 'ls';
     swatch.style.setProperty('--swatch-color', s.col);
     const text = document.createElement('span');
-    text.textContent = `${label.abbr} — ${label.name}`;
+    text.textContent = `${label.abbr}: ${label.name}`;
     row.append(sym, swatch, text);
     legend.append(row);
     rendered++;
@@ -623,7 +781,7 @@ function updateIndicator() {
     return;
   }
   const label = stitchLabel(s);
-  document.getElementById('alab').textContent = `${s.sym} — ${label.name}`;
+  document.getElementById('alab').textContent = `${s.sym}: ${label.name}`;
 }
 
 function stitchLabel(s) {
@@ -700,7 +858,7 @@ function setGridType(type) {
   if (type !== 'square' && S.activeCable) { S.activeCable = null; renderCables(); }
   if (document.getElementById('grannyPanel').classList.contains('vis')) onGStyleChange();
   draw(); updateStats();
-  toast(type === 'hex' ? 'Hex grid — tap hexagons to paint!' : 'Square grid active');
+  toast(type === 'hex' ? 'Hex grid. Tap hexagons to paint.' : 'Square grid active.');
   scheduleAutosave();
 }
 
@@ -792,9 +950,9 @@ function applyGauge() {
   document.getElementById('gaugeRo').value = S.gaugeRows || '';
   draw(); updateStats();
   if (S.gaugeStitches && S.gaugeRows) {
-    toast(`Gauge ${S.gaugeStitches}×${S.gaugeRows} — cells aspect-corrected`);
+    toast(`Gauge ${S.gaugeStitches}×${S.gaugeRows}: cells aspect-corrected.`);
   } else {
-    toast('Gauge cleared — square cells');
+    toast('Gauge cleared. Square cells.');
   }
   scheduleAutosave();
 }
@@ -889,15 +1047,73 @@ function togFollow(on)  {
   setPressed(document.getElementById('foOn'), on);
   setPressed(document.getElementById('foOff'), !on);
   draw();
-  toast(on ? 'Follow mode — use ↑/↓ keys to step rows' : 'Follow mode off');
+  toast(on ? 'Follow mode: use ↑/↓ keys to step rows.' : 'Follow mode off.');
   scheduleAutosave();
 }
 function togStylus(on) {
   S.stylusMode = !!on;
   setPressed(document.getElementById('stOn'), on);
   setPressed(document.getElementById('stOff'), !on);
-  toast(on ? 'Stylus mode — finger pans, pencil draws' : 'Stylus mode off');
+  toast(on ? 'Stylus mode: finger pans, pencil draws.' : 'Stylus mode off.');
   scheduleAutosave();
+}
+
+// ── DISPLAY MODE (light / dark) ──
+// Theme is stored per-device in localStorage, not in the per-pattern
+// autosave. The chart canvas keeps paper conventions in both modes
+// (only --canvas-paper dims slightly); the rest of the chrome flips
+// via the :root[data-theme="dark"] override block in styles.css.
+// Exports always render light via withLightTheme().
+
+function applyTheme(mode) {
+  const html = document.documentElement;
+  if (mode === 'dark') html.setAttribute('data-theme', 'dark');
+  else html.removeAttribute('data-theme');
+  // Sync the iOS PWA status bar tint and any other chrome that reads
+  // CSS variables imperatively.
+  syncThemeChrome();
+}
+
+function togTheme(on) {
+  const mode = on ? 'dark' : 'light';
+  applyTheme(mode);
+  setPressed(document.getElementById('thOn'), on);
+  setPressed(document.getElementById('thOff'), !on);
+  try { localStorage.setItem(THEME_KEY, mode); } catch { /* quota — silent */ }
+  // CSS variables resolve at draw time, so the canvas needs a redraw to
+  // pick up the new --canvas-paper.
+  scheduleDraw();
+}
+
+function restoreTheme() {
+  let mode = 'light';
+  try { mode = localStorage.getItem(THEME_KEY) || 'light'; } catch { /* private browsing */ }
+  if (mode !== 'dark') mode = 'light';
+  applyTheme(mode);
+  // Reflect into the toggle so the visible state matches reality.
+  const on = (mode === 'dark');
+  const onBtn = document.getElementById('thOn');
+  const offBtn = document.getElementById('thOff');
+  if (onBtn)  setPressed(onBtn, on);
+  if (offBtn) setPressed(offBtn, !on);
+}
+
+// Run `fn` with the chrome temporarily flipped to light theme. Used by
+// canvas exports (PNG, PDF, granny preview) so output renders on full
+// paper regardless of the user's display preference. The flip is
+// synchronous within one call: the DOM attribute moves, the function
+// runs (canvasToken() reads light-mode values), and the attribute is
+// restored. Browsers don't paint between attribute writes inside the
+// same task, so users don't see a flash of light chrome.
+function withLightTheme(fn) {
+  const html = document.documentElement;
+  const had = html.getAttribute('data-theme');
+  if (had === 'dark') html.removeAttribute('data-theme');
+  try {
+    return fn();
+  } finally {
+    if (had === 'dark') html.setAttribute('data-theme', 'dark');
+  }
 }
 
 function stepRow(delta) {

@@ -72,11 +72,65 @@
   --glow-accent-ring:color-mix(in srgb,var(--accent2) 16%,transparent);
   --glow-accent-ring-strong:color-mix(in srgb,var(--accent2) 18%,transparent);
   --canvas-ws-row:color-mix(in srgb,var(--purple) 7%,transparent);
-  --canvas-hairline:color-mix(in srgb,var(--text) 8%,transparent);
+  /* Canvas paper conventions. The chart is rendered as ink-on-paper at all
+     times; only --canvas-paper dims slightly in dark mode. The other
+     canvas-* tokens are constants so stitch symbols, grid lines, and
+     row labels stay legible regardless of the chrome theme. */
+  --canvas-paper:#faf8f5;
+  --canvas-ink:#2a2520;
+  --canvas-ink-soft:#73685f;
+  --canvas-grid:#a8a29a;
+  --canvas-grid-strong:#cec8c0;
+  --canvas-hole:#ebe6df;
+  --canvas-hole-stroke:#cec8c0;
+  --canvas-hairline:color-mix(in srgb,var(--canvas-ink) 8%,transparent);
+  --spotlight-flash:var(--gold2);
   --sh:0 2px 12px var(--ink-shadow);
   --shl:0 8px 32px var(--ink-shadow-mid);
   --shs:0 1px 0 var(--ink-shadow-soft);
   --ease:cubic-bezier(.22,1,.36,1);
+}
+
+/* ── DARK THEME ──
+   Opt-in via the Display panel toggle. Chrome flips to true dark with
+   warm-walnut accents lifted to caramel/mint/amber/lilac so they read
+   on the dark surface. The canvas paper dims slightly but keeps its
+   ink-on-paper conventions via the --canvas-* tokens above. Forced-
+   colors block stays last in the cascade and wins over both. */
+:root[data-theme="dark"] {
+  --bg:#1a1714; --surface:#25201c; --s2:#2d2823; --s3:#35302a;
+  --surface-help:#2a2520;
+  --border:#3a3530; --border2:#524b43;
+  --text:#f0e8db; --text2:#c8bdaa; --text3:#8a7f6f;
+  --accent:#d49467; --accent2:#c08158; --accent3:#3a2a1f; --accent-hover:#e8a380;
+  --teal:#6dc4b1; --teal2:#1f3a36;
+  --rose:#d48fa1; --rose2:#3a2329;
+  --gold:#d4a85a; --gold2:#3a2f1c;
+  --purple:#b599d8; --purple2:#2a1f3d;
+  /* Canvas paper dims; ink/grid/hole stay constant via the canvas-* tokens. */
+  --canvas-paper:#ddd4c4;
+  /* Shadows derive from black instead of cream-tinted text in dark mode. */
+  --ink-shadow:rgba(0,0,0,.45);
+  --ink-shadow-soft:rgba(0,0,0,.28);
+  --ink-shadow-mid:rgba(0,0,0,.60);
+  --ink-shadow-row:rgba(0,0,0,.22);
+  --shadow-row-hover:rgba(0,0,0,.40);
+  --overlay-modal:rgba(0,0,0,.65);
+  /* Glow halos on buttons go dark not luminous. Keeps elevation, drops
+     the synthwave-neon trap. Focus rings stay accent-tinted via the
+     ring tokens (which derive from --accent2 = caramel). */
+  --glow-accent-soft:rgba(0,0,0,.25);
+  --glow-accent-active:rgba(0,0,0,.30);
+  --glow-accent-raised:rgba(0,0,0,.40);
+  --glow-accent:rgba(0,0,0,.32);
+  --glow-accent-strong:rgba(0,0,0,.40);
+  --glow-gold-soft:rgba(0,0,0,.22);
+  --glow-gold:rgba(0,0,0,.28);
+  --glow-gold-strong:rgba(0,0,0,.35);
+  /* Spotlight flash needs to actually flash on a dark surface. */
+  --spotlight-flash:color-mix(in srgb,var(--gold) 32%,transparent);
+  /* PWA status-bar tint follows the dark page background. */
+  --theme-color:var(--bg);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
@@ -134,7 +188,7 @@ canvas#mc:focus-visible{outline-offset:-4px}
 .ps-utility{background:transparent;border-color:transparent;padding:9px 8px}
 .spotlight{animation:spotlightPulse 1.15s ease-out 1}
 @keyframes spotlightPulse{
-  0%{box-shadow:inset 0 0 0 2px var(--accent2),0 0 0 0 var(--pulse-accent);background:var(--gold2)}
+  0%{box-shadow:inset 0 0 0 2px var(--accent2),0 0 0 0 var(--pulse-accent);background:var(--spotlight-flash)}
   70%{box-shadow:inset 0 0 0 2px transparent,0 0 0 10px transparent}
   100%{box-shadow:none}
 }
@@ -147,7 +201,7 @@ canvas#mc:focus-visible{outline-offset:-4px}
 .slist{display:flex;flex-direction:column;gap:4px}
 .sit{width:100%;display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--rsm);border:1px solid transparent;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s,color .15s;font-size:11.5px;color:var(--text2);background:transparent;text-align:left;font-family:var(--font-ui)}
 .sit:hover{background:var(--s2)}
-.sit.on{border-color:var(--line-accent);background:var(--surface);color:var(--accent);font-weight:700;box-shadow:inset 3px 0 0 var(--accent),var(--shs)}
+.sit.on{border-color:var(--line-accent);background:var(--surface);color:var(--accent);font-weight:700;box-shadow:var(--shs)}
 .ssym{width:21px;height:21px;border-radius:50%;background:var(--stitch-color,var(--s2));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--stitch-ink,var(--surface));border:1px solid var(--line-ink-soft);flex-shrink:0}
 .sit.on .ssym{background:var(--stitch-color,var(--accent));color:var(--stitch-ink,var(--surface))}
 
@@ -199,7 +253,7 @@ canvas#mc:focus-visible{outline-offset:-4px}
 /* ── QUICK ACTION RAIL ── */
 .quick-actions{display:flex;align-items:center;gap:6px;flex:0 1 auto;min-width:min-content}
 .qa-group{display:flex;align-items:center;gap:2px;padding:2px;background:var(--wash-s2-74);border:1px solid var(--line-border-pill);border-radius:999px}
-.qa-label{padding:0 6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);white-space:nowrap}
+.qa-label{padding:0 6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text2);white-space:nowrap}
 .qa-muted{background:transparent;border-color:transparent}
 .qa-file{background:var(--wash-surface-75)}
 .qa-export{background:var(--accent3);border-color:var(--line-accent-strong)}
@@ -302,7 +356,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .gp{display:none;position:absolute;right:0;top:0;bottom:0;width:268px;background:var(--surface);border-left:1px solid var(--border);z-index:50;overflow-y:auto;flex-direction:column}
 .gp.vis{display:flex}
 .gph{padding:14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.gpt{font-family:var(--font-display);font-size:15px;font-weight:500}
+.gpt{font-family:var(--font-ui);font-size:13px;font-weight:700;color:var(--text)}
 .gpx{cursor:pointer;color:var(--text3);font-size:17px;border:0;background:transparent;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center}
 .gpx:hover{background:var(--s2);color:var(--text)}
 .gpb{padding:13px;display:flex;flex-direction:column;gap:12px}
@@ -321,7 +375,6 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .mo.open{display:flex}
 .md{background:var(--surface);border-radius:var(--r);padding:22px;width:340px;max-width:90vw;box-shadow:var(--shl)}
 .md h3{font-family:var(--font-display);font-size:17px;margin-bottom:14px}
-.compact-md{width:320px}
 .text-modal{width:580px;max-width:94vw}
 .modal-copy{font-size:12px;color:var(--text2);line-height:1.45;margin-bottom:12px}
 .modal-stack{display:flex;flex-direction:column;gap:6px}
@@ -329,8 +382,6 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .form-input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--font-ui);font-size:13px;background:var(--surface);color:var(--text);outline:none}
 .form-input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px var(--glow-accent-ring)}
 .center-input{text-align:center;font-size:14px}
-.legend-title{display:flex;align-items:center;gap:9px}
-.legend-modal-swatch{width:18px;height:18px;border-radius:5px;border:1px solid var(--line-ink-soft);background:var(--swatch-color,transparent);display:inline-block}
 .action-row{text-align:left;width:100%}
 .danger-row{color:var(--rose);background:var(--rose2)}
 .pattern-textarea{width:100%;height:340px;padding:12px;border:1px solid var(--border);border-radius:var(--rsm);font-family:var(--font-mono);font-size:12.5px;background:var(--s2);color:var(--text);outline:none;resize:vertical;line-height:1.55;white-space:pre}
@@ -376,6 +427,27 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .load-empty{font-size:12px;color:var(--text3);text-align:center;padding:18px}
 .repeat-axis{display:flex;width:100%}
 .repeat-axis button{flex:1;padding:9px 8px}
+
+/* ── LEGEND POPOVER ──
+   Anchored contextual menu for a legend swatch. Replaces the centered
+   modal that used to do this. Positioned absolutely against the
+   viewport from JS using getBoundingClientRect; flips below if it
+   would clip the top edge. Closes on outside click, Esc, scroll, or
+   resize. No backdrop, no aria-modal: it's a small region with
+   buttons, not a dialog. */
+.lpop{position:fixed;z-index:480;min-width:240px;max-width:280px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shl);padding:10px 10px 8px;display:flex;flex-direction:column;gap:6px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s var(--ease),transform .15s var(--ease)}
+.lpop.open{opacity:1;transform:translateY(0);pointer-events:auto}
+.lpop-head{display:flex;align-items:center;gap:9px;padding:2px 4px 6px;border-bottom:1px solid var(--line-border-soft);margin-bottom:2px}
+.lpop-swatch{width:18px;height:18px;border-radius:5px;border:1px solid var(--line-ink-soft);background:var(--swatch-color,transparent);flex-shrink:0}
+.lpop-meta{display:flex;flex-direction:column;min-width:0}
+.lpop-label{font-size:12px;font-weight:700;color:var(--text);font-family:var(--font-ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lpop-count{font-size:10.5px;color:var(--text3);line-height:1.35}
+.lpop-action{width:100%;text-align:left;padding:9px 10px;border-radius:var(--rsm);border:1px solid transparent;background:transparent;color:var(--text);font-family:var(--font-ui);font-size:12.5px;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.lpop-action:hover,.lpop-action:focus-visible{background:var(--s2);outline:none}
+.lpop-action:focus-visible{border-color:var(--accent)}
+.lpop-action.danger{color:var(--rose)}
+.lpop-action.danger:hover,.lpop-action.danger:focus-visible{background:var(--rose2);border-color:var(--rose)}
+.lpop-action.danger.armed{background:var(--rose2);border-color:var(--rose);font-weight:700}
 
 /* ── TOAST ── */
 .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--text);color:var(--surface);padding:9px 18px;border-radius:100px;font-size:12.5px;font-weight:500;z-index:999;transition:transform .25s;pointer-events:none}
@@ -462,6 +534,9 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   .slid{width:44px}
   .help-close{width:42px;height:42px}
 
+  /* Legend popover: thumb-friendly action rows */
+  .lpop-action{min-height:44px;padding:11px 12px;font-size:13.5px}
+
   /* Zoom bar */
   .zoom-bar button{width:42px;height:42px;font-size:20px}
   .zoom-bar .zreset{width:38px;font-size:14px}
@@ -477,7 +552,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 
 /* ── RESPONSIVE: collapse panels on narrow screens ── */
 @media (max-width: 720px) {
-  .body{--lp-w:min(88vw,340px);--rp-w:min(90vw,360px);--mobile-toolbar-h:148px}
+  .body{--lp-w:min(88vw,340px);--rp-w:min(90vw,360px);--mobile-toolbar-h:188px}
   .lp,.rp{top:var(--mobile-toolbar-h);box-shadow:var(--shl)}
   .lp.collapsed,.rp.collapsed{box-shadow:none}
   .panel-toggle{position:absolute;top:50%;transform:translate3d(var(--toggle-x),-50%,0);height:48px;align-self:auto;width:32px;border-radius:0 var(--rsm) var(--rsm) 0;box-shadow:var(--sh);z-index:91}
@@ -492,10 +567,11 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   .hdr #gridTab{order:3}
   .seg button{padding:4px 8px;font-size:11px;flex:1 1 0;text-align:center}
   .ctb{height:auto;min-height:var(--mobile-toolbar-h);max-height:none;padding:6px 8px;gap:6px;align-items:center;align-content:flex-start;flex-wrap:wrap;overflow:visible;scrollbar-width:auto}
-  .grid-controls{flex:1 1 100%;flex-wrap:nowrap;gap:5px;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;scroll-snap-align:start;-webkit-overflow-scrolling:touch}
-  .grid-controls{scrollbar-width:thin}
-  .grid-controls::-webkit-scrollbar{height:4px}
-  .grid-controls::-webkit-scrollbar-thumb{background:var(--border2);border-radius:999px}
+  /* Wrap onto multiple rows instead of scrolling horizontally. The
+     vertical .tbs separators are designed for a single row; hide them
+     here so the wrapped layout reads as natural row groups. */
+  .grid-controls{flex:1 1 100%;flex-wrap:wrap;gap:6px 5px;min-width:0;max-width:100%}
+  .grid-controls .tbs{display:none}
   .quick-actions{order:-1;width:100%;overflow:visible;padding-bottom:0;flex:1 0 100%;display:grid;grid-template-columns:auto 1fr;gap:5px;align-items:center}
   .qa-group{min-width:0}
   .qa-muted{justify-self:start}
@@ -598,7 +674,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     outline:3px solid Highlight!important;
     outline-offset:2px;
   }
-  .csw,.cadd,.rcp,.ls,.legend-modal-swatch,.adot{
+  .csw,.cadd,.rcp,.ls,.lpop-swatch,.adot{
     forced-color-adjust:none;
     border-color:CanvasText!important;
   }
@@ -671,7 +747,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <div class="plist" id="presetList"></div>
   </div>
   <div class="ps ps-support" id="cablesPanel">
-    <div class="plbl" title="Multi-cell cable stitches. Square grid only — pick a width + direction, then tap the cell where the cable starts.">Cables</div>
+    <div class="plbl" title="Multi-cell cable stitches. Square grid only. Pick a width and direction, then tap the cell where the cable starts.">Cables</div>
     <p class="hint">Square grid only. Pick a cable, then tap the start cell.</p>
     <div class="cab-grid" id="cablesGrid"></div>
   </div>
@@ -759,7 +835,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <div id="canvasStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">Chart ready.</div>
     <div class="aind" id="aind">
       <div class="adot" id="adot"></div>
-      <span id="alab">dc — Double Crochet</span>
+      <span id="alab">dc: Double Crochet</span>
     </div>
     <div class="zoom-bar">
       <button data-action="adjZoom" data-value="-0.15" title="Zoom out (-)" aria-label="Zoom out">−</button>
@@ -846,6 +922,12 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   <div class="ps ps-core settings-panel" id="displayPanel">
     <div class="plbl">Display</div>
     <p class="hint">Chart view, editing behavior, and pattern-reading options.</p>
+    <div class="setting-group">
+      <div class="setting-subhead">Display mode</div>
+      <div class="prow" title="Dim the panels and toolbar for low-light use. Chart paper stays paper-like; exports always render light."><span>Low light</span>
+        <div class="tog" role="group" aria-label="Display mode"><button id="thOn" aria-pressed="false" data-action="togTheme" data-value="true">On</button><button class="on" id="thOff" aria-pressed="true" data-action="togTheme" data-value="false">Off</button></div>
+      </div>
+    </div>
     <div class="setting-group">
       <div class="setting-subhead">Chart view</div>
       <div class="prow"><span>Grid lines</span>
@@ -982,20 +1064,17 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <div class="macts"><button class="sbtn2" data-action="closeModal" data-modal="newM">Cancel</button><button class="pbtn" data-action="doNew">Start Fresh</button></div>
   </div>
 </div>
-<div class="mo" id="legendM" role="dialog" aria-modal="true" aria-labelledby="legendMLabel" aria-describedby="legendMCount">
-  <div class="md compact-md">
-    <h3 id="legendMTitle" class="legend-title">
-      <span id="legendMSwatch" class="legend-modal-swatch"></span>
-      <span id="legendMLabel">Colour</span>
-    </h3>
-    <p id="legendMCount" class="modal-copy">…</p>
-    <div class="modal-stack">
-      <button class="sbtn2 action-row" data-action="legendActionPick">🎯 Pick this as active colour</button>
-      <button class="sbtn2 action-row" data-action="legendActionSwap">🔄 Swap with active colour</button>
-      <button class="sbtn2 action-row danger-row" data-action="legendActionRemove">🗑 Remove all cells of this colour</button>
+<div class="lpop" id="legendPop" aria-label="Color actions" hidden>
+  <div class="lpop-head">
+    <span id="legendPopSwatch" class="lpop-swatch"></span>
+    <div class="lpop-meta">
+      <span id="legendPopLabel" class="lpop-label">Colour</span>
+      <span id="legendPopCount" class="lpop-count">…</span>
     </div>
-    <div class="macts"><button class="sbtn2" data-action="closeModal" data-modal="legendM">Close</button></div>
   </div>
+  <button class="lpop-action" data-action="legendActionPick">Pick as active colour</button>
+  <button class="lpop-action" data-action="legendActionSwap">Swap with active colour</button>
+  <button class="lpop-action danger" data-action="legendActionRemove">Remove all cells of this colour</button>
 </div>
 <div class="mo" id="txtM" role="dialog" aria-modal="true" aria-labelledby="txtMTitle" aria-describedby="txtMDesc">
   <div class="md text-modal">
@@ -1302,9 +1381,9 @@ let S = {
 let _underlayImg = null;
 
 // Long-press tracking on the legend. Tap = quick-swap (existing
-// behaviour); long-press = open action menu.
+// behaviour); long-press = open the legend popover (color stored on
+// the popover element's dataset, not here).
 let _legendLongPressTimer = null;
-let _legendMenuColor = null;
 
 // Repeat-tool selection state. The first tap stores an anchor; the
 // second tap opens the modal that captures count + axis. While the
@@ -1341,6 +1420,11 @@ let _customColorCommitTimer = null;
 // Auto-save debounce timer.
 let _autosaveTimer = null;
 const AUTOSAVE_KEY = 'ss_autosave_v1';
+
+// Display-mode preference. Persists via localStorage independently of
+// the per-pattern autosave: theme is a per-device preference, not a
+// per-project setting. 'light' or 'dark'; defaults to light.
+const THEME_KEY = 'ss_theme_v1';
 
 // Granny-square round colours (preview state only).
 let gRoundCols = [...GRANNY_ROUND_COLORS];
@@ -1503,6 +1587,22 @@ function visibleHexBounds() {
   return { col0, row0, colN, rowN };
 }
 
+// rAF coalescing for hot input loops. Pointer/touch streams (paintAt drag,
+// mouse/touch pan, pinch-zoom, held arrow keys) call scheduleDraw() instead
+// of draw(). Multiple schedules in one frame collapse into one render.
+// One-shot paths (clicks, taps, exports, undo, fills, repeats, swaps) still
+// call draw() directly so the canvas is pixel-accurate the moment anything
+// reads from it.
+let _drawScheduled = false;
+function scheduleDraw() {
+  if (_drawScheduled) return;
+  _drawScheduled = true;
+  requestAnimationFrame(() => {
+    _drawScheduled = false;
+    draw();
+  });
+}
+
 function draw() {
   beginTokenCache();
   try {
@@ -1531,7 +1631,7 @@ function drawSquareGrid() {
 
   // Grid background
   const gx = ox + col0 * cs, gy = oy + row0 * ch;
-  ctx.fillStyle = canvasToken('--bg');
+  ctx.fillStyle = canvasToken('--canvas-paper');
   ctx.fillRect(gx, gy, (colN - col0) * cs, (rowN - row0) * ch);
 
   // Image underlay (drawn behind cells so painted cells cover it
@@ -1571,9 +1671,9 @@ function drawSquareGrid() {
     const x = ox + c * cs, y = oy + r * ch;
     if (cell) {
       if (cell.stitchId === '_no') {
-        ctx.fillStyle = canvasToken('--s3');
+        ctx.fillStyle = canvasToken('--canvas-hole');
         ctx.fillRect(x, y, cs, ch);
-        ctx.strokeStyle = canvasToken('--border2'); ctx.lineWidth = 1;
+        ctx.strokeStyle = canvasToken('--canvas-hole-stroke'); ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + cs - 4, y + ch - 4);
         ctx.moveTo(x + cs - 4, y + 4); ctx.lineTo(x + 4, y + ch - 4);
@@ -1625,7 +1725,7 @@ function drawSquareGrid() {
 
   // Grid lines
   if (S.showGrid) {
-    ctx.strokeStyle = canvasToken('--border'); ctx.lineWidth = .5;
+    ctx.strokeStyle = canvasToken('--canvas-grid'); ctx.lineWidth = .5;
     for (let r = row0; r <= rowN; r++) {
       const y = oy + r * ch;
       ctx.beginPath(); ctx.moveTo(ox + col0 * cs, y); ctx.lineTo(ox + colN * cs, y); ctx.stroke();
@@ -1639,15 +1739,15 @@ function drawSquareGrid() {
   // Row/col labels (with per-row painted counts on square grids — useful
   // when knitting from a chart, especially on tablets with no hover).
   if (S.showLabels && lo > 0) {
-    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9.5px ${CANVAS_FONT_STACK}`;
+    ctx.fillStyle = canvasToken('--canvas-ink-soft'); ctx.font = `9.5px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = canvasToken('--bg');
+    ctx.fillStyle = canvasToken('--canvas-paper');
     ctx.fillRect(0, 0, lo, canvas.height);
     ctx.fillRect(0, 0, canvas.width, lo);
     // Pre-tally per-row stitch counts. Cached across draws so panning
     // and re-renders that don't touch cells don't re-walk the dict.
     const rowCounts = rowCountsForLabels();
-    ctx.fillStyle = canvasToken('--text3');
+    ctx.fillStyle = canvasToken('--canvas-ink-soft');
     for (let r = row0; r < rowN; r++) {
       const y = oy + r * ch + ch / 2;
       if (y <= 0 || y >= canvas.height) continue;
@@ -1658,7 +1758,7 @@ function drawSquareGrid() {
       // when the label strip is wide enough to fit it.
       if (count > 0 && lo >= 18 && ch >= 14) {
         ctx.save();
-        ctx.fillStyle = canvasToken('--border2');
+        ctx.fillStyle = canvasToken('--canvas-grid-strong');
         ctx.font = `8px ${CANVAS_FONT_STACK}`;
         ctx.fillText(count, lo / 2, y + ch / 2 - 4);
         ctx.restore();
@@ -1682,7 +1782,7 @@ function drawHexGrid() {
   const colN = Math.min(S.hexCols, col0 + Math.ceil(canvas.width  / m.colStep) + 3);
   const rowN = Math.min(S.hexRows, row0 + Math.ceil(canvas.height / m.rowStep) + 3);
 
-  ctx.fillStyle = canvasToken('--bg');
+  ctx.fillStyle = canvasToken('--canvas-paper');
   const [bx0, by0] = hexCenter(col0, row0, r, flat);
   const [bxN, byN] = hexCenter(colN - 1, rowN - 1, r, flat);
   ctx.fillRect(bx0 + ox - r, by0 + oy - r, (bxN - bx0) + r * 3, (byN - by0) + r * 3);
@@ -1702,14 +1802,14 @@ function drawHexGrid() {
       ctx.closePath();
 
       if (cell && cell.stitchId === '_no') {
-        ctx.fillStyle = canvasToken('--s3'); ctx.fill();
+        ctx.fillStyle = canvasToken('--canvas-hole'); ctx.fill();
       } else {
-        ctx.fillStyle = cell ? cell.color : canvasToken('--bg');
+        ctx.fillStyle = cell ? cell.color : canvasToken('--canvas-paper');
         ctx.fill();
         if (cell && S.showSyms && r >= 13) drawSymbol(ctx, cell, scx, scy, r * 1.2);
       }
       if (S.showGrid) {
-        ctx.strokeStyle = canvasToken('--border'); ctx.lineWidth = .6;
+        ctx.strokeStyle = canvasToken('--canvas-grid'); ctx.lineWidth = .6;
         ctx.stroke();
       }
     }
@@ -1719,7 +1819,7 @@ function drawHexGrid() {
 
   // Labels
   if (S.showLabels) {
-    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9px ${CANVAS_FONT_STACK}`;
+    ctx.fillStyle = canvasToken('--canvas-ink-soft'); ctx.font = `9px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let row = row0; row < rowN; row++) {
       const [cx, cy] = hexCenter(col0, row, r, flat);
@@ -1771,7 +1871,7 @@ function drawKeyboardCursorSquare(ox, oy, cs, ch, row0, rowN, col0, colN) {
   const x = ox + c * cs;
   const y = oy + r * ch;
   ctx.save();
-  ctx.strokeStyle = canvasToken('--surface');
+  ctx.strokeStyle = canvasToken('--canvas-paper');
   ctx.lineWidth = 4;
   ctx.strokeRect(x + 2, y + 2, cs - 4, ch - 4);
   ctx.strokeStyle = canvasToken('--accent');
@@ -1797,7 +1897,7 @@ function drawKeyboardCursorHex(ox, oy, row0, rowN, col0, colN) {
     ctx.stroke();
   };
   ctx.save();
-  ctx.strokeStyle = canvasToken('--surface');
+  ctx.strokeStyle = canvasToken('--canvas-paper');
   ctx.lineWidth = 4;
   strokePath();
   ctx.strokeStyle = canvasToken('--accent');
@@ -1853,8 +1953,8 @@ function symbolInkForColor(fill, darkInk = UI_COLORS.text, lightInk = UI_COLORS.
 function drawSymbol(ctx, cell, x, y, cs) {
   const s = CS[S.mode].find(s => s.id === cell.stitchId);
   if (!s) return;
-  const darkInk = canvasToken('--text');
-  const lightInk = canvasToken('--surface');
+  const darkInk = canvasToken('--canvas-ink');
+  const lightInk = canvasToken('--canvas-paper');
   const ink = symbolInkForColor(cell.color, darkInk, lightInk);
   const outline = ink === darkInk ? lightInk : darkInk;
   ctx.font = `${Math.min(cs * .5, 13)}px ${CANVAS_FONT_STACK}`;
@@ -2127,7 +2227,7 @@ function paintAt(ox, oy) {
       const idx = S.cables.findIndex(cb => cb.r === r && c >= cb.c && c < cb.c + cb.w);
       if (idx !== -1) {
         S.cables.splice(idx, 1);
-        draw(); updateStats(); updateLegend(); scheduleAutosave();
+        scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
         return;
       }
     }
@@ -2139,7 +2239,7 @@ function paintAt(ox, oy) {
       placeCableAt(cell.key);
       // Mark this stroke "done" so dragging across cells doesn't spam cables.
       lastKey = '__cable_placed__';
-      draw(); updateStats(); updateLegend(); scheduleAutosave();
+      scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
       return;
     }
     const existing = S.cells[cell.key];
@@ -2150,7 +2250,7 @@ function paintAt(ox, oy) {
     S.cells[cell.key] = { color: S.activeColor, stitchId: S.activeStitch };
   }
   markCellsDirty();
-  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  scheduleDraw(); updateStats(); updateLegend(); scheduleAutosave();
 }
 
 // Place a cable starting at the given square-grid cell key. Refuses
@@ -2161,7 +2261,7 @@ function placeCableAt(key) {
   const [r, c] = rc.split(',').map(Number);
   const w = S.activeCable.w;
   const dir = S.activeCable.dir;
-  if (c + w > S.sqW) { toast('Cable extends past the row — move left'); return; }
+  if (c + w > S.sqW) { toast('Cable extends past the row. Move left.'); return; }
   if (r < 0 || r >= S.sqH) return;
   // Remove any existing cable that overlaps this one (same row, intersecting cols).
   S.cables = S.cables.filter(cb =>
@@ -2255,7 +2355,7 @@ function handleRepeatTap(cell) {
   if (!_repeatAnchor) {
     _repeatAnchor = { r, c };
     draw();
-    toast('First corner set — tap the opposite corner');
+    toast('First corner set. Tap the opposite corner.');
     return;
   }
 
@@ -2356,7 +2456,7 @@ function moveKeyboardCell(deltaCol, deltaRow) {
   _keyboardCell.row += deltaRow;
   clampKeyboardCell();
   ensureKeyboardCellVisible();
-  draw();
+  scheduleDraw();
   updateCanvasStatus();
 }
 
@@ -2437,7 +2537,7 @@ function bindCanvasEvents() {
     if (isPan) {
       S.panX = panOr.x + (e.clientX - panSt.x);
       S.panY = panOr.y + (e.clientY - panSt.y);
-      draw(); return;
+      scheduleDraw(); return;
     }
     if (painting) paintAt(e.offsetX, e.offsetY);
   });
@@ -2612,7 +2712,7 @@ function bindCanvasEvents() {
           setPressed(document.getElementById('stOn'), true);
           setPressed(document.getElementById('stOff'), false);
         }
-        toast('Stylus detected — finger pans, pencil draws');
+        toast('Stylus detected: finger pans, pencil draws.');
         scheduleAutosave();
       }
       if (S.stylusMode && !isStylus) {
@@ -2697,7 +2797,7 @@ function bindCanvasEvents() {
       if (isPan) {
         S.panX = panOr.x + (t.clientX - panSt.x);
         S.panY = panOr.y + (t.clientY - panSt.y);
-        draw(); return;
+        scheduleDraw(); return;
       }
       const r = canvas.getBoundingClientRect();
       if (touchPaintPending) {
@@ -2731,7 +2831,7 @@ function bindCanvasEvents() {
       S.panX = panOr.x + (mx - panSt.x);
       S.panY = panOr.y + (my - panSt.y);
       updateZoomLabel();
-      draw();
+      scheduleDraw();
     }
   }, { passive: false });
 
@@ -2827,6 +2927,7 @@ const UI_ACTIONS = {
   togFollow: el => togFollow(el.dataset.value === 'true'),
   setCrochetTerms: el => setCrochetTerms(el.dataset.value),
   togStylus: el => togStylus(el.dataset.value === 'true'),
+  togTheme: el => togTheme(el.dataset.value === 'true'),
   applyGauge: () => applyGauge(),
   openUnderlayFile: () => document.getElementById('underlayFile').click(),
   setUnderlayOpacity: el => setUnderlayOpacity(el.value),
@@ -3011,7 +3112,7 @@ function bindLegendLongPress() {
     _legendLongPressTimer = setTimeout(() => {
       _legendLongPressTimer = null;
       legend._lpFired = true;
-      openLegendMenu(color);
+      openLegendPop(color, el);
     }, HOLD_MS);
   };
   const cancel = () => {
@@ -3045,34 +3146,191 @@ function bindLegendLongPress() {
   }, true);
 }
 
-function openLegendMenu(color) {
-  _legendMenuColor = color;
+// ── LEGEND POPOVER ──
+// Replaces the centered legendM modal with an anchored popover. The
+// trigger element (long-pressed legend row) and the affected color are
+// stashed on legendPop.dataset so the action handlers don't depend on
+// any module-level state. Outside click, Esc, scroll, and resize all
+// close. The Remove action arms itself for 3s when ≥REMOVE_CONFIRM_AT
+// cells would be deleted, requiring a second tap.
+
+const LEGEND_POP_GUTTER = 8;          // minimum px from any viewport edge
+const LEGEND_POP_OFFSET = 8;          // gap between anchor row and popover
+const REMOVE_CONFIRM_AT = 20;         // arm tap-again confirm at this count
+const REMOVE_ARM_MS     = 3000;
+
+let _legendPopReturnFocus = null;
+let _legendPopRemoveArmedAt = 0;
+let _legendPopRemoveArmTimer = null;
+
+function legendPopEl() { return document.getElementById('legendPop'); }
+function legendPopColor() {
+  const pop = legendPopEl();
+  return pop ? pop.dataset.color || null : null;
+}
+function legendPopIsOpen() {
+  const pop = legendPopEl();
+  return !!(pop && pop.classList.contains('open'));
+}
+
+function placeLegendPop(pop, anchorEl) {
+  // Reset any previous placement so measurement is clean.
+  pop.style.top = '0px';
+  pop.style.left = '0px';
+  pop.hidden = false;
+  // Force a layout read after un-hiding so offsetWidth/Height are real.
+  // The popover is fixed-positioned so we work in viewport coordinates.
+  const aRect = anchorEl.getBoundingClientRect();
+  const pRect = pop.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Horizontal: align to anchor's left edge, then clamp inside the
+  // viewport with an 8px gutter on either side. If the popover is wider
+  // than the viewport (very narrow phone), fall back to the gutter.
+  let left = aRect.left;
+  if (left + pRect.width + LEGEND_POP_GUTTER > vw) {
+    left = vw - pRect.width - LEGEND_POP_GUTTER;
+  }
+  if (left < LEGEND_POP_GUTTER) left = LEGEND_POP_GUTTER;
+
+  // Vertical: prefer above the anchor; flip below if it would clip the
+  // viewport top. The anchor is a legend row inside the right panel so
+  // "above" reads as "growing up from the row toward the toolbar."
+  let top = aRect.top - pRect.height - LEGEND_POP_OFFSET;
+  if (top < LEGEND_POP_GUTTER) {
+    top = aRect.bottom + LEGEND_POP_OFFSET;
+  }
+  // And clamp the bottom edge so a tall popover near the bottom of the
+  // viewport doesn't disappear off-screen.
+  if (top + pRect.height + LEGEND_POP_GUTTER > vh) {
+    top = Math.max(LEGEND_POP_GUTTER, vh - pRect.height - LEGEND_POP_GUTTER);
+  }
+
+  pop.style.top  = `${Math.round(top)}px`;
+  pop.style.left = `${Math.round(left)}px`;
+}
+
+function onLegendPopOutside(e) {
+  const pop = legendPopEl();
+  if (!pop) return;
+  if (pop.contains(e.target)) return;
+  closeLegendPop();
+}
+function onLegendPopKey(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    e.stopPropagation();
+    closeLegendPop();
+  }
+}
+function onLegendPopDismissEvent() { closeLegendPop(); }
+
+function clearRemoveArmTimer() {
+  if (_legendPopRemoveArmTimer) {
+    clearTimeout(_legendPopRemoveArmTimer);
+    _legendPopRemoveArmTimer = null;
+  }
+  _legendPopRemoveArmedAt = 0;
+  const btn = document.querySelector('#legendPop .lpop-action.danger');
+  if (btn) {
+    btn.classList.remove('armed');
+    btn.textContent = 'Remove all cells of this colour';
+  }
+}
+
+function openLegendPop(color, anchorEl) {
+  if (!color || !anchorEl) return;
+  const pop = legendPopEl();
+  if (!pop) return;
+
+  pop.dataset.color = color;
   const count = Object.values(S.cells).filter(c => c.color === color).length;
   const cableCount = (S.cables || []).filter(cb => cb.color === color).length;
-  document.getElementById('legendMSwatch').style.setProperty('--swatch-color', color);
-  document.getElementById('legendMLabel').textContent = color;
-  document.getElementById('legendMCount').textContent =
+  document.getElementById('legendPopSwatch').style.setProperty('--swatch-color', color);
+  document.getElementById('legendPopLabel').textContent = color;
+  document.getElementById('legendPopCount').textContent =
     `Used in ${count} cell${count === 1 ? '' : 's'}` +
     (cableCount ? ` and ${cableCount} cable${cableCount === 1 ? '' : 's'}` : '');
-  openM('legendM', '#legendM .sbtn2');
+
+  clearRemoveArmTimer();
+  _legendPopReturnFocus = anchorEl;
+
+  placeLegendPop(pop, anchorEl);
+  pop.classList.add('open');
+
+  // Defer listener wiring so the same pointerdown that opened the popover
+  // doesn't immediately count as an "outside click" on its own bubble pass.
+  requestAnimationFrame(() => {
+    document.addEventListener('mousedown', onLegendPopOutside, true);
+    document.addEventListener('touchstart', onLegendPopOutside, { capture: true, passive: true });
+    document.addEventListener('keydown', onLegendPopKey, true);
+    window.addEventListener('scroll', onLegendPopDismissEvent, true);
+    window.addEventListener('resize', onLegendPopDismissEvent);
+    const first = pop.querySelector('.lpop-action');
+    if (first) first.focus({ preventScroll: true });
+  });
+}
+
+function closeLegendPop() {
+  const pop = legendPopEl();
+  if (!pop || !pop.classList.contains('open')) return;
+  pop.classList.remove('open');
+  pop.hidden = true;
+  pop.dataset.color = '';
+  clearRemoveArmTimer();
+  document.removeEventListener('mousedown', onLegendPopOutside, true);
+  document.removeEventListener('touchstart', onLegendPopOutside, { capture: true });
+  document.removeEventListener('keydown', onLegendPopKey, true);
+  window.removeEventListener('scroll', onLegendPopDismissEvent, true);
+  window.removeEventListener('resize', onLegendPopDismissEvent);
+  if (_legendPopReturnFocus && document.contains(_legendPopReturnFocus)) {
+    _legendPopReturnFocus.focus({ preventScroll: true });
+  }
+  _legendPopReturnFocus = null;
 }
 
 function legendActionPick() {
-  if (_legendMenuColor) {
-    setColor(_legendMenuColor);
-    toast('Picked active colour ' + _legendMenuColor);
+  const color = legendPopColor();
+  if (color) {
+    setColor(color);
+    toast('Picked active colour ' + color);
   }
-  closeM('legendM');
+  closeLegendPop();
 }
 
 function legendActionSwap() {
-  if (_legendMenuColor) swapColor(_legendMenuColor);
-  closeM('legendM');
+  const color = legendPopColor();
+  if (color) swapColor(color);
+  closeLegendPop();
 }
 
 function legendActionRemove() {
-  if (!_legendMenuColor) { closeM('legendM'); return; }
-  const target = _legendMenuColor;
+  const target = legendPopColor();
+  if (!target) { closeLegendPop(); return; }
+
+  // Count what would be deleted. If it's large, arm a tap-again confirm
+  // instead of running immediately. Second tap (within REMOVE_ARM_MS)
+  // commits.
+  const cellCount  = Object.values(S.cells).filter(c => c.color === target).length;
+  const cableCount = (S.cables || []).filter(cb => cb.color === target).length;
+  const total = cellCount + cableCount;
+  const armed = _legendPopRemoveArmedAt && (Date.now() - _legendPopRemoveArmedAt < REMOVE_ARM_MS);
+
+  if (total >= REMOVE_CONFIRM_AT && !armed) {
+    _legendPopRemoveArmedAt = Date.now();
+    const btn = document.querySelector('#legendPop .lpop-action.danger');
+    if (btn) {
+      btn.classList.add('armed');
+      btn.textContent = `Tap again to remove ${cellCount} cell${cellCount === 1 ? '' : 's'}`
+        + (cableCount ? ` + ${cableCount} cable${cableCount === 1 ? '' : 's'}` : '');
+      btn.focus({ preventScroll: true });
+    }
+    if (_legendPopRemoveArmTimer) clearTimeout(_legendPopRemoveArmTimer);
+    _legendPopRemoveArmTimer = setTimeout(clearRemoveArmTimer, REMOVE_ARM_MS);
+    return;
+  }
+
   pushUndo();
   let n = 0;
   Object.keys(S.cells).forEach(k => {
@@ -3091,7 +3349,7 @@ function legendActionRemove() {
   if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
   if (cn) parts.push(cn + ' cable' + (cn === 1 ? '' : 's'));
   toast('Removed ' + parts.join(' + '));
-  closeM('legendM');
+  closeLegendPop();
 }
 
 const HELP_TOPICS = [
@@ -3316,12 +3574,12 @@ function bindRepeatAxisToggle() {
 function setCable(wOrNull, dir) {
   if (wOrNull === null) {
     S.activeCable = null;
-    toast('Cable picker off — single-cell painting');
+    toast('Cable picker off. Single-cell painting.');
   } else {
     S.activeCable = { w: wOrNull, dir };
     // Clearing implicitly sets the draw tool so taps actually place.
     if (S.tool !== 'draw') setTool('draw');
-    toast(`Cable: ${wOrNull / 2}/${wOrNull / 2} ${dir} — tap a cell to place`);
+    toast(`Cable: ${wOrNull / 2}/${wOrNull / 2} ${dir}. Tap a cell to place.`);
   }
   renderCables();
 }
@@ -3362,7 +3620,7 @@ function updateLegend() {
     swatch.className = 'ls';
     swatch.style.setProperty('--swatch-color', s.col);
     const text = document.createElement('span');
-    text.textContent = `${label.abbr} — ${label.name}`;
+    text.textContent = `${label.abbr}: ${label.name}`;
     row.append(sym, swatch, text);
     legend.append(row);
     rendered++;
@@ -3402,7 +3660,7 @@ function updateIndicator() {
     return;
   }
   const label = stitchLabel(s);
-  document.getElementById('alab').textContent = `${s.sym} — ${label.name}`;
+  document.getElementById('alab').textContent = `${s.sym}: ${label.name}`;
 }
 
 function stitchLabel(s) {
@@ -3479,7 +3737,7 @@ function setGridType(type) {
   if (type !== 'square' && S.activeCable) { S.activeCable = null; renderCables(); }
   if (document.getElementById('grannyPanel').classList.contains('vis')) onGStyleChange();
   draw(); updateStats();
-  toast(type === 'hex' ? 'Hex grid — tap hexagons to paint!' : 'Square grid active');
+  toast(type === 'hex' ? 'Hex grid. Tap hexagons to paint.' : 'Square grid active.');
   scheduleAutosave();
 }
 
@@ -3571,9 +3829,9 @@ function applyGauge() {
   document.getElementById('gaugeRo').value = S.gaugeRows || '';
   draw(); updateStats();
   if (S.gaugeStitches && S.gaugeRows) {
-    toast(`Gauge ${S.gaugeStitches}×${S.gaugeRows} — cells aspect-corrected`);
+    toast(`Gauge ${S.gaugeStitches}×${S.gaugeRows}: cells aspect-corrected.`);
   } else {
-    toast('Gauge cleared — square cells');
+    toast('Gauge cleared. Square cells.');
   }
   scheduleAutosave();
 }
@@ -3668,15 +3926,73 @@ function togFollow(on)  {
   setPressed(document.getElementById('foOn'), on);
   setPressed(document.getElementById('foOff'), !on);
   draw();
-  toast(on ? 'Follow mode — use ↑/↓ keys to step rows' : 'Follow mode off');
+  toast(on ? 'Follow mode: use ↑/↓ keys to step rows.' : 'Follow mode off.');
   scheduleAutosave();
 }
 function togStylus(on) {
   S.stylusMode = !!on;
   setPressed(document.getElementById('stOn'), on);
   setPressed(document.getElementById('stOff'), !on);
-  toast(on ? 'Stylus mode — finger pans, pencil draws' : 'Stylus mode off');
+  toast(on ? 'Stylus mode: finger pans, pencil draws.' : 'Stylus mode off.');
   scheduleAutosave();
+}
+
+// ── DISPLAY MODE (light / dark) ──
+// Theme is stored per-device in localStorage, not in the per-pattern
+// autosave. The chart canvas keeps paper conventions in both modes
+// (only --canvas-paper dims slightly); the rest of the chrome flips
+// via the :root[data-theme="dark"] override block in styles.css.
+// Exports always render light via withLightTheme().
+
+function applyTheme(mode) {
+  const html = document.documentElement;
+  if (mode === 'dark') html.setAttribute('data-theme', 'dark');
+  else html.removeAttribute('data-theme');
+  // Sync the iOS PWA status bar tint and any other chrome that reads
+  // CSS variables imperatively.
+  syncThemeChrome();
+}
+
+function togTheme(on) {
+  const mode = on ? 'dark' : 'light';
+  applyTheme(mode);
+  setPressed(document.getElementById('thOn'), on);
+  setPressed(document.getElementById('thOff'), !on);
+  try { localStorage.setItem(THEME_KEY, mode); } catch { /* quota — silent */ }
+  // CSS variables resolve at draw time, so the canvas needs a redraw to
+  // pick up the new --canvas-paper.
+  scheduleDraw();
+}
+
+function restoreTheme() {
+  let mode = 'light';
+  try { mode = localStorage.getItem(THEME_KEY) || 'light'; } catch { /* private browsing */ }
+  if (mode !== 'dark') mode = 'light';
+  applyTheme(mode);
+  // Reflect into the toggle so the visible state matches reality.
+  const on = (mode === 'dark');
+  const onBtn = document.getElementById('thOn');
+  const offBtn = document.getElementById('thOff');
+  if (onBtn)  setPressed(onBtn, on);
+  if (offBtn) setPressed(offBtn, !on);
+}
+
+// Run `fn` with the chrome temporarily flipped to light theme. Used by
+// canvas exports (PNG, PDF, granny preview) so output renders on full
+// paper regardless of the user's display preference. The flip is
+// synchronous within one call: the DOM attribute moves, the function
+// runs (canvasToken() reads light-mode values), and the attribute is
+// restored. Browsers don't paint between attribute writes inside the
+// same task, so users don't see a flash of light chrome.
+function withLightTheme(fn) {
+  const html = document.documentElement;
+  const had = html.getAttribute('data-theme');
+  if (had === 'dark') html.removeAttribute('data-theme');
+  try {
+    return fn();
+  } finally {
+    if (had === 'dark') html.setAttribute('data-theme', 'dark');
+  }
 }
 
 function stepRow(delta) {
@@ -4554,7 +4870,7 @@ function downsampleImage(img, maxEdge, forceReencode) {
   c.width = w; c.height = h;
   const cx = c.getContext('2d');
   cx.imageSmoothingQuality = 'high';
-  cx.fillStyle = canvasToken('--surface');
+  cx.fillStyle = canvasToken('--canvas-paper');
   cx.fillRect(0, 0, w, h);
   cx.drawImage(img, 0, 0, w, h);
   return c.toDataURL('image/jpeg', 0.85);
@@ -4588,7 +4904,7 @@ function loadUnderlay(input) {
       );
       if (downsized) finalUrl = downsized;
       if (finalUrl.length > UNDERLAY_MAX_BYTES) {
-        toast('Image is still too big after compression — try a simpler picture');
+        toast('Image is still too big after compression. Try a simpler picture.');
         input.value = '';
         return;
       }
@@ -4611,8 +4927,8 @@ function loadUnderlay(input) {
         syncUnderlayUI();
         draw();
         scheduleAutosave();
-        if (downsized) toast('Underlay loaded (resized for storage) — trace cells over it');
-        else            toast('Underlay loaded — trace cells over it');
+        if (downsized) toast('Underlay loaded (resized for storage). Trace cells over it.');
+        else            toast('Underlay loaded. Trace cells over it.');
       };
       if (finalImg === probe) {
         finish();
@@ -4724,7 +5040,7 @@ function generatePatternText() {
     if (c < minC) minC = c; if (c > maxC) maxC = c;
   }
   if (maxR < 0) {
-    lines.push('(Empty chart — paint some cells first.)');
+    lines.push('(Empty chart. Paint some cells first.)');
     return lines.join('\n');
   }
 
@@ -4861,11 +5177,11 @@ function copyPatternText() {
     navigator.clipboard.writeText(ta.value).then(
       () => toast('Copied to clipboard'),
       () => { try { document.execCommand('copy'); toast('Copied'); }
-              catch { toast('Copy failed — select manually'); } }
+              catch { toast('Copy failed. Select manually.'); } }
     );
   } else {
     try { document.execCommand('copy'); toast('Copied'); }
-    catch { toast('Copy failed — select manually'); }
+    catch { toast('Copy failed. Select manually.'); }
   }
 }
 
@@ -5084,12 +5400,17 @@ function canBuildExportCanvas(w, h) {
 }
 
 function buildExportCanvas(scale) {
-  beginTokenCache();
-  try {
-    return _buildExportCanvasInner(scale);
-  } finally {
-    endTokenCache();
-  }
+  // Exports always render on full-bright paper regardless of the user's
+  // low-light preference. withLightTheme flips the chrome theme for the
+  // duration of the build so canvasToken() reads light-mode values.
+  return withLightTheme(() => {
+    beginTokenCache();
+    try {
+      return _buildExportCanvasInner(scale);
+    } finally {
+      endTokenCache();
+    }
+  });
 }
 
 function _buildExportCanvasInner(scale) {
@@ -5111,7 +5432,7 @@ function _buildExportCanvasInner(scale) {
   if (!canBuildExportCanvas(W, H)) return null;
   exp.width = W; exp.height = H;
   const ec = exp.getContext('2d');
-  ec.fillStyle = canvasToken('--surface'); ec.fillRect(0, 0, W, H);
+  ec.fillStyle = canvasToken('--canvas-paper'); ec.fillRect(0, 0, W, H);
   ec.scale(scale, scale);
 
   if (S.gridType === 'square') {
@@ -5121,8 +5442,8 @@ function _buildExportCanvasInner(scale) {
       const x = lo + c * cs, y = lo + r * ch;
       if (cell) {
         if (cell.stitchId === '_no') {
-          ec.fillStyle = canvasToken('--s3'); ec.fillRect(x, y, cs, ch);
-          ec.strokeStyle = canvasToken('--border2'); ec.lineWidth = 1;
+          ec.fillStyle = canvasToken('--canvas-hole'); ec.fillRect(x, y, cs, ch);
+          ec.strokeStyle = canvasToken('--canvas-hole-stroke'); ec.lineWidth = 1;
           ec.beginPath();
           ec.moveTo(x + 4, y + 4); ec.lineTo(x + cs - 4, y + ch - 4);
           ec.moveTo(x + cs - 4, y + 4); ec.lineTo(x + 4, y + ch - 4);
@@ -5145,7 +5466,7 @@ function _buildExportCanvasInner(scale) {
       }
     }
     if (S.showGrid) {
-      ec.strokeStyle = canvasToken('--border'); ec.lineWidth = .5;
+      ec.strokeStyle = canvasToken('--canvas-grid'); ec.lineWidth = .5;
       for (let r = 0; r <= S.sqH; r++) { ec.beginPath(); ec.moveTo(lo, lo + r * ch); ec.lineTo(lo + S.sqW * cs, lo + r * ch); ec.stroke(); }
       for (let c = 0; c <= S.sqW; c++) { ec.beginPath(); ec.moveTo(lo + c * cs, lo); ec.lineTo(lo + c * cs, lo + S.sqH * ch); ec.stroke(); }
     }
@@ -5159,10 +5480,10 @@ function _buildExportCanvasInner(scale) {
       for (let i = 1; i < 6; i++) ec.lineTo(pts[i][0], pts[i][1]);
       ec.closePath();
       if (cell) {
-        ec.fillStyle = cell.stitchId === '_no' ? canvasToken('--s3') : cell.color;
+        ec.fillStyle = cell.stitchId === '_no' ? canvasToken('--canvas-hole') : cell.color;
         ec.fill();
       }
-      if (S.showGrid) { ec.strokeStyle = canvasToken('--border'); ec.lineWidth = .6; ec.stroke(); }
+      if (S.showGrid) { ec.strokeStyle = canvasToken('--canvas-grid'); ec.lineWidth = .6; ec.stroke(); }
     }
   }
   return exp;
@@ -5306,6 +5627,9 @@ function init() {
   gCanvas = document.getElementById('gpc');
   gCtx    = gCanvas.getContext('2d');
 
+  // Apply the saved low-light preference before any paint so users don't
+  // see a flash of light chrome.
+  restoreTheme();
   syncThemeChrome();
   bindUiActions();
   renderStitches(); renderPalette(); renderPresets(); renderCables();

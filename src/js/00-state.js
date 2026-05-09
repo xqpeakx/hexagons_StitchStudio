@@ -252,9 +252,9 @@ let S = {
 let _underlayImg = null;
 
 // Long-press tracking on the legend. Tap = quick-swap (existing
-// behaviour); long-press = open action menu.
+// behaviour); long-press = open the legend popover (color stored on
+// the popover element's dataset, not here).
 let _legendLongPressTimer = null;
-let _legendMenuColor = null;
 
 // Repeat-tool selection state. The first tap stores an anchor; the
 // second tap opens the modal that captures count + axis. While the
@@ -291,6 +291,11 @@ let _customColorCommitTimer = null;
 // Auto-save debounce timer.
 let _autosaveTimer = null;
 const AUTOSAVE_KEY = 'ss_autosave_v1';
+
+// Display-mode preference. Persists via localStorage independently of
+// the per-pattern autosave: theme is a per-device preference, not a
+// per-project setting. 'light' or 'dark'; defaults to light.
+const THEME_KEY = 'ss_theme_v1';
 
 // Granny-square round colours (preview state only).
 let gRoundCols = [...GRANNY_ROUND_COLORS];

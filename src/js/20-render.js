@@ -70,6 +70,22 @@ function visibleHexBounds() {
   return { col0, row0, colN, rowN };
 }
 
+// rAF coalescing for hot input loops. Pointer/touch streams (paintAt drag,
+// mouse/touch pan, pinch-zoom, held arrow keys) call scheduleDraw() instead
+// of draw(). Multiple schedules in one frame collapse into one render.
+// One-shot paths (clicks, taps, exports, undo, fills, repeats, swaps) still
+// call draw() directly so the canvas is pixel-accurate the moment anything
+// reads from it.
+let _drawScheduled = false;
+function scheduleDraw() {
+  if (_drawScheduled) return;
+  _drawScheduled = true;
+  requestAnimationFrame(() => {
+    _drawScheduled = false;
+    draw();
+  });
+}
+
 function draw() {
   beginTokenCache();
   try {
@@ -98,7 +114,7 @@ function drawSquareGrid() {
 
   // Grid background
   const gx = ox + col0 * cs, gy = oy + row0 * ch;
-  ctx.fillStyle = canvasToken('--bg');
+  ctx.fillStyle = canvasToken('--canvas-paper');
   ctx.fillRect(gx, gy, (colN - col0) * cs, (rowN - row0) * ch);
 
   // Image underlay (drawn behind cells so painted cells cover it
@@ -138,9 +154,9 @@ function drawSquareGrid() {
     const x = ox + c * cs, y = oy + r * ch;
     if (cell) {
       if (cell.stitchId === '_no') {
-        ctx.fillStyle = canvasToken('--s3');
+        ctx.fillStyle = canvasToken('--canvas-hole');
         ctx.fillRect(x, y, cs, ch);
-        ctx.strokeStyle = canvasToken('--border2'); ctx.lineWidth = 1;
+        ctx.strokeStyle = canvasToken('--canvas-hole-stroke'); ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + cs - 4, y + ch - 4);
         ctx.moveTo(x + cs - 4, y + 4); ctx.lineTo(x + 4, y + ch - 4);
@@ -192,7 +208,7 @@ function drawSquareGrid() {
 
   // Grid lines
   if (S.showGrid) {
-    ctx.strokeStyle = canvasToken('--border'); ctx.lineWidth = .5;
+    ctx.strokeStyle = canvasToken('--canvas-grid'); ctx.lineWidth = .5;
     for (let r = row0; r <= rowN; r++) {
       const y = oy + r * ch;
       ctx.beginPath(); ctx.moveTo(ox + col0 * cs, y); ctx.lineTo(ox + colN * cs, y); ctx.stroke();
@@ -206,15 +222,15 @@ function drawSquareGrid() {
   // Row/col labels (with per-row painted counts on square grids — useful
   // when knitting from a chart, especially on tablets with no hover).
   if (S.showLabels && lo > 0) {
-    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9.5px ${CANVAS_FONT_STACK}`;
+    ctx.fillStyle = canvasToken('--canvas-ink-soft'); ctx.font = `9.5px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = canvasToken('--bg');
+    ctx.fillStyle = canvasToken('--canvas-paper');
     ctx.fillRect(0, 0, lo, canvas.height);
     ctx.fillRect(0, 0, canvas.width, lo);
     // Pre-tally per-row stitch counts. Cached across draws so panning
     // and re-renders that don't touch cells don't re-walk the dict.
     const rowCounts = rowCountsForLabels();
-    ctx.fillStyle = canvasToken('--text3');
+    ctx.fillStyle = canvasToken('--canvas-ink-soft');
     for (let r = row0; r < rowN; r++) {
       const y = oy + r * ch + ch / 2;
       if (y <= 0 || y >= canvas.height) continue;
@@ -225,7 +241,7 @@ function drawSquareGrid() {
       // when the label strip is wide enough to fit it.
       if (count > 0 && lo >= 18 && ch >= 14) {
         ctx.save();
-        ctx.fillStyle = canvasToken('--border2');
+        ctx.fillStyle = canvasToken('--canvas-grid-strong');
         ctx.font = `8px ${CANVAS_FONT_STACK}`;
         ctx.fillText(count, lo / 2, y + ch / 2 - 4);
         ctx.restore();
@@ -249,7 +265,7 @@ function drawHexGrid() {
   const colN = Math.min(S.hexCols, col0 + Math.ceil(canvas.width  / m.colStep) + 3);
   const rowN = Math.min(S.hexRows, row0 + Math.ceil(canvas.height / m.rowStep) + 3);
 
-  ctx.fillStyle = canvasToken('--bg');
+  ctx.fillStyle = canvasToken('--canvas-paper');
   const [bx0, by0] = hexCenter(col0, row0, r, flat);
   const [bxN, byN] = hexCenter(colN - 1, rowN - 1, r, flat);
   ctx.fillRect(bx0 + ox - r, by0 + oy - r, (bxN - bx0) + r * 3, (byN - by0) + r * 3);
@@ -269,14 +285,14 @@ function drawHexGrid() {
       ctx.closePath();
 
       if (cell && cell.stitchId === '_no') {
-        ctx.fillStyle = canvasToken('--s3'); ctx.fill();
+        ctx.fillStyle = canvasToken('--canvas-hole'); ctx.fill();
       } else {
-        ctx.fillStyle = cell ? cell.color : canvasToken('--bg');
+        ctx.fillStyle = cell ? cell.color : canvasToken('--canvas-paper');
         ctx.fill();
         if (cell && S.showSyms && r >= 13) drawSymbol(ctx, cell, scx, scy, r * 1.2);
       }
       if (S.showGrid) {
-        ctx.strokeStyle = canvasToken('--border'); ctx.lineWidth = .6;
+        ctx.strokeStyle = canvasToken('--canvas-grid'); ctx.lineWidth = .6;
         ctx.stroke();
       }
     }
@@ -286,7 +302,7 @@ function drawHexGrid() {
 
   // Labels
   if (S.showLabels) {
-    ctx.fillStyle = canvasToken('--text3'); ctx.font = `9px ${CANVAS_FONT_STACK}`;
+    ctx.fillStyle = canvasToken('--canvas-ink-soft'); ctx.font = `9px ${CANVAS_FONT_STACK}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (let row = row0; row < rowN; row++) {
       const [cx, cy] = hexCenter(col0, row, r, flat);
@@ -338,7 +354,7 @@ function drawKeyboardCursorSquare(ox, oy, cs, ch, row0, rowN, col0, colN) {
   const x = ox + c * cs;
   const y = oy + r * ch;
   ctx.save();
-  ctx.strokeStyle = canvasToken('--surface');
+  ctx.strokeStyle = canvasToken('--canvas-paper');
   ctx.lineWidth = 4;
   ctx.strokeRect(x + 2, y + 2, cs - 4, ch - 4);
   ctx.strokeStyle = canvasToken('--accent');
@@ -364,7 +380,7 @@ function drawKeyboardCursorHex(ox, oy, row0, rowN, col0, colN) {
     ctx.stroke();
   };
   ctx.save();
-  ctx.strokeStyle = canvasToken('--surface');
+  ctx.strokeStyle = canvasToken('--canvas-paper');
   ctx.lineWidth = 4;
   strokePath();
   ctx.strokeStyle = canvasToken('--accent');
@@ -420,8 +436,8 @@ function symbolInkForColor(fill, darkInk = UI_COLORS.text, lightInk = UI_COLORS.
 function drawSymbol(ctx, cell, x, y, cs) {
   const s = CS[S.mode].find(s => s.id === cell.stitchId);
   if (!s) return;
-  const darkInk = canvasToken('--text');
-  const lightInk = canvasToken('--surface');
+  const darkInk = canvasToken('--canvas-ink');
+  const lightInk = canvasToken('--canvas-paper');
   const ink = symbolInkForColor(cell.color, darkInk, lightInk);
   const outline = ink === darkInk ? lightInk : darkInk;
   ctx.font = `${Math.min(cs * .5, 13)}px ${CANVAS_FONT_STACK}`;

@@ -247,7 +247,7 @@ function downsampleImage(img, maxEdge, forceReencode) {
   c.width = w; c.height = h;
   const cx = c.getContext('2d');
   cx.imageSmoothingQuality = 'high';
-  cx.fillStyle = canvasToken('--surface');
+  cx.fillStyle = canvasToken('--canvas-paper');
   cx.fillRect(0, 0, w, h);
   cx.drawImage(img, 0, 0, w, h);
   return c.toDataURL('image/jpeg', 0.85);
@@ -281,7 +281,7 @@ function loadUnderlay(input) {
       );
       if (downsized) finalUrl = downsized;
       if (finalUrl.length > UNDERLAY_MAX_BYTES) {
-        toast('Image is still too big after compression — try a simpler picture');
+        toast('Image is still too big after compression. Try a simpler picture.');
         input.value = '';
         return;
       }
@@ -304,8 +304,8 @@ function loadUnderlay(input) {
         syncUnderlayUI();
         draw();
         scheduleAutosave();
-        if (downsized) toast('Underlay loaded (resized for storage) — trace cells over it');
-        else            toast('Underlay loaded — trace cells over it');
+        if (downsized) toast('Underlay loaded (resized for storage). Trace cells over it.');
+        else            toast('Underlay loaded. Trace cells over it.');
       };
       if (finalImg === probe) {
         finish();
@@ -417,7 +417,7 @@ function generatePatternText() {
     if (c < minC) minC = c; if (c > maxC) maxC = c;
   }
   if (maxR < 0) {
-    lines.push('(Empty chart — paint some cells first.)');
+    lines.push('(Empty chart. Paint some cells first.)');
     return lines.join('\n');
   }
 
@@ -554,11 +554,11 @@ function copyPatternText() {
     navigator.clipboard.writeText(ta.value).then(
       () => toast('Copied to clipboard'),
       () => { try { document.execCommand('copy'); toast('Copied'); }
-              catch { toast('Copy failed — select manually'); } }
+              catch { toast('Copy failed. Select manually.'); } }
     );
   } else {
     try { document.execCommand('copy'); toast('Copied'); }
-    catch { toast('Copy failed — select manually'); }
+    catch { toast('Copy failed. Select manually.'); }
   }
 }
 
@@ -777,12 +777,17 @@ function canBuildExportCanvas(w, h) {
 }
 
 function buildExportCanvas(scale) {
-  beginTokenCache();
-  try {
-    return _buildExportCanvasInner(scale);
-  } finally {
-    endTokenCache();
-  }
+  // Exports always render on full-bright paper regardless of the user's
+  // low-light preference. withLightTheme flips the chrome theme for the
+  // duration of the build so canvasToken() reads light-mode values.
+  return withLightTheme(() => {
+    beginTokenCache();
+    try {
+      return _buildExportCanvasInner(scale);
+    } finally {
+      endTokenCache();
+    }
+  });
 }
 
 function _buildExportCanvasInner(scale) {
@@ -804,7 +809,7 @@ function _buildExportCanvasInner(scale) {
   if (!canBuildExportCanvas(W, H)) return null;
   exp.width = W; exp.height = H;
   const ec = exp.getContext('2d');
-  ec.fillStyle = canvasToken('--surface'); ec.fillRect(0, 0, W, H);
+  ec.fillStyle = canvasToken('--canvas-paper'); ec.fillRect(0, 0, W, H);
   ec.scale(scale, scale);
 
   if (S.gridType === 'square') {
@@ -814,8 +819,8 @@ function _buildExportCanvasInner(scale) {
       const x = lo + c * cs, y = lo + r * ch;
       if (cell) {
         if (cell.stitchId === '_no') {
-          ec.fillStyle = canvasToken('--s3'); ec.fillRect(x, y, cs, ch);
-          ec.strokeStyle = canvasToken('--border2'); ec.lineWidth = 1;
+          ec.fillStyle = canvasToken('--canvas-hole'); ec.fillRect(x, y, cs, ch);
+          ec.strokeStyle = canvasToken('--canvas-hole-stroke'); ec.lineWidth = 1;
           ec.beginPath();
           ec.moveTo(x + 4, y + 4); ec.lineTo(x + cs - 4, y + ch - 4);
           ec.moveTo(x + cs - 4, y + 4); ec.lineTo(x + 4, y + ch - 4);
@@ -838,7 +843,7 @@ function _buildExportCanvasInner(scale) {
       }
     }
     if (S.showGrid) {
-      ec.strokeStyle = canvasToken('--border'); ec.lineWidth = .5;
+      ec.strokeStyle = canvasToken('--canvas-grid'); ec.lineWidth = .5;
       for (let r = 0; r <= S.sqH; r++) { ec.beginPath(); ec.moveTo(lo, lo + r * ch); ec.lineTo(lo + S.sqW * cs, lo + r * ch); ec.stroke(); }
       for (let c = 0; c <= S.sqW; c++) { ec.beginPath(); ec.moveTo(lo + c * cs, lo); ec.lineTo(lo + c * cs, lo + S.sqH * ch); ec.stroke(); }
     }
@@ -852,10 +857,10 @@ function _buildExportCanvasInner(scale) {
       for (let i = 1; i < 6; i++) ec.lineTo(pts[i][0], pts[i][1]);
       ec.closePath();
       if (cell) {
-        ec.fillStyle = cell.stitchId === '_no' ? canvasToken('--s3') : cell.color;
+        ec.fillStyle = cell.stitchId === '_no' ? canvasToken('--canvas-hole') : cell.color;
         ec.fill();
       }
-      if (S.showGrid) { ec.strokeStyle = canvasToken('--border'); ec.lineWidth = .6; ec.stroke(); }
+      if (S.showGrid) { ec.strokeStyle = canvasToken('--canvas-grid'); ec.lineWidth = .6; ec.stroke(); }
     }
   }
   return exp;

@@ -52,7 +52,7 @@ function moveKeyboardCell(deltaCol, deltaRow) {
   _keyboardCell.row += deltaRow;
   clampKeyboardCell();
   ensureKeyboardCellVisible();
-  draw();
+  scheduleDraw();
   updateCanvasStatus();
 }
 
@@ -133,7 +133,7 @@ function bindCanvasEvents() {
     if (isPan) {
       S.panX = panOr.x + (e.clientX - panSt.x);
       S.panY = panOr.y + (e.clientY - panSt.y);
-      draw(); return;
+      scheduleDraw(); return;
     }
     if (painting) paintAt(e.offsetX, e.offsetY);
   });
@@ -308,7 +308,7 @@ function bindCanvasEvents() {
           setPressed(document.getElementById('stOn'), true);
           setPressed(document.getElementById('stOff'), false);
         }
-        toast('Stylus detected — finger pans, pencil draws');
+        toast('Stylus detected: finger pans, pencil draws.');
         scheduleAutosave();
       }
       if (S.stylusMode && !isStylus) {
@@ -393,7 +393,7 @@ function bindCanvasEvents() {
       if (isPan) {
         S.panX = panOr.x + (t.clientX - panSt.x);
         S.panY = panOr.y + (t.clientY - panSt.y);
-        draw(); return;
+        scheduleDraw(); return;
       }
       const r = canvas.getBoundingClientRect();
       if (touchPaintPending) {
@@ -427,7 +427,7 @@ function bindCanvasEvents() {
       S.panX = panOr.x + (mx - panSt.x);
       S.panY = panOr.y + (my - panSt.y);
       updateZoomLabel();
-      draw();
+      scheduleDraw();
     }
   }, { passive: false });
 
