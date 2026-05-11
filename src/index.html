@@ -49,6 +49,7 @@
       <button class="tbtn" id="tool-eye" aria-pressed="false" data-action="setTool" data-value="eye"><span class="ic" aria-hidden="true">💧</span>Pick</button>
       <button class="tbtn" id="tool-pan" aria-pressed="false" data-action="setTool" data-value="pan" title="One-finger pan; or hold space"><span class="ic" aria-hidden="true">✋</span>Pan</button>
       <button class="tbtn" id="tool-repeat" aria-pressed="false" data-action="setTool" data-value="repeat" title="Tap two corners to mark a repeat region. Square grid only."><span class="ic" aria-hidden="true">🔁</span>Repeat</button>
+      <button class="tbtn" id="tool-select" aria-pressed="false" data-action="setTool" data-value="select" title="Drag two corners to select a region, or tap a cell to magic-wand. Then fill, swap, mirror, or copy."><span class="ic" aria-hidden="true">▱</span>Select</button>
     </div>
   </div>
   <div class="ps ps-core" id="stitchPanel">
@@ -160,6 +161,16 @@
     <div class="aind" id="aind">
       <div class="adot" id="adot"></div>
       <span id="alab">dc: Double Crochet</span>
+    </div>
+    <div class="sel-strip" id="selStrip" role="toolbar" aria-label="Selection actions" hidden>
+      <span class="sel-strip-label" id="selStripLabel">0 cells</span>
+      <button class="sel-strip-btn" data-action="selStripFill" title="Fill with active stitch + colour">Fill</button>
+      <button class="sel-strip-btn" data-action="selStripSwap" title="Swap every cell here to the active colour">Swap colour</button>
+      <button class="sel-strip-btn" data-action="selStripChangeStitch" title="Re-type every cell here to the active stitch, colour preserved">Change stitch</button>
+      <button class="sel-strip-btn" data-action="selStripMirrorH" title="Mirror selection horizontally within its bounds">Mirror ↔</button>
+      <button class="sel-strip-btn" data-action="selStripCopy" title="Copy selected cells to the clipboard">Copy</button>
+      <button class="sel-strip-btn sel-strip-paste" data-action="selStripPaste" title="Place the clipboard. Tap a cell to drop the top-left corner." hidden>Paste</button>
+      <button class="sel-strip-btn sel-strip-clear" data-action="selStripClear" title="Clear selection (Esc)" aria-label="Clear selection">✕</button>
     </div>
     <div class="zoom-bar">
       <button data-action="adjZoom" data-value="-0.15" title="Zoom out (-)" aria-label="Zoom out">−</button>
@@ -398,6 +409,7 @@
   </div>
   <button class="lpop-action" data-action="legendActionPick">Pick as active colour</button>
   <button class="lpop-action" data-action="legendActionSwap">Swap with active colour</button>
+  <button class="lpop-action" data-action="legendActionSelectAll">Select all cells of this colour</button>
   <button class="lpop-action danger" data-action="legendActionRemove">Remove all cells of this colour</button>
 </div>
 <div class="mo" id="txtM" role="dialog" aria-modal="true" aria-labelledby="txtMTitle" aria-describedby="txtMDesc">

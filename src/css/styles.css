@@ -413,6 +413,25 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .repeat-axis{display:flex;width:100%}
 .repeat-axis button{flex:1;padding:9px 8px}
 
+/* ── SELECTION ACTION STRIP ──
+   Appears at the bottom of the canvas when a region selection is
+   active. Same pill vocabulary as the toolbar quick-actions. Bottom-
+   anchored because anchoring it to the selection itself clips against
+   viewport edges (same lesson as the legend popover). */
+.sel-strip{position:absolute;left:50%;bottom:64px;transform:translate(-50%,8px);z-index:55;display:flex;align-items:center;gap:4px;padding:5px 6px;background:var(--surface);border:1px solid var(--border);border-radius:999px;box-shadow:var(--shl);opacity:0;pointer-events:none;transition:opacity .15s var(--ease),transform .15s var(--ease)}
+.sel-strip.open{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.sel-strip-label{padding:0 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);white-space:nowrap;font-family:var(--font-ui)}
+.sel-strip-btn{min-height:30px;padding:0 11px;border:none;border-radius:999px;background:transparent;color:var(--text);font-family:var(--font-ui);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s}
+.sel-strip-btn:hover,.sel-strip-btn:focus-visible{background:var(--s2);outline:none}
+.sel-strip-btn:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.sel-strip-btn:active{transform:scale(.96)}
+.sel-strip-paste{background:var(--accent3);color:var(--accent)}
+.sel-strip-paste:hover{background:var(--accent);color:var(--surface)}
+.sel-strip-clear{min-width:30px;padding:0 9px;color:var(--text3);font-size:13px}
+.sel-strip-clear:hover{color:var(--rose);background:var(--rose2)}
+.cw.paste-mode{cursor:cell}
+.cw.paste-mode canvas#mc{cursor:cell}
+
 /* ── LEGEND POPOVER ──
    Anchored contextual menu for a legend swatch. Replaces the centered
    modal that used to do this. Positioned absolutely against the
@@ -521,6 +540,12 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 
   /* Legend popover: thumb-friendly action rows */
   .lpop-action{min-height:44px;padding:11px 12px;font-size:13.5px}
+
+  /* Selection action strip: bigger touch targets, taller buttons. */
+  .sel-strip{bottom:72px;gap:5px;padding:6px 8px}
+  .sel-strip-btn{min-height:40px;padding:0 13px;font-size:13px}
+  .sel-strip-clear{min-width:40px;font-size:15px}
+  .sel-strip-label{font-size:10.5px}
 
   /* Zoom bar */
   .zoom-bar button{width:42px;height:42px;font-size:20px}

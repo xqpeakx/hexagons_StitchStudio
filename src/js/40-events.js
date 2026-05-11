@@ -107,6 +107,42 @@ function handleCanvasKeyboard(e) {
   return false;
 }
 
+// Commit the in-progress selection draft. If the user didn't drag to a
+// different cell, treat it as a magic-wand tap; otherwise commit a
+// rectangle from the two corners.
+function finishSelectionDraft() {
+  const draft = _selectionDraft;
+  _selectionDraft = null;
+  if (!draft) return;
+  if (draft.startKey === draft.endKey) {
+    // Tap with no drag — magic wand on that cell.
+    if (S.gridType !== 'square') {
+      // Hex grids: still allow magic wand, just no rectangle path.
+      magicWandSelect(draft.startKey);
+      return;
+    }
+    magicWandSelect(draft.startKey);
+    return;
+  }
+  // Drag — commit rectangle. Square-grid only for now.
+  const [, ar] = draft.startKey.split(':'); const [r0, c0] = ar.split(',').map(Number);
+  const [, br] = draft.endKey.split(':');   const [r1, c1] = br.split(',').map(Number);
+  commitRectSelection(r0, c0, r1, c1);
+}
+
+function selectEverything() {
+  if (S.gridType === 'square') {
+    commitRectSelection(0, 0, S.sqH - 1, S.sqW - 1);
+  } else {
+    const cells = new Set();
+    for (let row = 0; row < S.hexRows; row++) {
+      for (let col = 0; col < S.hexCols; col++) cells.add(`hex:${col},${row}`);
+    }
+    const bbox = bboxOfCells(cells);
+    setSelection({ type: 'wand', cells, bbox });
+  }
+}
+
 function bindCanvasEvents() {
 
   // The Pan tool (or held Space) takes precedence over the active tool.
@@ -124,6 +160,18 @@ function bindCanvasEvents() {
       document.getElementById('cw').classList.add('panning');
       return;
     }
+    if (_pasteMode) {
+      const cell = getCell(e.offsetX, e.offsetY);
+      if (cell) performPasteAt(cell.key);
+      return;
+    }
+    if (S.tool === 'select') {
+      const cell = getCell(e.offsetX, e.offsetY);
+      if (!cell) return;
+      _selectionDraft = { startKey: cell.key, endKey: cell.key };
+      scheduleDraw();
+      return;
+    }
     if (S.tool === 'fill') { floodFill(e.offsetX, e.offsetY); return; }
     pushUndo(); painting = true; lastKey = null;
     paintAt(e.offsetX, e.offsetY);
@@ -135,14 +183,29 @@ function bindCanvasEvents() {
       S.panY = panOr.y + (e.clientY - panSt.y);
       scheduleDraw(); return;
     }
+    if (_selectionDraft) {
+      const cell = getCell(e.offsetX, e.offsetY);
+      if (cell && cell.key !== _selectionDraft.endKey) {
+        _selectionDraft.endKey = cell.key;
+        scheduleDraw();
+      }
+      return;
+    }
     if (painting) paintAt(e.offsetX, e.offsetY);
   });
 
   canvas.addEventListener('mouseup', () => {
+    if (_selectionDraft) {
+      finishSelectionDraft();
+      return;
+    }
     painting = false; isPan = false;
     document.getElementById('cw').classList.remove('panning');
   });
-  canvas.addEventListener('mouseleave', () => { painting = false; });
+  canvas.addEventListener('mouseleave', () => {
+    if (_selectionDraft) finishSelectionDraft();
+    painting = false;
+  });
 
   canvas.addEventListener('dblclick', e => {
     syncKeyboardCellFromPoint(e.offsetX, e.offsetY);
@@ -186,6 +249,9 @@ function bindCanvasEvents() {
     }
     if (e.target === canvas && handleCanvasKeyboard(e)) return;
     if (e.key === 'Escape') {
+      // Esc clears a pending paste, then the selection if any.
+      if (_pasteMode) { e.preventDefault(); cancelPasteMode(); return; }
+      if (_selection)  { e.preventDefault(); clearSelection(); return; }
       return;
     }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
@@ -199,6 +265,23 @@ function bindCanvasEvents() {
     if (e.key === '0') { e.preventDefault(); resetZoom(); }
     if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); undoLast(); }
     if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey) && e.shiftKey) { e.preventDefault(); redoLast(); }
+    // Selection shortcuts: Cmd/Ctrl+A select all, Cmd/Ctrl+C copy,
+    // Cmd/Ctrl+V paste. Cmd+A activates the Select tool first so the
+    // action strip is visible.
+    if ((e.key === 'a' || e.key === 'A') && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      if (S.tool !== 'select') setTool('select');
+      selectEverything();
+    }
+    if ((e.key === 'c' || e.key === 'C') && (e.metaKey || e.ctrlKey) && _selection) {
+      e.preventDefault();
+      selStripCopy();
+    }
+    if ((e.key === 'v' || e.key === 'V') && (e.metaKey || e.ctrlKey) && _clipboard) {
+      e.preventDefault();
+      if (S.tool !== 'select') setTool('select');
+      enterPasteMode();
+    }
     if ((e.key === 'y' || e.key === 'Y') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); redoLast(); }
     // Follow-mode row stepping
     if (S.activeRow !== null) {
@@ -331,6 +414,25 @@ function bindCanvasEvents() {
 
       if (S.tool === 'fill') { clearTouchPending(); floodFill(ox, oy); return; }
 
+      // Paste mode: tap places the clipboard top-left at the cell.
+      if (_pasteMode) {
+        clearTouchPending();
+        const cell = getCell(ox, oy);
+        if (cell) performPasteAt(cell.key);
+        return;
+      }
+
+      // Select tool: start a draft marquee from this cell. touchmove
+      // will grow it; touchend commits to rect-or-wand based on drag.
+      if (S.tool === 'select') {
+        clearTouchPending();
+        const cell = getCell(ox, oy);
+        if (!cell) return;
+        _selectionDraft = { startKey: cell.key, endKey: cell.key };
+        scheduleDraw();
+        return;
+      }
+
       // Touch double-tap mirrors mouse dblclick: deliberately overwrite
       // or clear a filled cell when protectFilled is on.
       const cell = getCell(ox, oy);
@@ -396,6 +498,14 @@ function bindCanvasEvents() {
         scheduleDraw(); return;
       }
       const r = canvas.getBoundingClientRect();
+      if (_selectionDraft) {
+        const cell = getCell(t.clientX - r.left, t.clientY - r.top);
+        if (cell && cell.key !== _selectionDraft.endKey) {
+          _selectionDraft.endKey = cell.key;
+          scheduleDraw();
+        }
+        return;
+      }
       if (touchPaintPending) {
         const dx = t.clientX - touchPaintPending.clientX;
         const dy = t.clientY - touchPaintPending.clientY;
@@ -451,6 +561,10 @@ function bindCanvasEvents() {
         clearTouchPending();
         painting = false;
         redoLast();
+      } else if (_selectionDraft) {
+        // A select-tool drag-or-tap just ended. Commit as rectangle or
+        // magic wand depending on whether the user actually dragged.
+        finishSelectionDraft();
       } else {
         commitTouchPending();
       }

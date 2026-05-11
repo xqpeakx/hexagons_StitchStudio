@@ -262,6 +262,32 @@ let _legendLongPressTimer = null;
 let _repeatAnchor = null;        // {r, c} | null
 let _repeatPendingRegion = null; // {r0,c0,r1,c1} | null
 
+// ── REGION SELECTION ──
+// Selection lives in memory only (not in autosave). Two shapes:
+//   { type:'rect', cells:Set<string>, bbox:{r0,c0,r1,c1} }
+//   { type:'wand', cells:Set<string>, bbox:{r0,c0,r1,c1} }
+// For both, `cells` is the authoritative cell-key set; the bbox is
+// computed once at commit time and re-used by the marquee renderer.
+let _selection = null;
+
+// Marquee-in-progress while the user drags two corners with the Select
+// tool. { startKey, endKey } during drag; null otherwise. Distinct from
+// the committed _selection.
+let _selectionDraft = null;
+
+// Marching-ants animation tick. Bumped by a setInterval while a
+// selection exists; read by drawSelection() to phase the dash pattern.
+let _marchTick = 0;
+let _marchTimer = null;
+
+// Cell clipboard. Captured by Copy, replayed by Paste. Not persisted.
+//   { cells: Map<string,{color,stitchId}>, w:number, h:number }
+let _clipboard = null;
+
+// Paste mode flag. When true, the next canvas tap places the clipboard
+// at that cell rather than running the active tool.
+let _pasteMode = false;
+
 // Has a stylus event been observed in this session yet? Used to
 // auto-suggest enabling stylusMode on first Pencil contact.
 let _stylusSeenAuto = false;

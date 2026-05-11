@@ -140,32 +140,16 @@ function placeCableAt(key) {
   S.cables.push({ r, c, w, dir, color: S.activeColor });
 }
 
-function floodFill(ox, oy) {
-  const cell = getCell(ox, oy);
-  if (!cell) return;
-  const orig = S.cells[cell.key];
-  const origCol = orig?.color ?? null, origSt = orig?.stitchId ?? null;
-  if (origCol === S.activeColor && origSt === S.activeStitch) return;
-  const totalCells = S.gridType === 'square'
-    ? S.sqW * S.sqH
-    : S.hexCols * S.hexRows;
-  if (!orig && totalCells > FLOOD_FILL_EMPTY_CELL_LIMIT) {
-    toast('Fill is limited on very large empty grids. Paint a boundary or reduce the grid limit first.');
-    return;
-  }
-  pushUndo();
-
-  const queue = [cell.key];
-  let head = 0;
-  const visited = new Set();
-
-  function sqNeighbors(key) {
+// Cell neighbor lookups. Returns the in-bounds neighbor keys for a
+// square or hex cell. Used by both flood-fill and magic-wand select.
+function neighborsForKey(key) {
+  if (key.startsWith('sq:')) {
     const [, rc] = key.split(':'); const [r, c] = rc.split(',').map(Number);
     return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
       .filter(([r2,c2]) => r2>=0 && c2>=0 && r2<S.sqH && c2<S.sqW)
       .map(([r2,c2]) => `sq:${r2},${c2}`);
   }
-  function hexNeighbors(key) {
+  if (key.startsWith('hex:')) {
     const [, cc] = key.split(':'); const [col, row] = cc.split(',').map(Number);
     const flat = S.hexFlat;
     let neighbors;
@@ -180,18 +164,54 @@ function floodFill(ox, oy) {
       .filter(([c2,r2]) => c2>=0 && r2>=0 && c2<S.hexCols && r2<S.hexRows)
       .map(([c2,r2]) => `hex:${c2},${r2}`);
   }
-  const getNeighbors = S.gridType === 'square' ? sqNeighbors : hexNeighbors;
+  return [];
+}
 
+// Generic flood: from `startKey`, walk neighbors and collect every key
+// where `keep(key)` returns true. Used by floodFill (which then paints
+// the collected cells) and by magic-wand select (which stores them as
+// the selection). Returns a Set of keys.
+function floodCells(startKey, keep) {
+  const visited = new Set();
+  const result = new Set();
+  if (!keep(startKey)) return result;
+  const queue = [startKey];
+  let head = 0;
   while (head < queue.length) {
     const k = queue[head++];
     if (visited.has(k)) continue;
     visited.add(k);
+    if (!keep(k)) continue;
+    result.add(k);
+    for (const n of neighborsForKey(k)) {
+      if (!visited.has(n)) queue.push(n);
+    }
+  }
+  return result;
+}
+
+function floodFill(ox, oy) {
+  const cell = getCell(ox, oy);
+  if (!cell) return;
+  const orig = S.cells[cell.key];
+  const origCol = orig?.color ?? null, origSt = orig?.stitchId ?? null;
+  if (origCol === S.activeColor && origSt === S.activeStitch) return;
+  const totalCells = S.gridType === 'square'
+    ? S.sqW * S.sqH
+    : S.hexCols * S.hexRows;
+  if (!orig && totalCells > FLOOD_FILL_EMPTY_CELL_LIMIT) {
+    toast('Fill is limited on very large empty grids. Paint a boundary or reduce the grid limit first.');
+    return;
+  }
+  pushUndo();
+  const region = floodCells(cell.key, (k) => {
     const c = S.cells[k];
     const cCol = c?.color ?? null, cSt = c?.stitchId ?? null;
-    if (cCol !== origCol || cSt !== origSt) continue;
+    return cCol === origCol && cSt === origSt;
+  });
+  region.forEach(k => {
     S.cells[k] = { color: S.activeColor, stitchId: S.activeStitch };
-    getNeighbors(k).forEach(n => { if (!visited.has(n)) queue.push(n); });
-  }
+  });
   markCellsDirty();
   draw(); updateStats(); updateLegend(); scheduleAutosave();
 }
@@ -269,4 +289,83 @@ function swapColor(fromColor) {
   if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
   if (cn) parts.push(cn + ' cable' + (cn === 1 ? '' : 's'));
   toast('Swapped ' + parts.join(' + ') + ' to active color');
+}
+
+// ── REGION SELECTION COMMITS ──
+// Each commit function assembles the cell key set and the bbox, then
+// stores the result in _selection. They don't draw — that's the
+// caller's job (typically setSelection or a verb).
+
+// Compute the bounding box of a cell key Set. Returns null on empty.
+function bboxOfCells(cellSet) {
+  let r0 = Infinity, c0 = Infinity, r1 = -Infinity, c1 = -Infinity;
+  for (const key of cellSet) {
+    const [, rc] = key.split(':');
+    const [a, b] = rc.split(',').map(Number);
+    // sq:r,c (row first) vs hex:col,row (col first). bbox is in chart
+    // coords regardless: first coord is the major axis (row for sq,
+    // col for hex), second is the minor.
+    if (a < r0) r0 = a; if (a > r1) r1 = a;
+    if (b < c0) c0 = b; if (b > c1) c1 = b;
+  }
+  if (!isFinite(r0)) return null;
+  return { r0, c0, r1, c1 };
+}
+
+// Enumerate every cell key inside an inclusive rectangle. Square-grid
+// only — magic wand and Select-All-of-Color handle hex independently.
+function rectCellKeys(r0, c0, r1, c1) {
+  const set = new Set();
+  const a0 = Math.max(0, Math.min(r0, r1));
+  const a1 = Math.min(S.sqH - 1, Math.max(r0, r1));
+  const b0 = Math.max(0, Math.min(c0, c1));
+  const b1 = Math.min(S.sqW - 1, Math.max(c0, c1));
+  for (let r = a0; r <= a1; r++) {
+    for (let c = b0; c <= b1; c++) {
+      set.add(`sq:${r},${c}`);
+    }
+  }
+  return set;
+}
+
+function commitRectSelection(r0, c0, r1, c1) {
+  if (S.gridType !== 'square') {
+    toast('Rectangle select is square-grid only. Use magic-wand or pick a color from the legend.');
+    return false;
+  }
+  const cells = rectCellKeys(r0, c0, r1, c1);
+  const bbox = bboxOfCells(cells);
+  if (!bbox) return false;
+  setSelection({ type: 'rect', cells, bbox });
+  return true;
+}
+
+function magicWandSelect(startKey) {
+  const orig = S.cells[startKey];
+  const origCol = orig?.color ?? null;
+  const origSt  = orig?.stitchId ?? null;
+  const cells = floodCells(startKey, (k) => {
+    const c = S.cells[k];
+    const cCol = c?.color ?? null, cSt = c?.stitchId ?? null;
+    return cCol === origCol && cSt === origSt;
+  });
+  if (cells.size === 0) return false;
+  const bbox = bboxOfCells(cells);
+  setSelection({ type: 'wand', cells, bbox });
+  return true;
+}
+
+function selectAllOfColor(color) {
+  if (!color) return false;
+  const cells = new Set();
+  for (const [k, v] of Object.entries(S.cells)) {
+    if (v && v.color === color) cells.add(k);
+  }
+  if (cells.size === 0) {
+    toast('No cells of that colour to select.');
+    return false;
+  }
+  const bbox = bboxOfCells(cells);
+  setSelection({ type: 'wand', cells, bbox });
+  return true;
 }

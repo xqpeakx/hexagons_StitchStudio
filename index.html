@@ -428,6 +428,25 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 .repeat-axis{display:flex;width:100%}
 .repeat-axis button{flex:1;padding:9px 8px}
 
+/* ── SELECTION ACTION STRIP ──
+   Appears at the bottom of the canvas when a region selection is
+   active. Same pill vocabulary as the toolbar quick-actions. Bottom-
+   anchored because anchoring it to the selection itself clips against
+   viewport edges (same lesson as the legend popover). */
+.sel-strip{position:absolute;left:50%;bottom:64px;transform:translate(-50%,8px);z-index:55;display:flex;align-items:center;gap:4px;padding:5px 6px;background:var(--surface);border:1px solid var(--border);border-radius:999px;box-shadow:var(--shl);opacity:0;pointer-events:none;transition:opacity .15s var(--ease),transform .15s var(--ease)}
+.sel-strip.open{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.sel-strip-label{padding:0 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);white-space:nowrap;font-family:var(--font-ui)}
+.sel-strip-btn{min-height:30px;padding:0 11px;border:none;border-radius:999px;background:transparent;color:var(--text);font-family:var(--font-ui);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s}
+.sel-strip-btn:hover,.sel-strip-btn:focus-visible{background:var(--s2);outline:none}
+.sel-strip-btn:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.sel-strip-btn:active{transform:scale(.96)}
+.sel-strip-paste{background:var(--accent3);color:var(--accent)}
+.sel-strip-paste:hover{background:var(--accent);color:var(--surface)}
+.sel-strip-clear{min-width:30px;padding:0 9px;color:var(--text3);font-size:13px}
+.sel-strip-clear:hover{color:var(--rose);background:var(--rose2)}
+.cw.paste-mode{cursor:cell}
+.cw.paste-mode canvas#mc{cursor:cell}
+
 /* ── LEGEND POPOVER ──
    Anchored contextual menu for a legend swatch. Replaces the centered
    modal that used to do this. Positioned absolutely against the
@@ -536,6 +555,12 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
 
   /* Legend popover: thumb-friendly action rows */
   .lpop-action{min-height:44px;padding:11px 12px;font-size:13.5px}
+
+  /* Selection action strip: bigger touch targets, taller buttons. */
+  .sel-strip{bottom:72px;gap:5px;padding:6px 8px}
+  .sel-strip-btn{min-height:40px;padding:0 13px;font-size:13px}
+  .sel-strip-clear{min-width:40px;font-size:15px}
+  .sel-strip-label{font-size:10.5px}
 
   /* Zoom bar */
   .zoom-bar button{width:42px;height:42px;font-size:20px}
@@ -725,6 +750,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
       <button class="tbtn" id="tool-eye" aria-pressed="false" data-action="setTool" data-value="eye"><span class="ic" aria-hidden="true">💧</span>Pick</button>
       <button class="tbtn" id="tool-pan" aria-pressed="false" data-action="setTool" data-value="pan" title="One-finger pan; or hold space"><span class="ic" aria-hidden="true">✋</span>Pan</button>
       <button class="tbtn" id="tool-repeat" aria-pressed="false" data-action="setTool" data-value="repeat" title="Tap two corners to mark a repeat region. Square grid only."><span class="ic" aria-hidden="true">🔁</span>Repeat</button>
+      <button class="tbtn" id="tool-select" aria-pressed="false" data-action="setTool" data-value="select" title="Drag two corners to select a region, or tap a cell to magic-wand. Then fill, swap, mirror, or copy."><span class="ic" aria-hidden="true">▱</span>Select</button>
     </div>
   </div>
   <div class="ps ps-core" id="stitchPanel">
@@ -836,6 +862,16 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
     <div class="aind" id="aind">
       <div class="adot" id="adot"></div>
       <span id="alab">dc: Double Crochet</span>
+    </div>
+    <div class="sel-strip" id="selStrip" role="toolbar" aria-label="Selection actions" hidden>
+      <span class="sel-strip-label" id="selStripLabel">0 cells</span>
+      <button class="sel-strip-btn" data-action="selStripFill" title="Fill with active stitch + colour">Fill</button>
+      <button class="sel-strip-btn" data-action="selStripSwap" title="Swap every cell here to the active colour">Swap colour</button>
+      <button class="sel-strip-btn" data-action="selStripChangeStitch" title="Re-type every cell here to the active stitch, colour preserved">Change stitch</button>
+      <button class="sel-strip-btn" data-action="selStripMirrorH" title="Mirror selection horizontally within its bounds">Mirror ↔</button>
+      <button class="sel-strip-btn" data-action="selStripCopy" title="Copy selected cells to the clipboard">Copy</button>
+      <button class="sel-strip-btn sel-strip-paste" data-action="selStripPaste" title="Place the clipboard. Tap a cell to drop the top-left corner." hidden>Paste</button>
+      <button class="sel-strip-btn sel-strip-clear" data-action="selStripClear" title="Clear selection (Esc)" aria-label="Clear selection">✕</button>
     </div>
     <div class="zoom-bar">
       <button data-action="adjZoom" data-value="-0.15" title="Zoom out (-)" aria-label="Zoom out">−</button>
@@ -1074,6 +1110,7 @@ canvas#mc{position:absolute;top:0;left:0;touch-action:none}
   </div>
   <button class="lpop-action" data-action="legendActionPick">Pick as active colour</button>
   <button class="lpop-action" data-action="legendActionSwap">Swap with active colour</button>
+  <button class="lpop-action" data-action="legendActionSelectAll">Select all cells of this colour</button>
   <button class="lpop-action danger" data-action="legendActionRemove">Remove all cells of this colour</button>
 </div>
 <div class="mo" id="txtM" role="dialog" aria-modal="true" aria-labelledby="txtMTitle" aria-describedby="txtMDesc">
@@ -1391,6 +1428,32 @@ let _legendLongPressTimer = null;
 let _repeatAnchor = null;        // {r, c} | null
 let _repeatPendingRegion = null; // {r0,c0,r1,c1} | null
 
+// ── REGION SELECTION ──
+// Selection lives in memory only (not in autosave). Two shapes:
+//   { type:'rect', cells:Set<string>, bbox:{r0,c0,r1,c1} }
+//   { type:'wand', cells:Set<string>, bbox:{r0,c0,r1,c1} }
+// For both, `cells` is the authoritative cell-key set; the bbox is
+// computed once at commit time and re-used by the marquee renderer.
+let _selection = null;
+
+// Marquee-in-progress while the user drags two corners with the Select
+// tool. { startKey, endKey } during drag; null otherwise. Distinct from
+// the committed _selection.
+let _selectionDraft = null;
+
+// Marching-ants animation tick. Bumped by a setInterval while a
+// selection exists; read by drawSelection() to phase the dash pattern.
+let _marchTick = 0;
+let _marchTimer = null;
+
+// Cell clipboard. Captured by Copy, replayed by Paste. Not persisted.
+//   { cells: Map<string,{color,stitchId}>, w:number, h:number }
+let _clipboard = null;
+
+// Paste mode flag. When true, the next canvas tap places the clipboard
+// at that cell rather than running the active tool.
+let _pasteMode = false;
+
 // Has a stylus event been observed in this session yet? Used to
 // auto-suggest enabling stylusMode on first Pencil contact.
 let _stylusSeenAuto = false;
@@ -1611,9 +1674,193 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (S.gridType === 'square') drawSquareGrid();
     else drawHexGrid();
+    drawSelection();
   } finally {
     endTokenCache();
   }
+}
+
+// ── SELECTION RENDER ──
+// Two layers, painted after every other chart content so they stay on
+// top of cells, cables, repeats, and the keyboard cursor:
+//   1. Cell tint — a translucent accent wash on every cell in the
+//      selection. Reads at any zoom; doesn't fight cell colors.
+//   2. Marching ants — a 1.5px dashed outline. For rectangles, traces
+//      the bbox. For wand-shape selections, traces the actual
+//      cell-boundary edges (so disjoint or concave regions look right).
+function drawSelection() {
+  // Draft marquee during a Select drag — show only the rectangle,
+  // no fill, no committed cells.
+  if (_selectionDraft && S.gridType === 'square') {
+    drawDraftMarquee();
+  }
+  if (!_selection) return;
+  const sel = _selection;
+  if (sel.type === 'rect' && S.gridType !== 'square') return;
+  drawSelectionTint(sel);
+  if (sel.type === 'rect') drawRectMarchingAnts(sel.bbox);
+  else drawWandMarchingAnts(sel.cells);
+}
+
+function selectionDashPhase() {
+  // Slow march: 8px stride per second, paused under reduced-motion.
+  const reduced = typeof matchMedia === 'function' &&
+    matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) return 0;
+  return (Date.now() / 125) % 12;
+}
+
+function drawSelectionTint(sel) {
+  if (sel.type === 'rect') {
+    // Compute the rectangle's pixel bounds directly from the bbox so we
+    // don't iterate cells (much cheaper for big rectangles).
+    if (S.gridType === 'square') {
+      const cs = S.cellSize, ch = cellHeightSq();
+      const lo = S.showLabels ? 20 : 0;
+      const ox = S.panX + lo, oy = S.panY + lo;
+      const x = ox + sel.bbox.c0 * cs;
+      const y = oy + sel.bbox.r0 * ch;
+      const w = (sel.bbox.c1 - sel.bbox.c0 + 1) * cs;
+      const h = (sel.bbox.r1 - sel.bbox.r0 + 1) * ch;
+      ctx.save();
+      ctx.fillStyle = canvasToken('--accent');
+      ctx.globalAlpha = 0.10;
+      ctx.fillRect(x, y, w, h);
+      ctx.restore();
+    }
+    return;
+  }
+  // Wand: paint each cell individually.
+  ctx.save();
+  ctx.fillStyle = canvasToken('--accent');
+  ctx.globalAlpha = 0.10;
+  if (S.gridType === 'square') {
+    const cs = S.cellSize, ch = cellHeightSq();
+    const lo = S.showLabels ? 20 : 0;
+    const ox = S.panX + lo, oy = S.panY + lo;
+    for (const key of sel.cells) {
+      if (!key.startsWith('sq:')) continue;
+      const [, rc] = key.split(':');
+      const [r, c] = rc.split(',').map(Number);
+      ctx.fillRect(ox + c * cs, oy + r * ch, cs, ch);
+    }
+  } else {
+    const r = S.hexSize, flat = S.hexFlat;
+    const ox = S.panX, oy = S.panY;
+    for (const key of sel.cells) {
+      if (!key.startsWith('hex:')) continue;
+      const [, cc] = key.split(':');
+      const [col, row] = cc.split(',').map(Number);
+      const [cx, cy] = hexCenter(col, row, r, flat);
+      const pts = hexCorners(cx, cy, r * 0.97, flat);
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0] + ox, pts[0][1] + oy);
+      for (let i = 1; i < 6; i++) ctx.lineTo(pts[i][0] + ox, pts[i][1] + oy);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawRectMarchingAnts(bbox) {
+  if (S.gridType !== 'square') return;
+  const cs = S.cellSize, ch = cellHeightSq();
+  const lo = S.showLabels ? 20 : 0;
+  const ox = S.panX + lo, oy = S.panY + lo;
+  const x = ox + bbox.c0 * cs;
+  const y = oy + bbox.r0 * ch;
+  const w = (bbox.c1 - bbox.c0 + 1) * cs;
+  const h = (bbox.r1 - bbox.r0 + 1) * ch;
+  ctx.save();
+  ctx.strokeStyle = canvasToken('--accent');
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.lineDashOffset = -selectionDashPhase();
+  ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  ctx.restore();
+}
+
+// Wand selection boundary — walk every cell in the set, draw only the
+// edges whose neighbor is outside the set. Cheaper than marching-
+// squares and produces the same visual result on cell grids.
+function drawWandMarchingAnts(cellSet) {
+  ctx.save();
+  ctx.strokeStyle = canvasToken('--accent');
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.lineDashOffset = -selectionDashPhase();
+  if (S.gridType === 'square') {
+    const cs = S.cellSize, ch = cellHeightSq();
+    const lo = S.showLabels ? 20 : 0;
+    const ox = S.panX + lo, oy = S.panY + lo;
+    for (const key of cellSet) {
+      if (!key.startsWith('sq:')) continue;
+      const [, rc] = key.split(':');
+      const [r, c] = rc.split(',').map(Number);
+      const x = ox + c * cs, y = oy + r * ch;
+      // top edge
+      if (!cellSet.has(`sq:${r-1},${c}`)) {
+        ctx.beginPath(); ctx.moveTo(x, y + .5); ctx.lineTo(x + cs, y + .5); ctx.stroke();
+      }
+      // bottom edge
+      if (!cellSet.has(`sq:${r+1},${c}`)) {
+        ctx.beginPath(); ctx.moveTo(x, y + ch - .5); ctx.lineTo(x + cs, y + ch - .5); ctx.stroke();
+      }
+      // left edge
+      if (!cellSet.has(`sq:${r},${c-1}`)) {
+        ctx.beginPath(); ctx.moveTo(x + .5, y); ctx.lineTo(x + .5, y + ch); ctx.stroke();
+      }
+      // right edge
+      if (!cellSet.has(`sq:${r},${c+1}`)) {
+        ctx.beginPath(); ctx.moveTo(x + cs - .5, y); ctx.lineTo(x + cs - .5, y + ch); ctx.stroke();
+      }
+    }
+  } else {
+    // Hex outline: stroke each hex polygon individually. Cheap enough
+    // for typical selection sizes; if a wand selection grows huge on a
+    // dense hex grid this is the line to optimize.
+    const r = S.hexSize, flat = S.hexFlat;
+    const ox = S.panX, oy = S.panY;
+    for (const key of cellSet) {
+      if (!key.startsWith('hex:')) continue;
+      const [, cc] = key.split(':');
+      const [col, row] = cc.split(',').map(Number);
+      const [cx, cy] = hexCenter(col, row, r, flat);
+      const pts = hexCorners(cx, cy, r * 0.97, flat);
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0] + ox, pts[0][1] + oy);
+      for (let i = 1; i < 6; i++) ctx.lineTo(pts[i][0] + ox, pts[i][1] + oy);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawDraftMarquee() {
+  if (!_selectionDraft || S.gridType !== 'square') return;
+  const cs = S.cellSize, ch = cellHeightSq();
+  const lo = S.showLabels ? 20 : 0;
+  const ox = S.panX + lo, oy = S.panY + lo;
+  const a = _selectionDraft.startKey, b = _selectionDraft.endKey;
+  if (!a || !b) return;
+  const [, ar] = a.split(':'); const [ar0, ac0] = ar.split(',').map(Number);
+  const [, br] = b.split(':'); const [br0, bc0] = br.split(',').map(Number);
+  const r0 = Math.min(ar0, br0), r1 = Math.max(ar0, br0);
+  const c0 = Math.min(ac0, bc0), c1 = Math.max(ac0, bc0);
+  const x = ox + c0 * cs, y = oy + r0 * ch;
+  const w = (c1 - c0 + 1) * cs, h = (r1 - r0 + 1) * ch;
+  ctx.save();
+  ctx.fillStyle = canvasToken('--accent');
+  ctx.globalAlpha = 0.06;
+  ctx.fillRect(x, y, w, h);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = canvasToken('--accent');
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  ctx.restore();
 }
 
 // ── SQUARE ──
@@ -2269,32 +2516,16 @@ function placeCableAt(key) {
   S.cables.push({ r, c, w, dir, color: S.activeColor });
 }
 
-function floodFill(ox, oy) {
-  const cell = getCell(ox, oy);
-  if (!cell) return;
-  const orig = S.cells[cell.key];
-  const origCol = orig?.color ?? null, origSt = orig?.stitchId ?? null;
-  if (origCol === S.activeColor && origSt === S.activeStitch) return;
-  const totalCells = S.gridType === 'square'
-    ? S.sqW * S.sqH
-    : S.hexCols * S.hexRows;
-  if (!orig && totalCells > FLOOD_FILL_EMPTY_CELL_LIMIT) {
-    toast('Fill is limited on very large empty grids. Paint a boundary or reduce the grid limit first.');
-    return;
-  }
-  pushUndo();
-
-  const queue = [cell.key];
-  let head = 0;
-  const visited = new Set();
-
-  function sqNeighbors(key) {
+// Cell neighbor lookups. Returns the in-bounds neighbor keys for a
+// square or hex cell. Used by both flood-fill and magic-wand select.
+function neighborsForKey(key) {
+  if (key.startsWith('sq:')) {
     const [, rc] = key.split(':'); const [r, c] = rc.split(',').map(Number);
     return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]
       .filter(([r2,c2]) => r2>=0 && c2>=0 && r2<S.sqH && c2<S.sqW)
       .map(([r2,c2]) => `sq:${r2},${c2}`);
   }
-  function hexNeighbors(key) {
+  if (key.startsWith('hex:')) {
     const [, cc] = key.split(':'); const [col, row] = cc.split(',').map(Number);
     const flat = S.hexFlat;
     let neighbors;
@@ -2309,18 +2540,54 @@ function floodFill(ox, oy) {
       .filter(([c2,r2]) => c2>=0 && r2>=0 && c2<S.hexCols && r2<S.hexRows)
       .map(([c2,r2]) => `hex:${c2},${r2}`);
   }
-  const getNeighbors = S.gridType === 'square' ? sqNeighbors : hexNeighbors;
+  return [];
+}
 
+// Generic flood: from `startKey`, walk neighbors and collect every key
+// where `keep(key)` returns true. Used by floodFill (which then paints
+// the collected cells) and by magic-wand select (which stores them as
+// the selection). Returns a Set of keys.
+function floodCells(startKey, keep) {
+  const visited = new Set();
+  const result = new Set();
+  if (!keep(startKey)) return result;
+  const queue = [startKey];
+  let head = 0;
   while (head < queue.length) {
     const k = queue[head++];
     if (visited.has(k)) continue;
     visited.add(k);
+    if (!keep(k)) continue;
+    result.add(k);
+    for (const n of neighborsForKey(k)) {
+      if (!visited.has(n)) queue.push(n);
+    }
+  }
+  return result;
+}
+
+function floodFill(ox, oy) {
+  const cell = getCell(ox, oy);
+  if (!cell) return;
+  const orig = S.cells[cell.key];
+  const origCol = orig?.color ?? null, origSt = orig?.stitchId ?? null;
+  if (origCol === S.activeColor && origSt === S.activeStitch) return;
+  const totalCells = S.gridType === 'square'
+    ? S.sqW * S.sqH
+    : S.hexCols * S.hexRows;
+  if (!orig && totalCells > FLOOD_FILL_EMPTY_CELL_LIMIT) {
+    toast('Fill is limited on very large empty grids. Paint a boundary or reduce the grid limit first.');
+    return;
+  }
+  pushUndo();
+  const region = floodCells(cell.key, (k) => {
     const c = S.cells[k];
     const cCol = c?.color ?? null, cSt = c?.stitchId ?? null;
-    if (cCol !== origCol || cSt !== origSt) continue;
+    return cCol === origCol && cSt === origSt;
+  });
+  region.forEach(k => {
     S.cells[k] = { color: S.activeColor, stitchId: S.activeStitch };
-    getNeighbors(k).forEach(n => { if (!visited.has(n)) queue.push(n); });
-  }
+  });
   markCellsDirty();
   draw(); updateStats(); updateLegend(); scheduleAutosave();
 }
@@ -2398,6 +2665,85 @@ function swapColor(fromColor) {
   if (n || !cn) parts.push(n + ' cell' + (n === 1 ? '' : 's'));
   if (cn) parts.push(cn + ' cable' + (cn === 1 ? '' : 's'));
   toast('Swapped ' + parts.join(' + ') + ' to active color');
+}
+
+// ── REGION SELECTION COMMITS ──
+// Each commit function assembles the cell key set and the bbox, then
+// stores the result in _selection. They don't draw — that's the
+// caller's job (typically setSelection or a verb).
+
+// Compute the bounding box of a cell key Set. Returns null on empty.
+function bboxOfCells(cellSet) {
+  let r0 = Infinity, c0 = Infinity, r1 = -Infinity, c1 = -Infinity;
+  for (const key of cellSet) {
+    const [, rc] = key.split(':');
+    const [a, b] = rc.split(',').map(Number);
+    // sq:r,c (row first) vs hex:col,row (col first). bbox is in chart
+    // coords regardless: first coord is the major axis (row for sq,
+    // col for hex), second is the minor.
+    if (a < r0) r0 = a; if (a > r1) r1 = a;
+    if (b < c0) c0 = b; if (b > c1) c1 = b;
+  }
+  if (!isFinite(r0)) return null;
+  return { r0, c0, r1, c1 };
+}
+
+// Enumerate every cell key inside an inclusive rectangle. Square-grid
+// only — magic wand and Select-All-of-Color handle hex independently.
+function rectCellKeys(r0, c0, r1, c1) {
+  const set = new Set();
+  const a0 = Math.max(0, Math.min(r0, r1));
+  const a1 = Math.min(S.sqH - 1, Math.max(r0, r1));
+  const b0 = Math.max(0, Math.min(c0, c1));
+  const b1 = Math.min(S.sqW - 1, Math.max(c0, c1));
+  for (let r = a0; r <= a1; r++) {
+    for (let c = b0; c <= b1; c++) {
+      set.add(`sq:${r},${c}`);
+    }
+  }
+  return set;
+}
+
+function commitRectSelection(r0, c0, r1, c1) {
+  if (S.gridType !== 'square') {
+    toast('Rectangle select is square-grid only. Use magic-wand or pick a color from the legend.');
+    return false;
+  }
+  const cells = rectCellKeys(r0, c0, r1, c1);
+  const bbox = bboxOfCells(cells);
+  if (!bbox) return false;
+  setSelection({ type: 'rect', cells, bbox });
+  return true;
+}
+
+function magicWandSelect(startKey) {
+  const orig = S.cells[startKey];
+  const origCol = orig?.color ?? null;
+  const origSt  = orig?.stitchId ?? null;
+  const cells = floodCells(startKey, (k) => {
+    const c = S.cells[k];
+    const cCol = c?.color ?? null, cSt = c?.stitchId ?? null;
+    return cCol === origCol && cSt === origSt;
+  });
+  if (cells.size === 0) return false;
+  const bbox = bboxOfCells(cells);
+  setSelection({ type: 'wand', cells, bbox });
+  return true;
+}
+
+function selectAllOfColor(color) {
+  if (!color) return false;
+  const cells = new Set();
+  for (const [k, v] of Object.entries(S.cells)) {
+    if (v && v.color === color) cells.add(k);
+  }
+  if (cells.size === 0) {
+    toast('No cells of that colour to select.');
+    return false;
+  }
+  const bbox = bboxOfCells(cells);
+  setSelection({ type: 'wand', cells, bbox });
+  return true;
 }
 
 // ── 40-events.js ────────────────────────────────────────────────
@@ -2511,6 +2857,42 @@ function handleCanvasKeyboard(e) {
   return false;
 }
 
+// Commit the in-progress selection draft. If the user didn't drag to a
+// different cell, treat it as a magic-wand tap; otherwise commit a
+// rectangle from the two corners.
+function finishSelectionDraft() {
+  const draft = _selectionDraft;
+  _selectionDraft = null;
+  if (!draft) return;
+  if (draft.startKey === draft.endKey) {
+    // Tap with no drag — magic wand on that cell.
+    if (S.gridType !== 'square') {
+      // Hex grids: still allow magic wand, just no rectangle path.
+      magicWandSelect(draft.startKey);
+      return;
+    }
+    magicWandSelect(draft.startKey);
+    return;
+  }
+  // Drag — commit rectangle. Square-grid only for now.
+  const [, ar] = draft.startKey.split(':'); const [r0, c0] = ar.split(',').map(Number);
+  const [, br] = draft.endKey.split(':');   const [r1, c1] = br.split(',').map(Number);
+  commitRectSelection(r0, c0, r1, c1);
+}
+
+function selectEverything() {
+  if (S.gridType === 'square') {
+    commitRectSelection(0, 0, S.sqH - 1, S.sqW - 1);
+  } else {
+    const cells = new Set();
+    for (let row = 0; row < S.hexRows; row++) {
+      for (let col = 0; col < S.hexCols; col++) cells.add(`hex:${col},${row}`);
+    }
+    const bbox = bboxOfCells(cells);
+    setSelection({ type: 'wand', cells, bbox });
+  }
+}
+
 function bindCanvasEvents() {
 
   // The Pan tool (or held Space) takes precedence over the active tool.
@@ -2528,6 +2910,18 @@ function bindCanvasEvents() {
       document.getElementById('cw').classList.add('panning');
       return;
     }
+    if (_pasteMode) {
+      const cell = getCell(e.offsetX, e.offsetY);
+      if (cell) performPasteAt(cell.key);
+      return;
+    }
+    if (S.tool === 'select') {
+      const cell = getCell(e.offsetX, e.offsetY);
+      if (!cell) return;
+      _selectionDraft = { startKey: cell.key, endKey: cell.key };
+      scheduleDraw();
+      return;
+    }
     if (S.tool === 'fill') { floodFill(e.offsetX, e.offsetY); return; }
     pushUndo(); painting = true; lastKey = null;
     paintAt(e.offsetX, e.offsetY);
@@ -2539,14 +2933,29 @@ function bindCanvasEvents() {
       S.panY = panOr.y + (e.clientY - panSt.y);
       scheduleDraw(); return;
     }
+    if (_selectionDraft) {
+      const cell = getCell(e.offsetX, e.offsetY);
+      if (cell && cell.key !== _selectionDraft.endKey) {
+        _selectionDraft.endKey = cell.key;
+        scheduleDraw();
+      }
+      return;
+    }
     if (painting) paintAt(e.offsetX, e.offsetY);
   });
 
   canvas.addEventListener('mouseup', () => {
+    if (_selectionDraft) {
+      finishSelectionDraft();
+      return;
+    }
     painting = false; isPan = false;
     document.getElementById('cw').classList.remove('panning');
   });
-  canvas.addEventListener('mouseleave', () => { painting = false; });
+  canvas.addEventListener('mouseleave', () => {
+    if (_selectionDraft) finishSelectionDraft();
+    painting = false;
+  });
 
   canvas.addEventListener('dblclick', e => {
     syncKeyboardCellFromPoint(e.offsetX, e.offsetY);
@@ -2590,6 +2999,9 @@ function bindCanvasEvents() {
     }
     if (e.target === canvas && handleCanvasKeyboard(e)) return;
     if (e.key === 'Escape') {
+      // Esc clears a pending paste, then the selection if any.
+      if (_pasteMode) { e.preventDefault(); cancelPasteMode(); return; }
+      if (_selection)  { e.preventDefault(); clearSelection(); return; }
       return;
     }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
@@ -2603,6 +3015,23 @@ function bindCanvasEvents() {
     if (e.key === '0') { e.preventDefault(); resetZoom(); }
     if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); undoLast(); }
     if ((e.key === 'z' || e.key === 'Z') && (e.metaKey || e.ctrlKey) && e.shiftKey) { e.preventDefault(); redoLast(); }
+    // Selection shortcuts: Cmd/Ctrl+A select all, Cmd/Ctrl+C copy,
+    // Cmd/Ctrl+V paste. Cmd+A activates the Select tool first so the
+    // action strip is visible.
+    if ((e.key === 'a' || e.key === 'A') && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      if (S.tool !== 'select') setTool('select');
+      selectEverything();
+    }
+    if ((e.key === 'c' || e.key === 'C') && (e.metaKey || e.ctrlKey) && _selection) {
+      e.preventDefault();
+      selStripCopy();
+    }
+    if ((e.key === 'v' || e.key === 'V') && (e.metaKey || e.ctrlKey) && _clipboard) {
+      e.preventDefault();
+      if (S.tool !== 'select') setTool('select');
+      enterPasteMode();
+    }
     if ((e.key === 'y' || e.key === 'Y') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); redoLast(); }
     // Follow-mode row stepping
     if (S.activeRow !== null) {
@@ -2735,6 +3164,25 @@ function bindCanvasEvents() {
 
       if (S.tool === 'fill') { clearTouchPending(); floodFill(ox, oy); return; }
 
+      // Paste mode: tap places the clipboard top-left at the cell.
+      if (_pasteMode) {
+        clearTouchPending();
+        const cell = getCell(ox, oy);
+        if (cell) performPasteAt(cell.key);
+        return;
+      }
+
+      // Select tool: start a draft marquee from this cell. touchmove
+      // will grow it; touchend commits to rect-or-wand based on drag.
+      if (S.tool === 'select') {
+        clearTouchPending();
+        const cell = getCell(ox, oy);
+        if (!cell) return;
+        _selectionDraft = { startKey: cell.key, endKey: cell.key };
+        scheduleDraw();
+        return;
+      }
+
       // Touch double-tap mirrors mouse dblclick: deliberately overwrite
       // or clear a filled cell when protectFilled is on.
       const cell = getCell(ox, oy);
@@ -2800,6 +3248,14 @@ function bindCanvasEvents() {
         scheduleDraw(); return;
       }
       const r = canvas.getBoundingClientRect();
+      if (_selectionDraft) {
+        const cell = getCell(t.clientX - r.left, t.clientY - r.top);
+        if (cell && cell.key !== _selectionDraft.endKey) {
+          _selectionDraft.endKey = cell.key;
+          scheduleDraw();
+        }
+        return;
+      }
       if (touchPaintPending) {
         const dx = t.clientX - touchPaintPending.clientX;
         const dy = t.clientY - touchPaintPending.clientY;
@@ -2855,6 +3311,10 @@ function bindCanvasEvents() {
         clearTouchPending();
         painting = false;
         redoLast();
+      } else if (_selectionDraft) {
+        // A select-tool drag-or-tap just ended. Commit as rectangle or
+        // magic wand depending on whether the user actually dragged.
+        finishSelectionDraft();
       } else {
         commitTouchPending();
       }
@@ -2928,6 +3388,14 @@ const UI_ACTIONS = {
   setCrochetTerms: el => setCrochetTerms(el.dataset.value),
   togStylus: el => togStylus(el.dataset.value === 'true'),
   togTheme: el => togTheme(el.dataset.value === 'true'),
+  selStripFill: () => selStripFill(),
+  selStripSwap: () => selStripSwap(),
+  selStripChangeStitch: () => selStripChangeStitch(),
+  selStripMirrorH: () => selStripMirrorH(),
+  selStripCopy: () => selStripCopy(),
+  selStripPaste: () => selStripPaste(),
+  selStripClear: () => selStripClear(),
+  legendActionSelectAll: () => legendActionSelectAll(),
   applyGauge: () => applyGauge(),
   openUnderlayFile: () => document.getElementById('underlayFile').click(),
   setUnderlayOpacity: el => setUnderlayOpacity(el.value),
@@ -3752,6 +4220,13 @@ function setTool(t) {
     _repeatAnchor = null;
     draw();
   }
+  // Switching away from the select tool clears the selection and any
+  // pending paste-mode. Same vocabulary users expect from Photoshop/
+  // Procreate: tool change ends the selection scope.
+  if (t !== 'select' && _selection) {
+    clearSelection();
+  }
+  if (t !== 'select') cancelPasteMode();
 }
 
 function setCrochetTerms(term) {
@@ -4001,6 +4476,233 @@ function stepRow(delta) {
   S.activeRow = Math.max(0, Math.min(max, S.activeRow + delta));
   draw();
   scheduleAutosave();
+}
+
+// ── SELECTION: state transitions, strip UI, verbs ──
+// commitRectSelection / magicWandSelect / selectAllOfColor build the
+// selection object and then call setSelection() to install it.
+// setSelection updates the strip and starts the marching-ants tick.
+
+function syncSelStrip() {
+  const strip = document.getElementById('selStrip');
+  if (!strip) return;
+  const pasteBtn = strip.querySelector('.sel-strip-paste');
+  const label = document.getElementById('selStripLabel');
+  if (!_selection) {
+    strip.classList.remove('open');
+    // Wait for the fade to finish before fully hiding.
+    setTimeout(() => {
+      if (!_selection) strip.hidden = true;
+    }, 160);
+    if (pasteBtn) pasteBtn.hidden = !_clipboard;
+    return;
+  }
+  strip.hidden = false;
+  requestAnimationFrame(() => strip.classList.add('open'));
+  if (label) {
+    const n = _selection.cells.size;
+    label.textContent = `${n} cell${n === 1 ? '' : 's'}`;
+  }
+  if (pasteBtn) pasteBtn.hidden = !_clipboard;
+}
+
+function setSelection(sel) {
+  _selection = sel;
+  _selectionDraft = null;
+  syncSelStrip();
+  startMarch();
+  scheduleDraw();
+}
+
+function clearSelection() {
+  if (!_selection) return;
+  _selection = null;
+  _selectionDraft = null;
+  syncSelStrip();
+  stopMarch();
+  cancelPasteMode();
+  scheduleDraw();
+}
+
+function startMarch() {
+  if (_marchTimer) return;
+  // 8 frames/sec is enough for the dash phase to look animated without
+  // burning frames. Each tick just schedules a draw.
+  _marchTimer = setInterval(() => {
+    _marchTick = (_marchTick + 1) % 1000;
+    scheduleDraw();
+  }, 125);
+}
+
+function stopMarch() {
+  if (_marchTimer) clearInterval(_marchTimer);
+  _marchTimer = null;
+}
+
+function selStripClear() { clearSelection(); }
+
+function selStripFill() {
+  if (!_selection) return;
+  pushUndo();
+  let n = 0;
+  for (const key of _selection.cells) {
+    S.cells[key] = { color: S.activeColor, stitchId: S.activeStitch };
+    n++;
+  }
+  markCellsDirty();
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast(`Filled ${n} cell${n === 1 ? '' : 's'}.`);
+}
+
+function selStripSwap() {
+  if (!_selection) return;
+  pushUndo();
+  let n = 0;
+  for (const key of _selection.cells) {
+    const cell = S.cells[key];
+    if (cell && cell.color !== S.activeColor) {
+      S.cells[key] = { ...cell, color: S.activeColor };
+      n++;
+    }
+  }
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast(n ? `Swapped ${n} cell${n === 1 ? '' : 's'} to active colour.` : 'Nothing to swap.');
+}
+
+function selStripChangeStitch() {
+  if (!_selection) return;
+  pushUndo();
+  let n = 0;
+  for (const key of _selection.cells) {
+    const cell = S.cells[key];
+    if (cell && cell.stitchId !== S.activeStitch) {
+      S.cells[key] = { ...cell, stitchId: S.activeStitch };
+      n++;
+    }
+  }
+  markCellsDirty();
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast(n ? `Re-typed ${n} cell${n === 1 ? '' : 's'} to active stitch.` : 'Nothing to re-type.');
+}
+
+function selStripMirrorH() {
+  if (!_selection) return;
+  const { c0, c1 } = _selection.bbox;
+  pushUndo();
+  // Snapshot current cells in the selection, keyed by row+col, then
+  // re-paint flipped. Hex grids share the keyspace name but use
+  // (col,row) ordering — skip mirror on hex for v1.
+  if (S.gridType !== 'square') {
+    toast('Mirror is square-grid only for now.');
+    return;
+  }
+  const snap = new Map();
+  for (const key of _selection.cells) {
+    if (!key.startsWith('sq:')) continue;
+    snap.set(key, S.cells[key] ? { ...S.cells[key] } : null);
+  }
+  // Clear the originals first so we don't double-paint on overlap.
+  for (const key of _selection.cells) {
+    delete S.cells[key];
+  }
+  const newCells = new Set();
+  for (const [key, val] of snap) {
+    const [, rc] = key.split(':');
+    const [r, c] = rc.split(',').map(Number);
+    const cMirror = c0 + (c1 - c);
+    const mirroredKey = `sq:${r},${cMirror}`;
+    newCells.add(mirroredKey);
+    if (val) S.cells[mirroredKey] = val;
+  }
+  _selection = { ..._selection, cells: newCells };
+  markCellsDirty();
+  syncSelStrip();
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast('Mirrored selection horizontally.');
+}
+
+function selStripCopy() {
+  if (!_selection) return;
+  const { r0, c0, r1, c1 } = _selection.bbox;
+  const w = c1 - c0 + 1;
+  const h = r1 - r0 + 1;
+  const cells = new Map();
+  let n = 0;
+  for (const key of _selection.cells) {
+    if (!key.startsWith('sq:')) continue;
+    const cell = S.cells[key];
+    if (!cell) continue;
+    const [, rc] = key.split(':');
+    const [r, c] = rc.split(',').map(Number);
+    cells.set(`${r - r0},${c - c0}`, { ...cell });
+    n++;
+  }
+  _clipboard = { cells, w, h };
+  syncSelStrip();
+  toast(`Copied ${n} cell${n === 1 ? '' : 's'}. Tap Paste, then a cell.`);
+}
+
+function selStripPaste() {
+  if (!_clipboard) return;
+  enterPasteMode();
+}
+
+function enterPasteMode() {
+  if (!_clipboard) return;
+  _pasteMode = true;
+  const cw = document.getElementById('cw');
+  if (cw) cw.classList.add('paste-mode');
+  toast('Tap a cell to place the clipboard.');
+}
+
+function cancelPasteMode() {
+  if (!_pasteMode) return;
+  _pasteMode = false;
+  const cw = document.getElementById('cw');
+  if (cw) cw.classList.remove('paste-mode');
+}
+
+function performPasteAt(targetKey) {
+  if (!_clipboard || !targetKey) return;
+  if (!targetKey.startsWith('sq:')) {
+    toast('Paste is square-grid only.');
+    return;
+  }
+  const [, rc] = targetKey.split(':');
+  const [r0, c0] = rc.split(',').map(Number);
+  pushUndo();
+  let n = 0;
+  const newCells = new Set();
+  for (const [offsetKey, val] of _clipboard.cells) {
+    const [dr, dc] = offsetKey.split(',').map(Number);
+    const r = r0 + dr, c = c0 + dc;
+    if (r < 0 || r >= S.sqH || c < 0 || c >= S.sqW) continue;
+    const key = `sq:${r},${c}`;
+    S.cells[key] = { ...val };
+    newCells.add(key);
+    n++;
+  }
+  markCellsDirty();
+  cancelPasteMode();
+  // After paste, the new region becomes the active selection so the
+  // user can immediately mirror, copy again, etc.
+  if (newCells.size > 0) {
+    const bbox = bboxOfCells(newCells);
+    setSelection({ type: 'rect', cells: newCells, bbox });
+  }
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast(`Pasted ${n} cell${n === 1 ? '' : 's'}.`);
+}
+
+function legendActionSelectAll() {
+  const color = legendPopColor();
+  if (!color) { closeLegendPop(); return; }
+  // Switch to the Select tool so the action strip makes sense.
+  if (S.tool !== 'select') setTool('select');
+  selectAllOfColor(color);
+  closeLegendPop();
+  const n = _selection ? _selection.cells.size : 0;
+  if (n) toast(`Selected ${n} cell${n === 1 ? '' : 's'} of ${color}.`);
 }
 
 // ── TOAST ──

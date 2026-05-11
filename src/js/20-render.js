@@ -94,9 +94,193 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (S.gridType === 'square') drawSquareGrid();
     else drawHexGrid();
+    drawSelection();
   } finally {
     endTokenCache();
   }
+}
+
+// ── SELECTION RENDER ──
+// Two layers, painted after every other chart content so they stay on
+// top of cells, cables, repeats, and the keyboard cursor:
+//   1. Cell tint — a translucent accent wash on every cell in the
+//      selection. Reads at any zoom; doesn't fight cell colors.
+//   2. Marching ants — a 1.5px dashed outline. For rectangles, traces
+//      the bbox. For wand-shape selections, traces the actual
+//      cell-boundary edges (so disjoint or concave regions look right).
+function drawSelection() {
+  // Draft marquee during a Select drag — show only the rectangle,
+  // no fill, no committed cells.
+  if (_selectionDraft && S.gridType === 'square') {
+    drawDraftMarquee();
+  }
+  if (!_selection) return;
+  const sel = _selection;
+  if (sel.type === 'rect' && S.gridType !== 'square') return;
+  drawSelectionTint(sel);
+  if (sel.type === 'rect') drawRectMarchingAnts(sel.bbox);
+  else drawWandMarchingAnts(sel.cells);
+}
+
+function selectionDashPhase() {
+  // Slow march: 8px stride per second, paused under reduced-motion.
+  const reduced = typeof matchMedia === 'function' &&
+    matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) return 0;
+  return (Date.now() / 125) % 12;
+}
+
+function drawSelectionTint(sel) {
+  if (sel.type === 'rect') {
+    // Compute the rectangle's pixel bounds directly from the bbox so we
+    // don't iterate cells (much cheaper for big rectangles).
+    if (S.gridType === 'square') {
+      const cs = S.cellSize, ch = cellHeightSq();
+      const lo = S.showLabels ? 20 : 0;
+      const ox = S.panX + lo, oy = S.panY + lo;
+      const x = ox + sel.bbox.c0 * cs;
+      const y = oy + sel.bbox.r0 * ch;
+      const w = (sel.bbox.c1 - sel.bbox.c0 + 1) * cs;
+      const h = (sel.bbox.r1 - sel.bbox.r0 + 1) * ch;
+      ctx.save();
+      ctx.fillStyle = canvasToken('--accent');
+      ctx.globalAlpha = 0.10;
+      ctx.fillRect(x, y, w, h);
+      ctx.restore();
+    }
+    return;
+  }
+  // Wand: paint each cell individually.
+  ctx.save();
+  ctx.fillStyle = canvasToken('--accent');
+  ctx.globalAlpha = 0.10;
+  if (S.gridType === 'square') {
+    const cs = S.cellSize, ch = cellHeightSq();
+    const lo = S.showLabels ? 20 : 0;
+    const ox = S.panX + lo, oy = S.panY + lo;
+    for (const key of sel.cells) {
+      if (!key.startsWith('sq:')) continue;
+      const [, rc] = key.split(':');
+      const [r, c] = rc.split(',').map(Number);
+      ctx.fillRect(ox + c * cs, oy + r * ch, cs, ch);
+    }
+  } else {
+    const r = S.hexSize, flat = S.hexFlat;
+    const ox = S.panX, oy = S.panY;
+    for (const key of sel.cells) {
+      if (!key.startsWith('hex:')) continue;
+      const [, cc] = key.split(':');
+      const [col, row] = cc.split(',').map(Number);
+      const [cx, cy] = hexCenter(col, row, r, flat);
+      const pts = hexCorners(cx, cy, r * 0.97, flat);
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0] + ox, pts[0][1] + oy);
+      for (let i = 1; i < 6; i++) ctx.lineTo(pts[i][0] + ox, pts[i][1] + oy);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawRectMarchingAnts(bbox) {
+  if (S.gridType !== 'square') return;
+  const cs = S.cellSize, ch = cellHeightSq();
+  const lo = S.showLabels ? 20 : 0;
+  const ox = S.panX + lo, oy = S.panY + lo;
+  const x = ox + bbox.c0 * cs;
+  const y = oy + bbox.r0 * ch;
+  const w = (bbox.c1 - bbox.c0 + 1) * cs;
+  const h = (bbox.r1 - bbox.r0 + 1) * ch;
+  ctx.save();
+  ctx.strokeStyle = canvasToken('--accent');
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.lineDashOffset = -selectionDashPhase();
+  ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  ctx.restore();
+}
+
+// Wand selection boundary — walk every cell in the set, draw only the
+// edges whose neighbor is outside the set. Cheaper than marching-
+// squares and produces the same visual result on cell grids.
+function drawWandMarchingAnts(cellSet) {
+  ctx.save();
+  ctx.strokeStyle = canvasToken('--accent');
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.lineDashOffset = -selectionDashPhase();
+  if (S.gridType === 'square') {
+    const cs = S.cellSize, ch = cellHeightSq();
+    const lo = S.showLabels ? 20 : 0;
+    const ox = S.panX + lo, oy = S.panY + lo;
+    for (const key of cellSet) {
+      if (!key.startsWith('sq:')) continue;
+      const [, rc] = key.split(':');
+      const [r, c] = rc.split(',').map(Number);
+      const x = ox + c * cs, y = oy + r * ch;
+      // top edge
+      if (!cellSet.has(`sq:${r-1},${c}`)) {
+        ctx.beginPath(); ctx.moveTo(x, y + .5); ctx.lineTo(x + cs, y + .5); ctx.stroke();
+      }
+      // bottom edge
+      if (!cellSet.has(`sq:${r+1},${c}`)) {
+        ctx.beginPath(); ctx.moveTo(x, y + ch - .5); ctx.lineTo(x + cs, y + ch - .5); ctx.stroke();
+      }
+      // left edge
+      if (!cellSet.has(`sq:${r},${c-1}`)) {
+        ctx.beginPath(); ctx.moveTo(x + .5, y); ctx.lineTo(x + .5, y + ch); ctx.stroke();
+      }
+      // right edge
+      if (!cellSet.has(`sq:${r},${c+1}`)) {
+        ctx.beginPath(); ctx.moveTo(x + cs - .5, y); ctx.lineTo(x + cs - .5, y + ch); ctx.stroke();
+      }
+    }
+  } else {
+    // Hex outline: stroke each hex polygon individually. Cheap enough
+    // for typical selection sizes; if a wand selection grows huge on a
+    // dense hex grid this is the line to optimize.
+    const r = S.hexSize, flat = S.hexFlat;
+    const ox = S.panX, oy = S.panY;
+    for (const key of cellSet) {
+      if (!key.startsWith('hex:')) continue;
+      const [, cc] = key.split(':');
+      const [col, row] = cc.split(',').map(Number);
+      const [cx, cy] = hexCenter(col, row, r, flat);
+      const pts = hexCorners(cx, cy, r * 0.97, flat);
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0] + ox, pts[0][1] + oy);
+      for (let i = 1; i < 6; i++) ctx.lineTo(pts[i][0] + ox, pts[i][1] + oy);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawDraftMarquee() {
+  if (!_selectionDraft || S.gridType !== 'square') return;
+  const cs = S.cellSize, ch = cellHeightSq();
+  const lo = S.showLabels ? 20 : 0;
+  const ox = S.panX + lo, oy = S.panY + lo;
+  const a = _selectionDraft.startKey, b = _selectionDraft.endKey;
+  if (!a || !b) return;
+  const [, ar] = a.split(':'); const [ar0, ac0] = ar.split(',').map(Number);
+  const [, br] = b.split(':'); const [br0, bc0] = br.split(',').map(Number);
+  const r0 = Math.min(ar0, br0), r1 = Math.max(ar0, br0);
+  const c0 = Math.min(ac0, bc0), c1 = Math.max(ac0, bc0);
+  const x = ox + c0 * cs, y = oy + r0 * ch;
+  const w = (c1 - c0 + 1) * cs, h = (r1 - r0 + 1) * ch;
+  ctx.save();
+  ctx.fillStyle = canvasToken('--accent');
+  ctx.globalAlpha = 0.06;
+  ctx.fillRect(x, y, w, h);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = canvasToken('--accent');
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  ctx.restore();
 }
 
 // ── SQUARE ──

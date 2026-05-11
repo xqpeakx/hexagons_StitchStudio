@@ -49,6 +49,14 @@ const UI_ACTIONS = {
   setCrochetTerms: el => setCrochetTerms(el.dataset.value),
   togStylus: el => togStylus(el.dataset.value === 'true'),
   togTheme: el => togTheme(el.dataset.value === 'true'),
+  selStripFill: () => selStripFill(),
+  selStripSwap: () => selStripSwap(),
+  selStripChangeStitch: () => selStripChangeStitch(),
+  selStripMirrorH: () => selStripMirrorH(),
+  selStripCopy: () => selStripCopy(),
+  selStripPaste: () => selStripPaste(),
+  selStripClear: () => selStripClear(),
+  legendActionSelectAll: () => legendActionSelectAll(),
   applyGauge: () => applyGauge(),
   openUnderlayFile: () => document.getElementById('underlayFile').click(),
   setUnderlayOpacity: el => setUnderlayOpacity(el.value),
@@ -873,6 +881,13 @@ function setTool(t) {
     _repeatAnchor = null;
     draw();
   }
+  // Switching away from the select tool clears the selection and any
+  // pending paste-mode. Same vocabulary users expect from Photoshop/
+  // Procreate: tool change ends the selection scope.
+  if (t !== 'select' && _selection) {
+    clearSelection();
+  }
+  if (t !== 'select') cancelPasteMode();
 }
 
 function setCrochetTerms(term) {
@@ -1122,6 +1137,233 @@ function stepRow(delta) {
   S.activeRow = Math.max(0, Math.min(max, S.activeRow + delta));
   draw();
   scheduleAutosave();
+}
+
+// ── SELECTION: state transitions, strip UI, verbs ──
+// commitRectSelection / magicWandSelect / selectAllOfColor build the
+// selection object and then call setSelection() to install it.
+// setSelection updates the strip and starts the marching-ants tick.
+
+function syncSelStrip() {
+  const strip = document.getElementById('selStrip');
+  if (!strip) return;
+  const pasteBtn = strip.querySelector('.sel-strip-paste');
+  const label = document.getElementById('selStripLabel');
+  if (!_selection) {
+    strip.classList.remove('open');
+    // Wait for the fade to finish before fully hiding.
+    setTimeout(() => {
+      if (!_selection) strip.hidden = true;
+    }, 160);
+    if (pasteBtn) pasteBtn.hidden = !_clipboard;
+    return;
+  }
+  strip.hidden = false;
+  requestAnimationFrame(() => strip.classList.add('open'));
+  if (label) {
+    const n = _selection.cells.size;
+    label.textContent = `${n} cell${n === 1 ? '' : 's'}`;
+  }
+  if (pasteBtn) pasteBtn.hidden = !_clipboard;
+}
+
+function setSelection(sel) {
+  _selection = sel;
+  _selectionDraft = null;
+  syncSelStrip();
+  startMarch();
+  scheduleDraw();
+}
+
+function clearSelection() {
+  if (!_selection) return;
+  _selection = null;
+  _selectionDraft = null;
+  syncSelStrip();
+  stopMarch();
+  cancelPasteMode();
+  scheduleDraw();
+}
+
+function startMarch() {
+  if (_marchTimer) return;
+  // 8 frames/sec is enough for the dash phase to look animated without
+  // burning frames. Each tick just schedules a draw.
+  _marchTimer = setInterval(() => {
+    _marchTick = (_marchTick + 1) % 1000;
+    scheduleDraw();
+  }, 125);
+}
+
+function stopMarch() {
+  if (_marchTimer) clearInterval(_marchTimer);
+  _marchTimer = null;
+}
+
+function selStripClear() { clearSelection(); }
+
+function selStripFill() {
+  if (!_selection) return;
+  pushUndo();
+  let n = 0;
+  for (const key of _selection.cells) {
+    S.cells[key] = { color: S.activeColor, stitchId: S.activeStitch };
+    n++;
+  }
+  markCellsDirty();
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast(`Filled ${n} cell${n === 1 ? '' : 's'}.`);
+}
+
+function selStripSwap() {
+  if (!_selection) return;
+  pushUndo();
+  let n = 0;
+  for (const key of _selection.cells) {
+    const cell = S.cells[key];
+    if (cell && cell.color !== S.activeColor) {
+      S.cells[key] = { ...cell, color: S.activeColor };
+      n++;
+    }
+  }
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast(n ? `Swapped ${n} cell${n === 1 ? '' : 's'} to active colour.` : 'Nothing to swap.');
+}
+
+function selStripChangeStitch() {
+  if (!_selection) return;
+  pushUndo();
+  let n = 0;
+  for (const key of _selection.cells) {
+    const cell = S.cells[key];
+    if (cell && cell.stitchId !== S.activeStitch) {
+      S.cells[key] = { ...cell, stitchId: S.activeStitch };
+      n++;
+    }
+  }
+  markCellsDirty();
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast(n ? `Re-typed ${n} cell${n === 1 ? '' : 's'} to active stitch.` : 'Nothing to re-type.');
+}
+
+function selStripMirrorH() {
+  if (!_selection) return;
+  const { c0, c1 } = _selection.bbox;
+  pushUndo();
+  // Snapshot current cells in the selection, keyed by row+col, then
+  // re-paint flipped. Hex grids share the keyspace name but use
+  // (col,row) ordering — skip mirror on hex for v1.
+  if (S.gridType !== 'square') {
+    toast('Mirror is square-grid only for now.');
+    return;
+  }
+  const snap = new Map();
+  for (const key of _selection.cells) {
+    if (!key.startsWith('sq:')) continue;
+    snap.set(key, S.cells[key] ? { ...S.cells[key] } : null);
+  }
+  // Clear the originals first so we don't double-paint on overlap.
+  for (const key of _selection.cells) {
+    delete S.cells[key];
+  }
+  const newCells = new Set();
+  for (const [key, val] of snap) {
+    const [, rc] = key.split(':');
+    const [r, c] = rc.split(',').map(Number);
+    const cMirror = c0 + (c1 - c);
+    const mirroredKey = `sq:${r},${cMirror}`;
+    newCells.add(mirroredKey);
+    if (val) S.cells[mirroredKey] = val;
+  }
+  _selection = { ..._selection, cells: newCells };
+  markCellsDirty();
+  syncSelStrip();
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast('Mirrored selection horizontally.');
+}
+
+function selStripCopy() {
+  if (!_selection) return;
+  const { r0, c0, r1, c1 } = _selection.bbox;
+  const w = c1 - c0 + 1;
+  const h = r1 - r0 + 1;
+  const cells = new Map();
+  let n = 0;
+  for (const key of _selection.cells) {
+    if (!key.startsWith('sq:')) continue;
+    const cell = S.cells[key];
+    if (!cell) continue;
+    const [, rc] = key.split(':');
+    const [r, c] = rc.split(',').map(Number);
+    cells.set(`${r - r0},${c - c0}`, { ...cell });
+    n++;
+  }
+  _clipboard = { cells, w, h };
+  syncSelStrip();
+  toast(`Copied ${n} cell${n === 1 ? '' : 's'}. Tap Paste, then a cell.`);
+}
+
+function selStripPaste() {
+  if (!_clipboard) return;
+  enterPasteMode();
+}
+
+function enterPasteMode() {
+  if (!_clipboard) return;
+  _pasteMode = true;
+  const cw = document.getElementById('cw');
+  if (cw) cw.classList.add('paste-mode');
+  toast('Tap a cell to place the clipboard.');
+}
+
+function cancelPasteMode() {
+  if (!_pasteMode) return;
+  _pasteMode = false;
+  const cw = document.getElementById('cw');
+  if (cw) cw.classList.remove('paste-mode');
+}
+
+function performPasteAt(targetKey) {
+  if (!_clipboard || !targetKey) return;
+  if (!targetKey.startsWith('sq:')) {
+    toast('Paste is square-grid only.');
+    return;
+  }
+  const [, rc] = targetKey.split(':');
+  const [r0, c0] = rc.split(',').map(Number);
+  pushUndo();
+  let n = 0;
+  const newCells = new Set();
+  for (const [offsetKey, val] of _clipboard.cells) {
+    const [dr, dc] = offsetKey.split(',').map(Number);
+    const r = r0 + dr, c = c0 + dc;
+    if (r < 0 || r >= S.sqH || c < 0 || c >= S.sqW) continue;
+    const key = `sq:${r},${c}`;
+    S.cells[key] = { ...val };
+    newCells.add(key);
+    n++;
+  }
+  markCellsDirty();
+  cancelPasteMode();
+  // After paste, the new region becomes the active selection so the
+  // user can immediately mirror, copy again, etc.
+  if (newCells.size > 0) {
+    const bbox = bboxOfCells(newCells);
+    setSelection({ type: 'rect', cells: newCells, bbox });
+  }
+  draw(); updateStats(); updateLegend(); scheduleAutosave();
+  toast(`Pasted ${n} cell${n === 1 ? '' : 's'}.`);
+}
+
+function legendActionSelectAll() {
+  const color = legendPopColor();
+  if (!color) { closeLegendPop(); return; }
+  // Switch to the Select tool so the action strip makes sense.
+  if (S.tool !== 'select') setTool('select');
+  selectAllOfColor(color);
+  closeLegendPop();
+  const n = _selection ? _selection.cells.size : 0;
+  if (n) toast(`Selected ${n} cell${n === 1 ? '' : 's'} of ${color}.`);
 }
 
 // ── TOAST ──
